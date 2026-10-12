@@ -41,11 +41,11 @@ Java、Clang 等使用源码树预置版本，不手动替换为系统编译器�
 把集成工具仓库与 Android 大源码目录分开放置：
 
 ```bash
-git clone https://git.code.sf.net/p/xiaomi13-aospa/code xiaomi13-aospa-kit
+git clone https://github.com/zhizhuzhizhuzhi/xiaomi13-aospa.git xiaomi13-aospa-kit
 mkdir android-fuxi
 cd android-fuxi
-repo init -u https://git.code.sf.net/p/xiaomi13-aospa/code \
-  -b master -m manifests/release.xml
+repo init -u https://github.com/zhizhuzhizhuzhi/xiaomi13-aospa.git \
+  -b main -m manifests/release.xml
 repo sync -c --no-tags -j4 --fail-fast
 python3 ../xiaomi13-aospa-kit/scripts/apply.py "$PWD" --check
 python3 ../xiaomi13-aospa-kit/scripts/apply.py "$PWD"
