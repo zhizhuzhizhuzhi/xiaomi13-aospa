@@ -1,0 +1,23 @@
+diff --git a/overlays/Frameworks/res/values/dimens.xml b/overlays/Frameworks/res/values/dimens.xml
+index ee75512..26ed7a0 100644
+--- a/overlays/Frameworks/res/values/dimens.xml
++++ b/overlays/Frameworks/res/values/dimens.xml
+@@ -1,5 +1,6 @@
+ <?xml version="1.0" encoding="utf-8"?>
+ <resources>
++    <dimen name="rounded_corner_radius">118px</dimen>
+     <!-- Height of the status bar.
+          Do not read this dimen directly. Use {@link SystemBarUtils#getStatusBarHeight} instead.
+          -->
+diff --git a/overlays/WifiRes/res/values/config.xml b/overlays/WifiRes/res/values/config.xml
+index 96da3ce..93e31c0 100644
+--- a/overlays/WifiRes/res/values/config.xml
++++ b/overlays/WifiRes/res/values/config.xml
+@@ -1,5 +1,6 @@
+ <?xml version="1.0" encoding="utf-8"?>
+ <resources>
++    <string name="config_wifiFixedCountryCode" translatable="false">US</string>
+     <!-- Default access point SSID used for tethering -->
+     <string name="wifi_tether_configure_ssid_default" translatable="false">Xiaomi 13</string>
+ </resources>
+\ No newline at end of file

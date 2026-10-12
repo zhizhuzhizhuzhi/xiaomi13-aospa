@@ -1,0 +1,73 @@
+# Audio
+ro.audio.monitorRotation=true
+
+# Bluetooth
+persist.sys.fflag.override.settings_bluetooth_hearing_aid=true
+persist.vendor.qcom.bluetooth.a2dp_offload_cap=sbc-aptx-aptxtws-aptxhd-aac-ldac-aptxadaptiver2
+persist.vendor.qcom.bluetooth.aac_frm_ctl.enabled=true
+persist.vendor.qcom.bluetooth.aac_vbr_ctl.enabled=true
+persist.vendor.qcom.bluetooth.aptxadaptiver2_1_support=true
+
+# Camera
+camera.disable_zsl_mode=true
+ro.camera.enableCamera1MaxZsl=1
+
+# Display
+persist.sys.sf.native_mode=258
+ro.vendor.display.ai_disp.enable=true
+ro.vendor.display.mi_calib.enable=true
+ro.vendor.display.nature_mode.enable=true
+ro.vendor.display.type=oled
+ro.vendor.displayfeature.dump=true
+ro.vendor.fps.switch.default=true
+ro.vendor.fps.switch.thermal=trues
+ro.vendor.hbm_backlight.enable=true
+ro.vendor.histogram.enable=true
+ro.vendor.localhbm.enable=true
+ro.vendor.thermal.dimming.enable=true
+ro.vendor.xiaomi.bl.poll=true
+
+# DPM
+persist.vendor.dpm.vndr.feature=11
+persist.vendor.dpm.vndr.halservice.enable=1
+persist.vendor.dpm.vndr.idletimer.mode=default
+
+# DRM
+drm.service.enabled=true
+
+# FM
+vendor.hw.fm.init=0
+
+# FUSE passthrough
+persist.sys.fuse.passthrough.enable=true
+
+# Incremental FS
+ro.incremental.enable=yes
+
+# Keystore
+ro.hardware.keystore_desede=true
+
+# Media
+debug.stagefright.c2inputsurface=-1
+media.stagefright.enable-aac=true
+media.stagefright.enable-fma2dp=true
+media.stagefright.enable-http=true
+media.stagefright.enable-player=true
+media.stagefright.enable-qcp=true
+media.stagefright.enable-scan=true
+media.stagefright.thumbnail.prefer_hw_codecs=true
+ro.mediaserver.64b.enable=true
+vendor.media.omx=0
+
+# NFC
+ro.vendor.nfc.disable.i2c=false
+ro.vendor.nfc.dispatch_optim=1
+ro.vendor.nfc.repair=1
+ro.vendor.se.type=HCE,UICC
+
+# Telephony
+persist.vendor.radio.redir_party_num=0
+ro.vendor.radio.build_profile=u-stable
+
+# USB
+ro.usb.uvc.enabled=true

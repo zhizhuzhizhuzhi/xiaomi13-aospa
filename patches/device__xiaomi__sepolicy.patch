@@ -1,0 +1,50 @@
+diff --git a/vendor/hal_citsensorservice_xiaomi.te b/vendor/hal_citsensorservice_xiaomi.te
+index bda5346..9108bb3 100644
+--- a/vendor/hal_citsensorservice_xiaomi.te
++++ b/vendor/hal_citsensorservice_xiaomi.te
+@@ -26,8 +26,8 @@ allow vendor_hal_citsensorservice_xiaomi_default vendor_sysfs_displayfeature:fil
+ allow vendor_hal_citsensorservice_xiaomi_default vendor_displayfeature_device:chr_file { ioctl open read write };
+ allow vendor_hal_citsensorservice_xiaomi_default hal_graphics_mapper_hwservice:hwservice_manager find;
+ allow vendor_hal_citsensorservice_xiaomi_default vendor_hal_display_config_hwservice:hwservice_manager find;
+-allow vendor_hal_citsensorservice_xiaomi_default vendor_hal_display_config_hwservice:binder { call transfer };
+-allow vendor_hal_citsensorservice_xiaomi_default vendor_hal_display_config_hwservice:fd *;
++allow vendor_hal_citsensorservice_xiaomi_default hal_graphics_composer_server:binder { call transfer };
++allow vendor_hal_citsensorservice_xiaomi_default hal_graphics_composer_server:fd *;
+ allow vendor_hal_citsensorservice_xiaomi_default hal_graphics_composer:binder { call transfer };
+ allow vendor_hal_citsensorservice_xiaomi_default hal_graphics_composer:fd *;
+ allow vendor_hal_citsensorservice_xiaomi_default vendor_qdisplay_service:service_manager find;
+diff --git a/vendor/hal_display_config.te b/vendor/hal_display_config.te
+index 1c79364..5a73637 100644
+--- a/vendor/hal_display_config.te
++++ b/vendor/hal_display_config.te
+@@ -1,2 +1,2 @@
+-allow vendor_hal_display_config_hwservice vendor_hal_displayfeature_xiaomi_default:binder transfer;
+-allow vendor_hal_display_config_hwservice vendor_hal_citsensorservice_xiaomi_default:binder transfer;
++allow hal_graphics_composer_server vendor_hal_displayfeature_xiaomi_default:binder transfer;
++allow hal_graphics_composer_server vendor_hal_citsensorservice_xiaomi_default:binder transfer;
+diff --git a/vendor/hal_displayfeature_xiaomi.te b/vendor/hal_displayfeature_xiaomi.te
+index c492bd7..ff22bbe 100644
+--- a/vendor/hal_displayfeature_xiaomi.te
++++ b/vendor/hal_displayfeature_xiaomi.te
+@@ -9,8 +9,8 @@ allow vendor_hal_displayfeature_xiaomi_default sensors_device:chr_file r_file_pe
+ allow vendor_hal_displayfeature_xiaomi_default fwk_sensor_hwservice:hwservice_manager find;
+ allow vendor_hal_displayfeature_xiaomi_default system_server:binder call;
+ allow vendor_hal_displayfeature_xiaomi_default vendor_hal_display_config_hwservice:hwservice_manager find;
+-allow vendor_hal_displayfeature_xiaomi_default vendor_hal_display_config_hwservice:binder { call transfer };
+-allow vendor_hal_displayfeature_xiaomi_default vendor_hal_display_config_hwservice:fd *;
++allow vendor_hal_displayfeature_xiaomi_default hal_graphics_composer_server:binder { call transfer };
++allow vendor_hal_displayfeature_xiaomi_default hal_graphics_composer_server:fd *;
+ allow vendor_hal_displayfeature_xiaomi_default vendor_display_vendor_data_file:dir create_dir_perms;
+ allow vendor_hal_displayfeature_xiaomi_default vendor_display_vendor_data_file:file create_file_perms;
+ allow vendor_hal_displayfeature_xiaomi_default vendor_displayfeature_device:chr_file { ioctl open read write };
+diff --git a/vendor/radio.te b/vendor/radio.te
+index ea40149..e92d293 100644
+--- a/vendor/radio.te
++++ b/vendor/radio.te
+@@ -1,6 +1,5 @@
+ # Misys
+ allow radio hal_misys_hwservice:hwservice_manager find;
+-allow radio hal_misys_hwservice:binder call;
+ allow radio hal_misys_default:binder call;
+ 
+ # Radio

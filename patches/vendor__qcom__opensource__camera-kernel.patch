@@ -1,0 +1,46 @@
+diff --git a/Kbuild b/Kbuild
+index 74cff741..d06bf31b 100644
+--- a/Kbuild
++++ b/Kbuild
+@@ -57,6 +57,8 @@ cam_include_dirs := $(shell dirname `find $(CAMERA_KERNEL_ROOT) -name '*.h'` | u
+ USERINCLUDE +=                              \
+ 	-I$(CAMERA_KERNEL_ROOT)/include/uapi/
+ # Include Kernel headers
++LINUXINCLUDE += -I$(CAMERA_GEN_DIR)
++
+ LINUXINCLUDE +=                                 \
+ 	-I$(KERNEL_ROOT)                            \
+ 	$(addprefix -I,$(cam_include_dirs))         \
+diff --git a/Makefile b/Makefile
+index 2d6503c1..233d6996 100644
+--- a/Makefile
++++ b/Makefile
+@@ -5,18 +5,23 @@ KBUILD_OPTIONS += KERNEL_ROOT=$(ROOT_DIR)/$(KERNEL_DIR)
+ KBUILD_OPTIONS += MODNAME=camera
+ KBUILD_OPTIONS += MODNAME=cameralog
+ 
++CAMERA_GEN_DIR := $(abspath $(O)/$(M))/generated
++CAMERA_GEN_PATH := $(CAMERA_GEN_DIR)/cam_generated_h
++KBUILD_OPTIONS += CAMERA_GEN_DIR=$(CAMERA_GEN_DIR)
++
+ all: modules
+ 
+ CAMERA_COMPILE_TIME = $(shell date)
+ CAMERA_COMPILE_BY = $(shell whoami | sed 's/\\/\\\\/')
+ CAMERA_COMPILE_HOST = $(shell uname -n)
+ 
+-cam_generated_h: $(shell find . -iname "*.c") $(shell find . -iname "*.h") $(shell find . -iname "*.mk")
+-	echo '#define CAMERA_COMPILE_TIME "$(CAMERA_COMPILE_TIME)"' > cam_generated_h
+-	echo '#define CAMERA_COMPILE_BY "$(CAMERA_COMPILE_BY)"' >> cam_generated_h
+-	echo '#define CAMERA_COMPILE_HOST "$(CAMERA_COMPILE_HOST)"' >> cam_generated_h
++$(CAMERA_GEN_PATH): $(shell find . -iname "*.c") $(shell find . -iname "*.h") $(shell find . -iname "*.mk")
++	mkdir -p $(CAMERA_GEN_DIR)
++	echo '#define CAMERA_COMPILE_TIME "$(CAMERA_COMPILE_TIME)"' > $(CAMERA_GEN_PATH)
++	echo '#define CAMERA_COMPILE_BY "$(CAMERA_COMPILE_BY)"' >> $(CAMERA_GEN_PATH)
++	echo '#define CAMERA_COMPILE_HOST "$(CAMERA_COMPILE_HOST)"' >> $(CAMERA_GEN_PATH)
+ 
+-modules: cam_generated_h
++modules: $(CAMERA_GEN_PATH)
+ 
+ modules dtbs:
+ 	$(MAKE) -C $(KERNEL_SRC) M=$(M) modules $(KBUILD_OPTIONS)

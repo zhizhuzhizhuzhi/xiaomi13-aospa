@@ -1,0 +1,35 @@
+diff --git a/android/aidl-impl/Android.bp b/android/aidl-impl/Android.bp
+index 8c54533..7372579 100644
+--- a/android/aidl-impl/Android.bp
++++ b/android/aidl-impl/Android.bp
+@@ -1,5 +1,6 @@
+ cc_library_shared {
+     name: "android.hardware.gnss-aidl-impl-qti",
++    installable: false,
+     vintf_fragments: ["android.hardware.gnss-aidl-service-qti.xml"],
+     vendor: true,
+     relative_install_path: "hw",
+@@ -59,6 +60,7 @@ cc_library_shared {
+ 
+ cc_library_shared {
+     name: "android.hardware.gnss-aidl-impl-qti_wearable",
++    installable: false,
+     stem: "android.hardware.gnss-aidl-impl-qti",
+     vintf_fragments: ["android.hardware.gnss-aidl-service-qti.xml"],
+     vendor: true,
+@@ -119,6 +121,7 @@ cc_library_shared {
+ 
+ cc_binary {
+     name: "android.hardware.gnss-aidl-service-qti",
++    installable: false,
+     vintf_fragments: ["android.hardware.gnss-aidl-service-qti.xml"],
+     vendor: true,
+     relative_install_path: "hw",
+@@ -154,6 +157,7 @@ cc_binary {
+ 
+ cc_binary {
+     name: "android.hardware.gnss-aidl-service-qti_wearable",
++    installable: false,
+     stem: "android.hardware.gnss-aidl-service-qti",
+     vintf_fragments: ["android.hardware.gnss-aidl-service-qti.xml"],
+     vendor: true,

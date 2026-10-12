@@ -1,0 +1,5 @@
+# Fingerprint
+type sysfs_tp_fodstatus, fs_type, sysfs_type;
+
+# Touch
+type sysfs_tp_touchfeature, fs_type, sysfs_type;

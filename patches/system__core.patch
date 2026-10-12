@@ -1,0 +1,22 @@
+diff --git a/libprocessgroup/processgroup.cpp b/libprocessgroup/processgroup.cpp
+index 7648c21..2a8aef2 100644
+--- a/libprocessgroup/processgroup.cpp
++++ b/libprocessgroup/processgroup.cpp
+@@ -213,6 +213,17 @@ bool SetTaskProfiles(pid_t tid, const std::vector<std::string>& profiles, bool u
+                                                        use_fd_cache);
+ }
+ 
++// Legacy Xiaomi camera blobs use the unmangled vendor entry point with the
++// vector<string>, tid, and fd-cache ABI. Delegate to the current implementation.
++#if defined(__ANDROID_VENDOR__)
++bool SetTaskProfilesLegacy(pid_t tid, const std::vector<std::string>& profiles,
++                           bool use_fd_cache) __asm__("SetTaskProfiles");
++bool SetTaskProfilesLegacy(pid_t tid, const std::vector<std::string>& profiles,
++                           bool use_fd_cache) {
++    return SetTaskProfiles(tid, profiles, use_fd_cache);
++}
++#endif
++
+ bool SetTaskProfiles(pid_t tid, std::initializer_list<std::string_view> profiles,
+                      bool use_fd_cache) {
+     return TaskProfiles::GetInstance().SetTaskProfiles(

@@ -1,0 +1,34 @@
+diff --git a/Kbuild b/Kbuild
+index c24e6d3..6398bf7 100644
+--- a/Kbuild
++++ b/Kbuild
+@@ -32,7 +32,8 @@ LINUXINCLUDE    += -include $(VIDEO_ROOT)/config/crow_video.h \
+                    -I$(VIDEO_ROOT)/driver/platform/crow/inc
+ endif
+ 
+-LINUXINCLUDE    += -I$(VIDEO_ROOT)/driver/vidc/inc \
++LINUXINCLUDE    += -I$(VIDEO_GEN_DIR) \
++                   -I$(VIDEO_ROOT)/driver/vidc/inc \
+                    -I$(VIDEO_ROOT)/driver/platform/common/inc \
+                    -I$(VIDEO_ROOT)/include/uapi/vidc
+ 
+diff --git a/Makefile b/Makefile
+index 92b3f7f..dba488b 100644
+--- a/Makefile
++++ b/Makefile
+@@ -5,11 +5,14 @@ KBUILD_OPTIONS+= VIDEO_ROOT=$(KERNEL_SRC)/$(M)
+ VIDEO_COMPILE_TIME = $(shell date)
+ VIDEO_COMPILE_BY = $(shell whoami | sed 's/\\/\\\\/')
+ VIDEO_COMPILE_HOST = $(shell uname -n)
+-VIDEO_GEN_PATH = $(VIDEO_ROOT)/driver/vidc/inc/video_generated_h
++VIDEO_GEN_DIR := $(abspath $(O)/$(M))/generated
++VIDEO_GEN_PATH = $(VIDEO_GEN_DIR)/video_generated_h
++KBUILD_OPTIONS += VIDEO_GEN_DIR=$(VIDEO_GEN_DIR)
+ 
+ all: modules
+ 
+ $(VIDEO_GEN_PATH): $(shell find . -type f \( -iname \*.c -o -iname \*.h -o -iname \*.mk \))
++	mkdir -p $(VIDEO_GEN_DIR)
+ 	echo '#define VIDEO_COMPILE_TIME "$(VIDEO_COMPILE_TIME)"' > $(VIDEO_GEN_PATH)
+ 	echo '#define VIDEO_COMPILE_BY "$(VIDEO_COMPILE_BY)"' >> $(VIDEO_GEN_PATH)
+ 	echo '#define VIDEO_COMPILE_HOST "$(VIDEO_COMPILE_HOST)"' >> $(VIDEO_GEN_PATH)

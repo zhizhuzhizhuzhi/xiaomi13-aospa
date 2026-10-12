@@ -1,0 +1,41 @@
+diff --git a/file.cpp b/file.cpp
+index c03d7e1..0e978c5 100644
+--- a/file.cpp
++++ b/file.cpp
+@@ -263,6 +263,15 @@ bool ReadFileToString(const std::string& path, std::string* content, bool follow
+   return ReadFdToString(fd, content);
+ }
+ 
++#if defined(__ANDROID_VENDOR__)
++// Keep the string-reference ABI required by legacy Xiaomi vendor binaries.
++bool WriteStringToFdLegacy(const std::string& content, borrowed_fd fd)
++    __asm__("_ZN7android4base15WriteStringToFdERKNSt3__112basic_stringIcNS1_11char_traitsIcEENS1_9allocatorIcEEEENS0_11borrowed_fdE");
++bool WriteStringToFdLegacy(const std::string& content, borrowed_fd fd) {
++  return WriteStringToFd(std::string_view(content), fd);
++}
++#endif
++
+ bool WriteStringToFd(std::string_view content, borrowed_fd fd) {
+   const char* p = content.data();
+   size_t left = content.size();
+diff --git a/strings.cpp b/strings.cpp
+index a776d22..1acbb26 100644
+--- a/strings.cpp
++++ b/strings.cpp
+@@ -72,6 +72,16 @@ std::vector<std::string> Tokenize(const std::string& s, const std::string& delim
+ template std::string Trim(const char*&);
+ template std::string Trim(const char*&&);
+ template std::string Trim(const std::string&);
++
++#if defined(__ANDROID_VENDOR__)
++// Preserve the pre-template ABI used by legacy NFC vendor blobs.
++std::string TrimLegacy(const std::string& s)
++    __asm__("_ZN7android4base4TrimERKNSt3__112basic_stringIcNS1_11char_traitsIcEENS1_9allocatorIcEEEE");
++std::string TrimLegacy(const std::string& s) {
++  return Trim(s);
++}
++#endif
++
+ template std::string Trim(const std::string&&);
+ template std::string Trim(std::string_view&);
+ template std::string Trim(std::string_view&&);

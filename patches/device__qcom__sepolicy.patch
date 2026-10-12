@@ -1,0 +1,10 @@
+diff --git a/generic/product/private/isolated_compute_app.te b/generic/product/private/isolated_compute_app.te
+index 186d4fc..c8cc66e 100644
+--- a/generic/product/private/isolated_compute_app.te
++++ b/generic/product/private/isolated_compute_app.te
+@@ -2,4 +2,4 @@
+ # SPDX-License-Identifier: BSD-3-Clause-Clear
+ 
+ # allow isolated_compute_app to be a client of DSP HAL
+-hal_client_domain(isolated_compute_app, vendor_hal_dspmanager)
++# Android 17 isolated compute domains cannot discover vendor DSP services.

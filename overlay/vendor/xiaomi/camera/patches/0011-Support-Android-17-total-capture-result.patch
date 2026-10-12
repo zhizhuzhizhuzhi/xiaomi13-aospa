@@ -1,0 +1,37 @@
+--- a/smali_classes4/com/xiaomi/protocol/ICustomCaptureResult.smali
++++ b/smali_classes4/com/xiaomi/protocol/ICustomCaptureResult.smali
+@@ -484,6 +484,15 @@
+ 
+     const/4 v1, 0x0
+ 
++    # Android 17 uses the request-id/frame-number TotalCaptureResult constructor.
++    # Its CaptureResultExtras object is not needed on this path.
++    const/16 v6, 0x25
++    if-lt v0, v6, :capture_extras_legacy
++    const/4 v0, 0x0
++    const/4 v6, 0x0
++    goto/16 :goto_0
++    :capture_extras_legacy
++    const/16 v6, 0x1e
+     if-lt v0, v6, :cond_0
+ 
+     const/16 v0, 0xb
+@@ -809,8 +818,17 @@
+ 
+     array-length v10, v10
+ 
++    sget v7, Landroid/os/Build$VERSION;->SDK_INT:I
++    const/16 v11, 0x25
++    if-lt v7, v11, :total_constructor_legacy
++    const/16 v11, 0x8
++    if-ne v10, v11, :cond_1
++    const/4 v11, 0x6
++    goto :total_constructor_selected
++    :total_constructor_legacy
++    const/4 v11, 0x6
+     if-le v10, v15, :cond_1
+-
++    :total_constructor_selected
+     move-object/from16 v6, v19
+ 
+     goto :goto_2

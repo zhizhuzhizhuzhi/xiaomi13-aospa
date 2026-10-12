@@ -1,0 +1,98 @@
+diff --git a/libs/binder/OS_android.cpp b/libs/binder/OS_android.cpp
+index 062f041..78fe710 100644
+--- a/libs/binder/OS_android.cpp
++++ b/libs/binder/OS_android.cpp
+@@ -56,11 +56,17 @@ uint64_t get_trace_enabled_tags() {
+ } // namespace os
+ 
+ // Legacy trace symbol. To be removed once all of downstream rebuilds.
++#if defined(__ANDROID_VENDOR__)
++LIBBINDER_EXPORTED
++#endif
+ void atrace_begin(uint64_t tag, const char* name) {
+     os::trace_begin(tag, name);
+ }
+ 
+ // Legacy trace symbol. To be removed once all of downstream rebuilds.
++#if defined(__ANDROID_VENDOR__)
++LIBBINDER_EXPORTED
++#endif
+ void atrace_end(uint64_t tag) {
+     os::trace_end(tag);
+ }
+diff --git a/libs/ui/GraphicBuffer.cpp b/libs/ui/GraphicBuffer.cpp
+index 873b039..cfc99df 100644
+--- a/libs/ui/GraphicBuffer.cpp
++++ b/libs/ui/GraphicBuffer.cpp
+@@ -106,7 +106,9 @@ GraphicBuffer::GraphicBuffer()
+     usage  = 0;
+     layerCount = 0;
+     handle = nullptr;
++    #if !defined(LIBUI_IN_VNDK) && !defined(__ANDROID_VENDOR__)
+     mDependencyMonitor.setToken(std::to_string(mId));
++    #endif
+ }
+ 
+ // deprecated
+@@ -159,7 +161,9 @@ GraphicBuffer::GraphicBuffer(const GraphicBufferAllocator::AllocationRequest& re
+         usage = request.usage;
+         usage_deprecated = int(usage);
+         std::string name = request.requestorName;
++        #if !defined(LIBUI_IN_VNDK) && !defined(__ANDROID_VENDOR__)
+         mDependencyMonitor.setToken(name.append(":").append(std::to_string(mId)));
++        #endif
+     }
+ }
+ 
+@@ -262,7 +266,9 @@ status_t GraphicBuffer::initWithSize(uint32_t inWidth, uint32_t inHeight,
+         usage = inUsage;
+         usage_deprecated = int(usage);
+         stride = static_cast<int>(outStride);
++        #if !defined(LIBUI_IN_VNDK) && !defined(__ANDROID_VENDOR__)
+         mDependencyMonitor.setToken(requestorName.append(":").append(std::to_string(mId)));
++        #endif
+     }
+     return err;
+ }
+@@ -626,7 +632,9 @@ status_t GraphicBuffer::unflatten(void const*& buffer, size_t& size, int const*&
+         name = "<Unknown>";
+     }
+ 
++    #if !defined(LIBUI_IN_VNDK) && !defined(__ANDROID_VENDOR__)
+     mDependencyMonitor.setToken(name.append(":").append(std::to_string(mId)));
++    #endif
+ 
+     buffer = static_cast<void const*>(static_cast<uint8_t const*>(buffer) + sizeNeeded);
+     size -= sizeNeeded;
+diff --git a/libs/ui/include/ui/GraphicBuffer.h b/libs/ui/include/ui/GraphicBuffer.h
+index b8d9464..4991e02 100644
+--- a/libs/ui/include/ui/GraphicBuffer.h
++++ b/libs/ui/include/ui/GraphicBuffer.h
+@@ -240,7 +240,15 @@ public:
+ 
+     void addDeathCallback(GraphicBufferDeathCallback deathCallback, void* context);
+ 
+-    DependencyMonitor& getDependencyMonitor() { return mDependencyMonitor; }
++    DependencyMonitor& getDependencyMonitor() {
++#if !defined(LIBUI_IN_VNDK) && !defined(__ANDROID_VENDOR__)
++        return mDependencyMonitor;
++#else
++        // Keep vendor GraphicBuffer ABI compatible with existing camera HALs.
++        static DependencyMonitor vendorMonitor;
++        return vendorMonitor;
++#endif
++    }
+ 
+ private:
+     ~GraphicBuffer();
+@@ -309,7 +317,10 @@ private:
+     std::vector<std::pair<GraphicBufferDeathCallback, void* /*mDeathCallbackContext*/>>
+             mDeathCallbacks;
+ 
++#if !defined(LIBUI_IN_VNDK) && !defined(__ANDROID_VENDOR__)
++    // Legacy vendor binaries allocate GraphicBuffer using its old size.
+     DependencyMonitor mDependencyMonitor;
++#endif
+ };
+ 
+ } // namespace android

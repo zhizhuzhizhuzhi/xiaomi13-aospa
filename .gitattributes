@@ -1,0 +1,8 @@
+*.py text eol=lf
+*.sh text eol=lf
+*.md text eol=lf
+*.json text eol=lf
+manifests/*.xml text eol=lf
+patches/** -whitespace
+device-tree-snapshot/** -whitespace
+licenses/** -whitespace

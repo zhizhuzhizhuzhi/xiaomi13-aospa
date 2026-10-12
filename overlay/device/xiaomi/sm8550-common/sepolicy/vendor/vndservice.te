@@ -1,0 +1,3 @@
+# The fuxi QMS blob uses /dev/vndbinder; keep its legacy service label
+# separate from newer Qualcomm AIDL services on /dev/binder.
+type vendor_qms_legacy_vndservice, vndservice_manager_type;

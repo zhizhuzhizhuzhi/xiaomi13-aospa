@@ -1,0 +1,18 @@
+diff --git a/audio_route/Android.bp b/audio_route/Android.bp
+index fbe23aa..6c4a3be 100644
+--- a/audio_route/Android.bp
++++ b/audio_route/Android.bp
+@@ -26,6 +26,13 @@ cc_defaults {
+ 
+ cc_library_shared {
+     name: "libaudioroute",
++    // Xiaomi vendor extension accesses the Android 14 mixer_state layout.
++    target: {
++        vendor: {
++            exclude_srcs: ["audio_route.c"],
++            srcs: ["audio_route_vendor_legacy.c"],
++        },
++    },
+     defaults: ["libaudioroute_defaults"],
+     shared_libs: [
+         "libtinyalsa",

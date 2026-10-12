@@ -1,0 +1,11 @@
+private-blobs/
+*.apk
+*.so
+*.ko
+*.img
+*.zip
+*.part
+*.pem
+*.pk8
+*.key
+__pycache__/

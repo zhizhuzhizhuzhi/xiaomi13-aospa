@@ -1,0 +1,2 @@
+vndbinder_use(vendor_qms)
+allow vendor_qms vendor_qms_legacy_vndservice:service_manager { add find };

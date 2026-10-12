@@ -1,0 +1,42 @@
+diff --git a/services/core/java/com/android/server/display/brightness/strategy/AutomaticBrightnessStrategy.java b/services/core/java/com/android/server/display/brightness/strategy/AutomaticBrightnessStrategy.java
+index 7afda11e972e..0bce853191e2 100644
+--- a/services/core/java/com/android/server/display/brightness/strategy/AutomaticBrightnessStrategy.java
++++ b/services/core/java/com/android/server/display/brightness/strategy/AutomaticBrightnessStrategy.java
+@@ -247,6 +247,9 @@ public class AutomaticBrightnessStrategy implements DisplayBrightnessStrategy{
+         if (Float.isNaN(mPendingAutoBrightnessAdjustment)) {
+             return false;
+         }
++        // A committed adjustment ends the temporary slider preview even if its value
++        // is unchanged. Otherwise subsequent ambient changes skip the brightness ramp.
++        mTemporaryAutoBrightnessAdjustment = Float.NaN;
+         if (mAutoBrightnessAdjustment == mPendingAutoBrightnessAdjustment) {
+             mPendingAutoBrightnessAdjustment = Float.NaN;
+             return false;
+diff --git a/services/core/java/com/android/server/vibrator/VibratorManagerService.java b/services/core/java/com/android/server/vibrator/VibratorManagerService.java
+index d483985c32ac..acaeeaea5837 100644
+--- a/services/core/java/com/android/server/vibrator/VibratorManagerService.java
++++ b/services/core/java/com/android/server/vibrator/VibratorManagerService.java
+@@ -748,6 +748,8 @@ public class VibratorManagerService extends IVibratorManagerService.Stub {
+                 return null;
+             }
+         }
++        // Normalize short system interactions before scaling, without changing caller attributes.
++        effect = SystemTickHapticPolicy.apply(opPkg, effect, attrs);
+         // Create Vibration.Stats as close to the received request as possible, for tracking.
+         SingleVibrationSession session = new SingleVibrationSession(token, callerInfo, effect);
+         HalVibration vib = session.getVibration();
+diff --git a/services/tests/displayservicetests/src/com/android/server/display/brightness/strategy/AutomaticBrightnessStrategyTest.java b/services/tests/displayservicetests/src/com/android/server/display/brightness/strategy/AutomaticBrightnessStrategyTest.java
+index d630c0f81956..96e5b909570d 100644
+--- a/services/tests/displayservicetests/src/com/android/server/display/brightness/strategy/AutomaticBrightnessStrategyTest.java
++++ b/services/tests/displayservicetests/src/com/android/server/display/brightness/strategy/AutomaticBrightnessStrategyTest.java
+@@ -772,7 +772,10 @@ public class AutomaticBrightnessStrategyTest {
+         float autoBrightnessAdjustment = 0.3f;
+         setPendingAutoBrightnessAdjustment(autoBrightnessAdjustment);
+         setAutoBrightnessAdjustment(autoBrightnessAdjustment);
++        setTemporaryAutoBrightnessAdjustment(autoBrightnessAdjustment);
+         assertFalse(mAutomaticBrightnessStrategy.processPendingAutoBrightnessAdjustments());
++        assertEquals(Float.NaN,
++                mAutomaticBrightnessStrategy.getTemporaryAutoBrightnessAdjustment(), 0.0f);
+         assertFalse(mAutomaticBrightnessStrategy.getAutoBrightnessAdjustmentChanged());
+         assertEquals(Float.NaN, mAutomaticBrightnessStrategy.getPendingAutoBrightnessAdjustment(),
+                 0.0f);

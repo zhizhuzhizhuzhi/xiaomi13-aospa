@@ -1,0 +1,18 @@
+diff --git a/android/merge_dtbs.py b/android/merge_dtbs.py
+index 6dd3edb..8ac9ec5 100755
+--- a/android/merge_dtbs.py
++++ b/android/merge_dtbs.py
+@@ -444,6 +444,13 @@ def parse_tech_dt_files(folder):
+ 				dt = DeviceTree(filepath)
+ 				dtbs.append((dt.list_props('/__symbols__'), dt.list_props('/__fixups__'), filepath))
+ 	graph = create_adjacency(dtbs)
++	# Generic MTP audio must precede fuxi's num-macros=3 override.
++	for _, _, specific in dtbs:
++	    if os.path.basename(specific) == 'fuxi-audio-mtp.dtbo':
++	        for _, _, generic in dtbs:
++	            if (os.path.dirname(generic) == os.path.dirname(specific)
++	                    and os.path.basename(generic) == 'kalama-audio-mtp.dtbo'):
++	                graph[specific].add(generic)
+ 	ts = graphlib.TopologicalSorter(graph)
+ 	order = list(ts.static_order())
+ 	devicetrees = []

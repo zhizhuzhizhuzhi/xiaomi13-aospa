@@ -1,0 +1,13 @@
+diff --git a/products/fuxi/aospa_fuxi.mk b/products/fuxi/aospa_fuxi.mk
+index 29f7e67..6b2190e 100644
+--- a/products/fuxi/aospa_fuxi.mk
++++ b/products/fuxi/aospa_fuxi.mk
+@@ -22,7 +22,7 @@ PRODUCT_MODEL := fuxi
+ PRODUCT_NAME := aospa_fuxi
+ 
+ PRODUCT_BUILD_PROP_OVERRIDES += \
+-    TARGET_PRODUCT=fuxi
++    DeviceProduct=fuxi
+ 
+ PRODUCT_GMS_CLIENTID_BASE := android-xiaomi
+ 

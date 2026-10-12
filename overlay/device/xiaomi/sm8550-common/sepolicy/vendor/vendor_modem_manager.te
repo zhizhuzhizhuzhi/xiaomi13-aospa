@@ -1,0 +1,2 @@
+# The stock QESDK client discovers its environment using generic netlink.
+allow vendor_modem_manager self:netlink_generic_socket create_socket_perms_no_ioctl;

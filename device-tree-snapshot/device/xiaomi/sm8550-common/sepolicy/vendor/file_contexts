@@ -1,0 +1,28 @@
+# Camera
+/odm/bin/hw/vendor\.qti\.camera\.provider-service_64 u:object_r:hal_camera_default_exec:s0
+
+# EID
+/(vendor|system/vendor)/bin/hw/vendor\.rongcard\.hardware\.eid@1\.0-service u:object_r:vendor_hal_eid_rc_exec:s0
+
+# Fingerprint
+/data/vendor/fpc(/.*)? u:object_r:vendor_fingerprint_data_file:s0
+/data/vendor/fpdump(/.*)? u:object_r:vendor_fingerprint_data_file_fpdump:s0
+/data/vendor/goodix(/.*)? u:object_r:vendor_fingerprint_data_file:s0
+/dev/goodix_fp u:object_r:vendor_fingerprint_device:s0
+/mnt/vendor/persist/goodix(/.*)? u:object_r:vendor_fingerprint_data_file:s0
+/(vendor|system/vendor)/bin/hw/android\.hardware\.biometrics\.fingerprint-service\.xiaomi u:object_r:hal_fingerprint_default_exec:s0
+/(vendor|system/vendor)/bin/hw/vendor\.xiaomi\.hardware\.dtool@1\.0-service u:object_r:vendor_dtool_exec:s0
+
+# NFC
+/(odm|vendor/odm)/bin/hw/android\.hardware\.nfc@1\.2-service-st u:object_r:hal_nfc_default_exec:s0
+/(odm|vendor/odm)/bin/hw/vendor\.nxp\.hardware\.nfc@2\.0-service u:object_r:hal_nfc_default_exec:s0
+
+# Sensors
+/(vendor|system/vendor)/bin/sensor-notifier u:object_r:vendor_sensor_notifier_exec:s0
+
+# SLA
+/(vendor|system/vendor)/bin/hw/vendor\.qti\.sla\.service\@1\.0-service u:object_r:hal_slaservice_qti_exec:s0
+
+# Wifi
+/data/vendor/mac_addr(/.*)? u:object_r:vendor_mac_vendor_data_file:s0
+/vendor/bin/nv_mac u:object_r:vendor_wcnss_service_exec:s0

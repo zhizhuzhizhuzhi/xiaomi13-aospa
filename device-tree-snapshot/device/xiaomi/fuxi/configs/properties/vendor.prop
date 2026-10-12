@@ -1,0 +1,7 @@
+# Fingerprint
+persist.vendor.fingerprint.type=udfps_optical
+persist.vendor.fingerprint.sensor_location=540|2150|105
+persist.vendor.fingerprint.sensor_modules=goodix_fod
+
+# NFC
+ro.vendor.se.chip.model=SN110T

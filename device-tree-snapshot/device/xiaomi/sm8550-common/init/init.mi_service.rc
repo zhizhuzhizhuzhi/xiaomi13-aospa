@@ -1,0 +1,55 @@
+# Copyright (C) 2023 Paranoid Android
+#
+# SPDX-License-Identifier: Apache-2.0
+
+# Audio
+service vendor.audio-hal /vendor/bin/hw/android.hardware.audio.service_64
+    override
+    class hal
+    user audioserver
+    # media gid needed for /dev/fm (radio) and for /data/misc/media (tee)
+    group audio camera drmrpc inet media mediadrm net_bt net_bt_admin net_bw_acct oem_2901 wakelock oem_2912 system
+    capabilities BLOCK_SUSPEND SYS_NICE
+    ioprio rt 4
+    writepid /dev/cpuset/foreground/tasks /dev/stune/foreground/tasks
+    onrestart restart audioserver
+
+# Connection Security
+service ssgqmigd /vendor/bin/ssgqmigd64
+    override
+    class late_start
+    user radio
+    group radio gps system
+    socket ssgqmig seqpacket 0660 radio inet
+
+# Display
+service vendor.qti.hardware.display.composer /vendor/bin/hw/vendor.qti.hardware.display.composer-service
+    override
+    class hal animation
+    user system
+    group graphics drmrpc
+    capabilities SYS_NICE
+    onrestart restart surfaceflinger
+    socket pps stream 0660 system system
+    task_profiles ProcessCapacityHigh HighPerformance
+
+# Sensors
+service citsensor-hal-2-0 /odm/bin/hw/vendor.xiaomi.sensor.citsensorservice@2.0-service
+    class late_start
+    user system
+    group system input
+    override
+    task_profiles ServiceCapacityLow
+
+# Touchscreen
+on boot
+    chown system system /sys/class/touch/touch_dev/fod_finger_state
+    chown system system /sys/class/touch/touch_dev/fod_longpress_gesture_enabled
+    chown system system /sys/class/touch/touch_dev/gesture_double_tap_enabled
+    chown system system /sys/class/touch/touch_dev/gesture_single_tap_enabled
+    chown system system /sys/class/touch/touch_dev/panel_orientation
+    chmod 0660 /sys/class/touch/touch_dev/fod_finger_state
+    chmod 0660 /sys/class/touch/touch_dev/fod_longpress_gesture_enabled
+    chmod 0664 /sys/class/touch/touch_dev/gesture_double_tap_enabled
+    chmod 0664 /sys/class/touch/touch_dev/gesture_single_tap_enabled
+    chmod 0664 /sys/class/touch/touch_dev/panel_orientation

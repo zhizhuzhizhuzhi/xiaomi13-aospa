@@ -1,0 +1,40 @@
+diff --git a/service/ServiceWifiResources/res/values/config.xml b/service/ServiceWifiResources/res/values/config.xml
+index 203aa5c..673c8f0 100644
+--- a/service/ServiceWifiResources/res/values/config.xml
++++ b/service/ServiceWifiResources/res/values/config.xml
+@@ -21,6 +21,8 @@
+      entries do not follow the convention, but all new entries should. -->
+ 
+ <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
++    <!-- Optional device-specific fixed country code. -->
++    <string translatable="false" name="config_wifiFixedCountryCode"></string>
+     <!-- boolean indicating whether the WiFi chipset has 24GHz band support -->
+     <bool translatable="false" name ="config_wifi24ghzSupport">true</bool>
+ 
+diff --git a/service/ServiceWifiResources/res/values/overlayable.xml b/service/ServiceWifiResources/res/values/overlayable.xml
+index d36d82a..70c2f92 100644
+--- a/service/ServiceWifiResources/res/values/overlayable.xml
++++ b/service/ServiceWifiResources/res/values/overlayable.xml
+@@ -325,6 +325,7 @@
+           <item type="bool" name="config_wifiNetworkCentricQosPolicyFeatureEnabled" />
+           <item type="bool" name="config_wifiApplicationCentricQosPolicyFeatureEnabled" />
+           <item type="string" name="config_wifiDriverWorldModeCountryCode" />
++          <item type="string" name="config_wifiFixedCountryCode" />
+           <item type="bool" name="config_wifiPasspointUseApWanLinkStatusAnqpElement" />
+           <item type="array" name="config_wifiPasspointUseApWanLinkStatusAnqpElementFqdnAllowlist" />
+           <item type="bool" name="config_wifiAwareNdpSecurityUpdateOnSameNdi" />
+diff --git a/service/java/com/android/server/wifi/WifiCountryCode.java b/service/java/com/android/server/wifi/WifiCountryCode.java
+index fc76ac3..2027e0a 100644
+--- a/service/java/com/android/server/wifi/WifiCountryCode.java
++++ b/service/java/com/android/server/wifi/WifiCountryCode.java
+@@ -654,6 +654,10 @@ public class WifiCountryCode {
+         if (mOverrideCountryCode != null) {
+             return mOverrideCountryCode;
+         }
++        String fixedCountry = mResourceCache.getString(R.string.config_wifiFixedCountryCode);
++        if (isValid(fixedCountry)) {
++            return fixedCountry.toUpperCase(Locale.US);
++        }
+         if (mTelephonyCountryCode != null) {
+             return mTelephonyCountryCode;
+         }

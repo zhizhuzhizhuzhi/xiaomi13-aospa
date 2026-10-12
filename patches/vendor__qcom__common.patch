@@ -1,0 +1,51 @@
+diff --git a/system/telephony/proprietary/system_ext/etc/sysconfig/qti_whitelist_system_ext.xml b/system/telephony/proprietary/system_ext/etc/sysconfig/qti_whitelist_system_ext.xml
+index 9dad8f1..9f5a25e 100644
+--- a/system/telephony/proprietary/system_ext/etc/sysconfig/qti_whitelist_system_ext.xml
++++ b/system/telephony/proprietary/system_ext/etc/sysconfig/qti_whitelist_system_ext.xml
+@@ -37,4 +37,6 @@
+     <allow-in-power-save package="com.qualcomm.location" />
+     <hidden-api-whitelisted-app package="com.qualcomm.location" />
+     <hidden-api-whitelisted-app package="com.skyhook.blp" />
++    <!-- QTI workload classification must receive app launches in the background. -->
++    <allow-in-power-save package="com.qualcomm.qti.workloadclassifier" />
+ </config>
+diff --git a/vendor/display/5.15/Android.bp b/vendor/display/5.15/Android.bp
+index 7adc9aa..a97cd65 100644
+--- a/vendor/display/5.15/Android.bp
++++ b/vendor/display/5.15/Android.bp
+@@ -641,6 +641,7 @@ cc_prebuilt_library_shared {
+ 
+ cc_prebuilt_library_shared {
+     name: "libsdm-color",
++    installable: false,
+     owner: "qcom",
+     strip: {
+         none: true,
+@@ -698,6 +699,7 @@ cc_prebuilt_library_shared {
+ 
+ cc_prebuilt_library_shared {
+     name: "libsdm-disp-vndapis",
++    installable: false,
+     owner: "qcom",
+     strip: {
+         none: true,
+@@ -728,6 +730,7 @@ cc_prebuilt_library_shared {
+ 
+ cc_prebuilt_library_shared {
+     name: "libsdmextension",
++    installable: false,
+     owner: "qcom",
+     strip: {
+         none: true,
+diff --git a/vendor/wlan/Android.bp b/vendor/wlan/Android.bp
+index ee1953e..a55ddf4 100644
+--- a/vendor/wlan/Android.bp
++++ b/vendor/wlan/Android.bp
+@@ -41,6 +41,7 @@ prebuilt_etc_xml {
+ 
+ cc_prebuilt_binary {
+     name: "cnss-daemon",
++    installable: false,
+     owner: "qcom",
+     target: {
+         android_arm64: {

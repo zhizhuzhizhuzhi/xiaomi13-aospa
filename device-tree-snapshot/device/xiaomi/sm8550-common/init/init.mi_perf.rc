@@ -1,0 +1,7 @@
+# Copyright (C) 2023-2024 Paranoid Android
+#
+# SPDX-License-Identifier: Apache-2.0
+
+on property:vendor.post_boot.parsed=1
+    # Set default thermal profile
+    write /sys/class/thermal/thermal_message/sconfig 0

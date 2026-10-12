@@ -1,0 +1,32 @@
+diff --git a/composer/Android.bp b/composer/Android.bp
+index 4dfa42d..830c20c 100644
+--- a/composer/Android.bp
++++ b/composer/Android.bp
+@@ -3,6 +3,7 @@ composer_srcs = ["*.cpp"]
+ cc_binary {
+ 
+     name: "vendor.qti.hardware.display.composer-service",
++    installable: false,
+     defaults: ["qtidisplay_defaults"],
+     sanitize: {
+         integer_overflow: true,
+diff --git a/qmaa/Android.bp b/qmaa/Android.bp
+index 96b5023..687976e 100644
+--- a/qmaa/Android.bp
++++ b/qmaa/Android.bp
+@@ -1,14 +1,11 @@
+ soong_namespace {
+-    imports: [
+-        "hardware/qcom/display",
+-        "hardware/qcom/display/libdebug",
+-    ],
+ }
+ composer_srcs = ["*.cpp"]
+ 
+ cc_binary {
+ 
+     name: "vendor.qti.hardware.display.composer-service",
++    installable: false,
+     defaults: ["qti_qmaa_display_defaults"],
+     sanitize: {
+         integer_overflow: true,

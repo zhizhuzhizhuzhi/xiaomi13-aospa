@@ -1,0 +1,67 @@
+[
+  {
+    "path": "device/xiaomi/fuxi/overlays/SystemUI/res/drawable-nodpi/rounded_corner_bottom.png",
+    "sha256": "405ab9c51b32d2defd5c93616a438a6ba30e1e054a22a83ea511e025e77107b0",
+    "reason": "untracked non-source file"
+  },
+  {
+    "path": "device/xiaomi/fuxi/overlays/SystemUI/res/drawable-nodpi/rounded_corner_top.png",
+    "sha256": "ea275468ffd4d3d1719b77f88451b9c5f5a59f81f41dcbc6cea11d0a7ab4fedf",
+    "reason": "untracked non-source file"
+  },
+  {
+    "path": "vendor/xiaomi/camera/proprietary/system/lib64/libgui-xiaomi.so",
+    "sha256": "43e55a628cad181f6da2d04388485b10650ee819102669d96b1a39e1bdc0fee1",
+    "reason": "non-source binary"
+  },
+  {
+    "path": "vendor/xiaomi/camera/proprietary/system/priv-app/MiuiCamera/MiuiCamera.apk.part00",
+    "sha256": "f64fc83859361327bfcc4d11ae5db17cda8fa4d5066c30299e31996723a28523",
+    "reason": "non-source binary"
+  },
+  {
+    "path": "vendor/xiaomi/camera/proprietary/system/priv-app/MiuiCamera/MiuiCamera.apk.part01",
+    "sha256": "a02230fdfd7e1d06a2664e60b87018dfb6eadafa4957d4cfcb2c72d6ac8520a4",
+    "reason": "non-source binary"
+  },
+  {
+    "path": "vendor/xiaomi/camera/proprietary/system/priv-app/MiuiCamera/MiuiCamera.apk.part02",
+    "sha256": "eae0e0dbd26e39c56c28456d7339f5ff9f6f6e501f134fa4aa8e2137e0b7f371",
+    "reason": "non-source binary"
+  },
+  {
+    "path": "vendor/xiaomi/camera/proprietary/system/priv-app/MiuiCamera/MiuiCamera.apk.part03",
+    "sha256": "ac2b4959742069c1d65d7f47438af72e69c97a280e8aae7306d1a81aa9b3b8d7",
+    "reason": "non-source binary"
+  },
+  {
+    "path": "vendor/xiaomi/camera/proprietary/system/priv-app/MiuiCamera/MiuiCamera.apk.part04",
+    "sha256": "2ef20c1312172632cade5f846f86f50860883fa2cdd1c40313882fff34246f5d",
+    "reason": "non-source binary"
+  },
+  {
+    "path": "vendor/xiaomi/camera/proprietary/system/priv-app/MiuiCamera/MiuiCamera.apk.part05",
+    "sha256": "3fc1ba5fbe3aa2ee09a6a0d350aee05c6b72b383f95e54e702d6388ebd5b2293",
+    "reason": "non-source binary"
+  },
+  {
+    "path": "vendor/xiaomi/camera/proprietary/system/priv-app/MiuiCamera/MiuiCamera.apk.part06",
+    "sha256": "be71551a6b2fe49e526794a3bd5d07550a8d1ccad355cc7114851ad18a57dd35",
+    "reason": "non-source binary"
+  },
+  {
+    "path": "vendor/xiaomi/camera/proprietary/system/priv-app/MiuiCamera/MiuiCamera.apk.part07",
+    "sha256": "32730017f58408d6de306210e337ce7c29b88cf2b0bb59da09210b6449fa7002",
+    "reason": "non-source binary"
+  },
+  {
+    "path": "vendor/xiaomi/camera/proprietary/system/priv-app/MiuiCamera/MiuiCamera.apk.part08",
+    "sha256": "d4c5608f646582b27886a335904abc760fad95b939d6f0335fde0ae366a93428",
+    "reason": "non-source binary"
+  },
+  {
+    "path": "vendor/xiaomi/camera/proprietary/system/priv-app/MiuiCamera/MiuiCamera.apk.part09",
+    "sha256": "7000275d80f1f5eb7877e1011531a3b3869cdd590a49a23a08b5a9d7c206d7c5",
+    "reason": "untracked non-source file"
+  }
+]

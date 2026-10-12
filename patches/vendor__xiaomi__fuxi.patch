@@ -1,0 +1,58 @@
+diff --git a/Android.bp b/Android.bp
+index e711e87..48564b2 100644
+--- a/Android.bp
++++ b/Android.bp
+@@ -4,9 +4,10 @@
+ 
+ soong_namespace {
+ 	imports: [
++        "hardware/xiaomi",
+ 		"vendor/xiaomi/sm8550-common",
+ 		"vendor/qcom/common/system/telephony",
+-		"vendor/qcom/common/vendor/adreno-t",
++		"vendor/qcom/common/vendor/adreno/t",
+ 		"vendor/qcom/common/vendor/display/5.15",
+ 	],
+ }
+@@ -570,7 +571,7 @@ prebuilt_rfsa {
+ }
+ 
+ prebuilt_rfsa {
+-	name: "libQnnSaver",
++	name: "libQnnSaver_adsp",
+ 	filename: "libQnnSaver.so",
+ 	owner: "xiaomi",
+ 	src: "proprietary/vendor/lib/rfsa/adsp/libQnnSaver.so",
+diff --git a/fuxi-vendor.mk b/fuxi-vendor.mk
+index bb13cf9..e5cd2b2 100644
+--- a/fuxi-vendor.mk
++++ b/fuxi-vendor.mk
+@@ -738,7 +738,7 @@ PRODUCT_PACKAGES += \
+     libQ6MSFR_manager_skel \
+     libQnnHtpV73 \
+     libQnnHtpV73Skel \
+-    libQnnSaver \
++    libQnnSaver_adsp \
+     libSnpeDspV65Skel \
+     libSnpeDspV66Skel \
+     libSnpeHtpV68Skel \
+diff --git a/proprietary/vendor/etc/displayconfig/display_id_4630947006070067843.xml b/proprietary/vendor/etc/displayconfig/display_id_4630947006070067843.xml
+index 9add214..3d006eb 100644
+--- a/proprietary/vendor/etc/displayconfig/display_id_4630947006070067843.xml
++++ b/proprietary/vendor/etc/displayconfig/display_id_4630947006070067843.xml
+@@ -51,4 +51,15 @@
+     </highBrightnessMode>
+     <ambientLightHorizonLong>3000</ambientLightHorizonLong>
+     <ambientLightHorizonShort>1000</ambientLightHorizonShort>
++    <!-- Smooth automatic adaptation: brighten gently and darken more slowly. -->
++    <screenBrightnessRampFastIncrease>0.70472443</screenBrightnessRampFastIncrease>
++    <screenBrightnessRampFastDecrease>0.70472443</screenBrightnessRampFastDecrease>
++    <screenBrightnessRampSlowIncrease>0.08</screenBrightnessRampSlowIncrease>
++    <screenBrightnessRampSlowDecrease>0.05</screenBrightnessRampSlowDecrease>
++    <screenBrightnessRampSlowIncreaseIdle>0.08</screenBrightnessRampSlowIncreaseIdle>
++    <screenBrightnessRampSlowDecreaseIdle>0.05</screenBrightnessRampSlowDecreaseIdle>
++    <screenBrightnessRampIncreaseMaxMillis>4000</screenBrightnessRampIncreaseMaxMillis>
++    <screenBrightnessRampDecreaseMaxMillis>6000</screenBrightnessRampDecreaseMaxMillis>
++    <screenBrightnessRampIncreaseMaxIdleMillis>4000</screenBrightnessRampIncreaseMaxIdleMillis>
++    <screenBrightnessRampDecreaseMaxIdleMillis>6000</screenBrightnessRampDecreaseMaxIdleMillis>
+ </displayConfiguration>

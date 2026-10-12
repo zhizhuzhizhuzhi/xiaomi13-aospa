@@ -1,0 +1,402 @@
+diff --git a/media/codec2/hal/hidl/1.0/utils/ComponentStore.cpp b/media/codec2/hal/hidl/1.0/utils/ComponentStore.cpp
+index 0a5791ffd6..a494d2d5c8 100644
+--- a/media/codec2/hal/hidl/1.0/utils/ComponentStore.cpp
++++ b/media/codec2/hal/hidl/1.0/utils/ComponentStore.cpp
+@@ -53,6 +53,23 @@ using namespace ::android::hardware::media::bufferpool::V2_0::implementation;
+ 
+ namespace /* unnamed */ {
+ 
++#ifdef __ANDROID_VENDOR__
++// New reflector state uses the old shared_ptr slot to preserve the vendor ABI.
++struct VendorReflectorState final : public C2ParamReflector {
++    std::vector<std::shared_ptr<C2ParamReflector>> reflectors;
++    std::shared_ptr<C2ReflectorHelper> multiAccessUnitReflector;
++    std::unique_ptr<C2StructDescriptor> describe(C2Param::CoreIndex index) const override {
++        for (const auto& reflector : reflectors) {
++            if (reflector) {
++                auto result = reflector->describe(index);
++                if (result) return result;
++            }
++        }
++        return nullptr;
++    }
++};
++#endif
++
+ struct StoreIntf : public ConfigurableC2Intf {
+     StoreIntf(const std::shared_ptr<C2ComponentStore>& store)
+           : ConfigurableC2Intf{store ? store->getName() : "", 0},
+@@ -127,30 +144,43 @@ struct ComponentStore::StoreParameterCache : public ParameterCache {
+     }
+ };
+ 
++#ifdef __ANDROID_VENDOR__
++std::vector<std::shared_ptr<C2ParamReflector>>& ComponentStore::paramReflectors() {
++    return static_cast<VendorReflectorState&>(*mParamReflector).reflectors;
++}
++std::shared_ptr<C2ReflectorHelper>& ComponentStore::multiAccessUnitReflector() {
++    return static_cast<VendorReflectorState&>(*mParamReflector).multiAccessUnitReflector;
++}
++#endif
++
+ ComponentStore::ComponentStore(const std::shared_ptr<C2ComponentStore>& store)
+       : mConfigurable{new CachedConfigurable(std::make_unique<StoreIntf>(store))},
+         mParameterCache{std::make_shared<StoreParameterCache>(this)},
+-        mStore{store} {
++        mStore{store}
++#ifdef __ANDROID_VENDOR__
++        , mParamReflector{std::make_shared<VendorReflectorState>()}
++#endif
++        {
+ 
+     std::shared_ptr<C2ComponentStore> platformStore = android::GetCodec2PlatformComponentStore();
+     SetPreferredCodec2ComponentStore(store);
+ 
+     // Retrieve struct descriptors
+-    mParamReflectors.push_back(mStore->getParamReflector());
++    paramReflectors().push_back(mStore->getParamReflector());
+ #ifndef __ANDROID_APEX__
+     std::shared_ptr<C2ParamReflector> paramReflector =
+         GetFilterWrapper()->getParamReflector();
+     if (paramReflector != nullptr) {
+         ALOGD("[%s] added param reflector from filter wrapper", mStore->getName().c_str());
+-        mParamReflectors.push_back(paramReflector);
++        paramReflectors().push_back(paramReflector);
+     }
+ #endif
+ 
+     // MultiAccessUnit reflector helper is allocated once per store.
+     // All components in this store can reuse this reflector helper.
+     std::shared_ptr<C2ReflectorHelper> helper = std::make_shared<C2ReflectorHelper>();
+-    mParamReflectors.push_back(helper);
+-    mMultiAccessUnitReflector = helper;
++    paramReflectors().push_back(helper);
++    multiAccessUnitReflector() = helper;
+ 
+     // Retrieve supported parameters from store
+     using namespace std::placeholders;
+@@ -234,7 +264,7 @@ std::shared_ptr<MultiAccessUnitInterface> ComponentStore::tryCreateMultiAccessUn
+         if (!isComponentSupportsLargeAudioFrame) {
+             multiAccessUnitIntf = std::make_shared<MultiAccessUnitInterface>(
+                     c2interface,
+-                    mMultiAccessUnitReflector);
++                    multiAccessUnitReflector());
+         }
+     }
+     return multiAccessUnitIntf;
+@@ -390,7 +420,7 @@ Return<sp<IConfigurable>> ComponentStore::getConfigurable() {
+ }
+ 
+ std::shared_ptr<C2StructDescriptor> ComponentStore::describe(const C2Param::CoreIndex &index) {
+-    for (const std::shared_ptr<C2ParamReflector> &reflector : mParamReflectors) {
++    for (const std::shared_ptr<C2ParamReflector> &reflector : paramReflectors()) {
+         std::shared_ptr<C2StructDescriptor> desc = reflector->describe(index);
+         if (desc) {
+             return desc;
+diff --git a/media/codec2/hal/hidl/1.0/utils/include/codec2/hidl/1.0/ComponentStore.h b/media/codec2/hal/hidl/1.0/utils/include/codec2/hidl/1.0/ComponentStore.h
+index 028238bd24..2aece38912 100644
+--- a/media/codec2/hal/hidl/1.0/utils/include/codec2/hidl/1.0/ComponentStore.h
++++ b/media/codec2/hal/hidl/1.0/utils/include/codec2/hidl/1.0/ComponentStore.h
+@@ -129,10 +129,21 @@ protected:
+ 
+     c2_status_t mInit;
+     std::shared_ptr<C2ComponentStore> mStore;
++#ifdef __ANDROID_VENDOR__
++    // Legacy proprietary services allocate 264 bytes for this exported class.
++    std::shared_ptr<C2ParamReflector> mParamReflector;
++    std::vector<std::shared_ptr<C2ParamReflector>>& paramReflectors();
++    std::shared_ptr<C2ReflectorHelper>& multiAccessUnitReflector();
++#else
+     std::vector<std::shared_ptr<C2ParamReflector>> mParamReflectors;
+-
+-    // Reflector helper for MultiAccessUnitHelper
+     std::shared_ptr<C2ReflectorHelper> mMultiAccessUnitReflector;
++    std::vector<std::shared_ptr<C2ParamReflector>>& paramReflectors() {
++        return mParamReflectors;
++    }
++    std::shared_ptr<C2ReflectorHelper>& multiAccessUnitReflector() {
++        return mMultiAccessUnitReflector;
++    }
++#endif
+ 
+     std::map<C2Param::CoreIndex, std::shared_ptr<C2StructDescriptor>> mStructDescriptors;
+     std::set<C2Param::CoreIndex> mUnsupportedStructDescriptors;
+@@ -167,6 +178,10 @@ protected:
+             ComponentStatus& compStatus);
+ 
+ };
++#if defined(__ANDROID_VENDOR__) && defined(__LP64__)
++static_assert(sizeof(ComponentStore) == 264, "legacy vendor ComponentStore ABI");
++#endif
++
+ 
+ }  // namespace utils
+ }  // namespace V1_0
+diff --git a/media/codec2/hal/hidl/1.1/utils/ComponentStore.cpp b/media/codec2/hal/hidl/1.1/utils/ComponentStore.cpp
+index 6b303fbc6d..38e5a31f2e 100644
+--- a/media/codec2/hal/hidl/1.1/utils/ComponentStore.cpp
++++ b/media/codec2/hal/hidl/1.1/utils/ComponentStore.cpp
+@@ -53,6 +53,23 @@ using namespace ::android::hardware::media::bufferpool::V2_0::implementation;
+ 
+ namespace /* unnamed */ {
+ 
++#ifdef __ANDROID_VENDOR__
++// New reflector state uses the old shared_ptr slot to preserve the vendor ABI.
++struct VendorReflectorState final : public C2ParamReflector {
++    std::vector<std::shared_ptr<C2ParamReflector>> reflectors;
++    std::shared_ptr<C2ReflectorHelper> multiAccessUnitReflector;
++    std::unique_ptr<C2StructDescriptor> describe(C2Param::CoreIndex index) const override {
++        for (const auto& reflector : reflectors) {
++            if (reflector) {
++                auto result = reflector->describe(index);
++                if (result) return result;
++            }
++        }
++        return nullptr;
++    }
++};
++#endif
++
+ struct StoreIntf : public ConfigurableC2Intf {
+     StoreIntf(const std::shared_ptr<C2ComponentStore>& store)
+           : ConfigurableC2Intf{store ? store->getName() : "", 0},
+@@ -127,30 +144,43 @@ struct ComponentStore::StoreParameterCache : public ParameterCache {
+     }
+ };
+ 
++#ifdef __ANDROID_VENDOR__
++std::vector<std::shared_ptr<C2ParamReflector>>& ComponentStore::paramReflectors() {
++    return static_cast<VendorReflectorState&>(*mParamReflector).reflectors;
++}
++std::shared_ptr<C2ReflectorHelper>& ComponentStore::multiAccessUnitReflector() {
++    return static_cast<VendorReflectorState&>(*mParamReflector).multiAccessUnitReflector;
++}
++#endif
++
+ ComponentStore::ComponentStore(const std::shared_ptr<C2ComponentStore>& store)
+       : mConfigurable{new CachedConfigurable(std::make_unique<StoreIntf>(store))},
+         mParameterCache{std::make_shared<StoreParameterCache>(this)},
+-        mStore{store} {
++        mStore{store}
++#ifdef __ANDROID_VENDOR__
++        , mParamReflector{std::make_shared<VendorReflectorState>()}
++#endif
++        {
+ 
+     std::shared_ptr<C2ComponentStore> platformStore = android::GetCodec2PlatformComponentStore();
+     SetPreferredCodec2ComponentStore(store);
+ 
+     // Retrieve struct descriptors
+-    mParamReflectors.push_back(mStore->getParamReflector());
++    paramReflectors().push_back(mStore->getParamReflector());
+ #ifndef __ANDROID_APEX__
+     std::shared_ptr<C2ParamReflector> paramReflector =
+         GetFilterWrapper()->getParamReflector();
+     if (paramReflector != nullptr) {
+         ALOGD("[%s] added param reflector from filter wrapper", mStore->getName().c_str());
+-        mParamReflectors.push_back(paramReflector);
++        paramReflectors().push_back(paramReflector);
+     }
+ #endif
+ 
+     // MultiAccessUnit reflector helper is allocated once per store.
+     // All components in this store can reuse this reflector helper.
+     std::shared_ptr<C2ReflectorHelper> helper = std::make_shared<C2ReflectorHelper>();
+-    mParamReflectors.push_back(helper);
+-    mMultiAccessUnitReflector = helper;
++    paramReflectors().push_back(helper);
++    multiAccessUnitReflector() = helper;
+ 
+     // Retrieve supported parameters from store
+     using namespace std::placeholders;
+@@ -234,7 +264,7 @@ std::shared_ptr<MultiAccessUnitInterface> ComponentStore::tryCreateMultiAccessUn
+         if (!isComponentSupportsLargeAudioFrame) {
+             multiAccessUnitIntf = std::make_shared<MultiAccessUnitInterface>(
+                     c2interface,
+-                    mMultiAccessUnitReflector);
++                    multiAccessUnitReflector());
+         }
+     }
+     return multiAccessUnitIntf;
+@@ -426,7 +456,7 @@ Return<void> ComponentStore::createComponent_1_1(
+ }
+ 
+ std::shared_ptr<C2StructDescriptor> ComponentStore::describe(const C2Param::CoreIndex &index) {
+-    for (const std::shared_ptr<C2ParamReflector> &reflector : mParamReflectors) {
++    for (const std::shared_ptr<C2ParamReflector> &reflector : paramReflectors()) {
+         std::shared_ptr<C2StructDescriptor> desc = reflector->describe(index);
+         if (desc) {
+             return desc;
+diff --git a/media/codec2/hal/hidl/1.1/utils/include/codec2/hidl/1.1/ComponentStore.h b/media/codec2/hal/hidl/1.1/utils/include/codec2/hidl/1.1/ComponentStore.h
+index b0231151b3..dfe52a6c58 100644
+--- a/media/codec2/hal/hidl/1.1/utils/include/codec2/hidl/1.1/ComponentStore.h
++++ b/media/codec2/hal/hidl/1.1/utils/include/codec2/hidl/1.1/ComponentStore.h
+@@ -137,10 +137,21 @@ protected:
+ 
+     c2_status_t mInit;
+     std::shared_ptr<C2ComponentStore> mStore;
++#ifdef __ANDROID_VENDOR__
++    // Legacy proprietary services allocate 264 bytes for this exported class.
++    std::shared_ptr<C2ParamReflector> mParamReflector;
++    std::vector<std::shared_ptr<C2ParamReflector>>& paramReflectors();
++    std::shared_ptr<C2ReflectorHelper>& multiAccessUnitReflector();
++#else
+     std::vector<std::shared_ptr<C2ParamReflector>> mParamReflectors;
+-
+-    // Reflector helper for MultiAccessUnitHelper
+     std::shared_ptr<C2ReflectorHelper> mMultiAccessUnitReflector;
++    std::vector<std::shared_ptr<C2ParamReflector>>& paramReflectors() {
++        return mParamReflectors;
++    }
++    std::shared_ptr<C2ReflectorHelper>& multiAccessUnitReflector() {
++        return mMultiAccessUnitReflector;
++    }
++#endif
+ 
+     std::map<C2Param::CoreIndex, std::shared_ptr<C2StructDescriptor>> mStructDescriptors;
+     std::set<C2Param::CoreIndex> mUnsupportedStructDescriptors;
+@@ -175,6 +186,10 @@ protected:
+             ComponentStatus& compStatus);
+ 
+ };
++#if defined(__ANDROID_VENDOR__) && defined(__LP64__)
++static_assert(sizeof(ComponentStore) == 264, "legacy vendor ComponentStore ABI");
++#endif
++
+ 
+ } // namespace utils
+ } // namespace V1_1
+diff --git a/media/codec2/hal/hidl/1.2/utils/ComponentStore.cpp b/media/codec2/hal/hidl/1.2/utils/ComponentStore.cpp
+index 792344a540..e3469b3fc5 100644
+--- a/media/codec2/hal/hidl/1.2/utils/ComponentStore.cpp
++++ b/media/codec2/hal/hidl/1.2/utils/ComponentStore.cpp
+@@ -53,6 +53,23 @@ using namespace ::android::hardware::media::bufferpool::V2_0::implementation;
+ 
+ namespace /* unnamed */ {
+ 
++#ifdef __ANDROID_VENDOR__
++// New reflector state uses the old shared_ptr slot to preserve the vendor ABI.
++struct VendorReflectorState final : public C2ParamReflector {
++    std::vector<std::shared_ptr<C2ParamReflector>> reflectors;
++    std::shared_ptr<C2ReflectorHelper> multiAccessUnitReflector;
++    std::unique_ptr<C2StructDescriptor> describe(C2Param::CoreIndex index) const override {
++        for (const auto& reflector : reflectors) {
++            if (reflector) {
++                auto result = reflector->describe(index);
++                if (result) return result;
++            }
++        }
++        return nullptr;
++    }
++};
++#endif
++
+ struct StoreIntf : public ConfigurableC2Intf {
+     StoreIntf(const std::shared_ptr<C2ComponentStore>& store)
+           : ConfigurableC2Intf{store ? store->getName() : "", 0},
+@@ -127,30 +144,43 @@ struct ComponentStore::StoreParameterCache : public ParameterCache {
+     }
+ };
+ 
++#ifdef __ANDROID_VENDOR__
++std::vector<std::shared_ptr<C2ParamReflector>>& ComponentStore::paramReflectors() {
++    return static_cast<VendorReflectorState&>(*mParamReflector).reflectors;
++}
++std::shared_ptr<C2ReflectorHelper>& ComponentStore::multiAccessUnitReflector() {
++    return static_cast<VendorReflectorState&>(*mParamReflector).multiAccessUnitReflector;
++}
++#endif
++
+ ComponentStore::ComponentStore(const std::shared_ptr<C2ComponentStore>& store)
+       : mConfigurable{new CachedConfigurable(std::make_unique<StoreIntf>(store))},
+         mParameterCache{std::make_shared<StoreParameterCache>(this)},
+-        mStore{store} {
++        mStore{store}
++#ifdef __ANDROID_VENDOR__
++        , mParamReflector{std::make_shared<VendorReflectorState>()}
++#endif
++        {
+ 
+     std::shared_ptr<C2ComponentStore> platformStore = android::GetCodec2PlatformComponentStore();
+     SetPreferredCodec2ComponentStore(store);
+ 
+     // Retrieve struct descriptors
+-    mParamReflectors.push_back(mStore->getParamReflector());
++    paramReflectors().push_back(mStore->getParamReflector());
+ #ifndef __ANDROID_APEX__
+     std::shared_ptr<C2ParamReflector> paramReflector =
+         GetFilterWrapper()->getParamReflector();
+     if (paramReflector != nullptr) {
+         ALOGD("[%s] added param reflector from filter wrapper", mStore->getName().c_str());
+-        mParamReflectors.push_back(paramReflector);
++        paramReflectors().push_back(paramReflector);
+     }
+ #endif
+ 
+     // MultiAccessUnit reflector helper is allocated once per store.
+     // All components in this store can reuse this reflector helper.
+     std::shared_ptr<C2ReflectorHelper> helper = std::make_shared<C2ReflectorHelper>();
+-    mParamReflectors.push_back(helper);
+-    mMultiAccessUnitReflector = helper;
++    paramReflectors().push_back(helper);
++    multiAccessUnitReflector() = helper;
+ 
+     // Retrieve supported parameters from store
+     using namespace std::placeholders;
+@@ -234,7 +264,7 @@ std::shared_ptr<MultiAccessUnitInterface> ComponentStore::tryCreateMultiAccessUn
+         if (!isComponentSupportsLargeAudioFrame) {
+             multiAccessUnitIntf = std::make_shared<MultiAccessUnitInterface>(
+                     c2interface,
+-                    mMultiAccessUnitReflector);
++                    multiAccessUnitReflector());
+         }
+     }
+     return multiAccessUnitIntf;
+@@ -461,7 +491,7 @@ Return<void> ComponentStore::createComponent_1_2(
+ }
+ 
+ std::shared_ptr<C2StructDescriptor> ComponentStore::describe(const C2Param::CoreIndex &index) {
+-    for (const std::shared_ptr<C2ParamReflector> &reflector : mParamReflectors) {
++    for (const std::shared_ptr<C2ParamReflector> &reflector : paramReflectors()) {
+         std::shared_ptr<C2StructDescriptor> desc = reflector->describe(index);
+         if (desc) {
+             return desc;
+diff --git a/media/codec2/hal/hidl/1.2/utils/include/codec2/hidl/1.2/ComponentStore.h b/media/codec2/hal/hidl/1.2/utils/include/codec2/hidl/1.2/ComponentStore.h
+index a7e043bc5f..0e927f9553 100644
+--- a/media/codec2/hal/hidl/1.2/utils/include/codec2/hidl/1.2/ComponentStore.h
++++ b/media/codec2/hal/hidl/1.2/utils/include/codec2/hidl/1.2/ComponentStore.h
+@@ -144,10 +144,21 @@ protected:
+ 
+     c2_status_t mInit;
+     std::shared_ptr<C2ComponentStore> mStore;
++#ifdef __ANDROID_VENDOR__
++    // Legacy proprietary services allocate 264 bytes for this exported class.
++    std::shared_ptr<C2ParamReflector> mParamReflector;
++    std::vector<std::shared_ptr<C2ParamReflector>>& paramReflectors();
++    std::shared_ptr<C2ReflectorHelper>& multiAccessUnitReflector();
++#else
+     std::vector<std::shared_ptr<C2ParamReflector>> mParamReflectors;
+-
+-    // Reflector helper for MultiAccessUnitHelper
+     std::shared_ptr<C2ReflectorHelper> mMultiAccessUnitReflector;
++    std::vector<std::shared_ptr<C2ParamReflector>>& paramReflectors() {
++        return mParamReflectors;
++    }
++    std::shared_ptr<C2ReflectorHelper>& multiAccessUnitReflector() {
++        return mMultiAccessUnitReflector;
++    }
++#endif
+ 
+     std::map<C2Param::CoreIndex, std::shared_ptr<C2StructDescriptor>> mStructDescriptors;
+     std::set<C2Param::CoreIndex> mUnsupportedStructDescriptors;
+@@ -182,6 +193,10 @@ protected:
+             ComponentStatus& compStatus);
+ 
+ };
++#if defined(__ANDROID_VENDOR__) && defined(__LP64__)
++static_assert(sizeof(ComponentStore) == 264, "legacy vendor ComponentStore ABI");
++#endif
++
+ 
+ } // namespace utils
+ } // namespace V1_2

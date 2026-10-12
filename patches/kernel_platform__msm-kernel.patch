@@ -1,0 +1,11 @@
+diff --git a/Android.bp b/Android.bp
+index ed41fcc2d..29d2d92d9 100644
+--- a/Android.bp
++++ b/Android.bp
+@@ -1,5 +1,6 @@
+ cc_binary_host {
+     name: "unifdef",
++    c_std: "gnu11",
+     srcs: ["scripts/unifdef.c"],
+     sanitize: {
+         never: true,

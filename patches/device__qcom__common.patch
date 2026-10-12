@@ -1,0 +1,18 @@
+diff --git a/sepolicy/generic/vendor/common/vndservice_contexts b/sepolicy/generic/vendor/common/vndservice_contexts
+index d46d1ae..e69de29 100644
+--- a/sepolicy/generic/vendor/common/vndservice_contexts
++++ b/sepolicy/generic/vendor/common/vndservice_contexts
+@@ -1 +0,0 @@
+-vendor.qti.data.qmsservice.IQmsService  u:object_r:vendor_qms_service:s0
+diff --git a/sepolicy/qva/vendor/common/hwservice_contexts b/sepolicy/qva/vendor/common/hwservice_contexts
+index d554e0b..4cdd3f1 100644
+--- a/sepolicy/qva/vendor/common/hwservice_contexts
++++ b/sepolicy/qva/vendor/common/hwservice_contexts
+@@ -6,7 +6,6 @@ vendor.qti.esepowermanager::IEsePowerManager                 u:object_r:vendor_h
+ vendor.qti.hardware.qseecom::IQSEECom                        u:object_r:vendor_hal_qseecom_hwservice:s0
+ vendor.qti.hardware.qccvndhal::IQccvndhal                     u:object_r:vendor_hal_qccvndhal_hwservice:s0
+ com.qualcomm.qti.wifidisplayhal::IHDCPSession                u:object_r:vendor_wifidisplayhalservice_hwservice:s0
+-vendor.qti.hardware.iop::IIop                                u:object_r:vendor_hal_iop_hwservice:s0
+ com.qualcomm.qti.wifidisplayhal::IDSManager                  u:object_r:vendor_wifidisplayhalservice_hwservice:s0
+ vendor.qti.hardware.audiohalext::IAudioHalExt                u:object_r:hal_audio_hwservice:s0
+ com.qualcomm.qti.imscmservice::IImsCmService                 u:object_r:vendor_hal_imsrcsd_hwservice:s0

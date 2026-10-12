@@ -1,0 +1,23 @@
+diff --git a/BufferAllocatorWrapper.cpp b/BufferAllocatorWrapper.cpp
+index 3b66eb8..07848c3 100644
+--- a/BufferAllocatorWrapper.cpp
++++ b/BufferAllocatorWrapper.cpp
+@@ -18,9 +18,18 @@
+ #include <BufferAllocator/BufferAllocatorWrapper.h>
+ #include <errno.h>
+ #include <sys/types.h>
++#include <unistd.h>
+ 
+ extern "C" {
+ 
++#if defined(__ANDROID_VENDOR__)
++// Legacy Qualcomm clients close DMA-BUF descriptors through this ION entry point.
++int ion_close(int fd) {
++    int ret = close(fd);
++    return ret < 0 ? -errno : ret;
++}
++#endif
++
+ BufferAllocator* CreateDmabufHeapBufferAllocator() {
+     return new BufferAllocator();
+ }
