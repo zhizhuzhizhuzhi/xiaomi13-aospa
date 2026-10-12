@@ -141,6 +141,19 @@ index 89d8f67..e68a150 100644
  		},
  	},
  	compile_multilib: "64",
+diff --git a/proprietary/vendor/etc/init/hw/init.batterysecret.rc b/proprietary/vendor/etc/init/hw/init.batterysecret.rc
+index d0b9cf7..92e5162 100644
+--- a/proprietary/vendor/etc/init/hw/init.batterysecret.rc
++++ b/proprietary/vendor/etc/init/hw/init.batterysecret.rc
+@@ -10,7 +10,7 @@ on property:sys.boot_completed=1
+ service batterysecret /vendor/bin/batterysecret
+     class last_start
+     user root
+-    group system system wakelock
++    group system usb wakelock
+     disabled
+     seclabel u:r:batterysecret:s0
+ 
 diff --git a/sm8550-common-vendor.mk b/sm8550-common-vendor.mk
 index 1efdb35..487c73a 100644
 --- a/sm8550-common-vendor.mk

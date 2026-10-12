@@ -1,5 +1,5 @@
 diff --git a/android/aidl-impl/Android.bp b/android/aidl-impl/Android.bp
-index 8c54533..7372579 100644
+index 8c54533..2296aba 100644
 --- a/android/aidl-impl/Android.bp
 +++ b/android/aidl-impl/Android.bp
 @@ -1,5 +1,6 @@
@@ -21,10 +21,19 @@ index 8c54533..7372579 100644
  
  cc_binary {
      name: "android.hardware.gnss-aidl-service-qti",
-+    installable: false,
++    // Install the launcher; the fuxi GNSS implementation is supplied by vendor blobs.
      vintf_fragments: ["android.hardware.gnss-aidl-service-qti.xml"],
      vendor: true,
      relative_install_path: "hw",
+@@ -145,7 +148,7 @@ cc_binary {
+     ] + [
+         "libhidlbase",
+         "android.hardware.gnss-V2-ndk",
+-        "android.hardware.gnss-aidl-impl-qti",
++        "android.hardware.gnss-aidl-impl-qti_sm8550",
+     ],
+ 
+     cflags: GNSS_CFLAGS,
 @@ -154,6 +157,7 @@ cc_binary {
  
  cc_binary {

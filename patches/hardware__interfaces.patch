@@ -1,0 +1,130 @@
+diff --git a/health/aidl/default/ChargerUtils.cpp b/health/aidl/default/ChargerUtils.cpp
+index 1a3a75e..95e1088 100644
+--- a/health/aidl/default/ChargerUtils.cpp
++++ b/health/aidl/default/ChargerUtils.cpp
+@@ -59,6 +59,10 @@ class LoopCallback : public HalHealthLoopCallback {
+     LoopCallback(const std::shared_ptr<Health>& service, ChargerCallback* charger_callback)
+         : service_(service), charger_(std::make_unique<::android::Charger>(charger_callback)) {}
+ 
++    void OnPowerSupplyEvent(const char* device_name) override {
++        service_->OnPowerSupplyEvent(device_name);
++    }
++
+     void OnHeartbeat() override {
+         service_->OnHeartbeat();
+         charger_->OnHeartbeat();
+diff --git a/health/aidl/default/HalHealthLoop.cpp b/health/aidl/default/HalHealthLoop.cpp
+index ec23c10..021954f 100644
+--- a/health/aidl/default/HalHealthLoop.cpp
++++ b/health/aidl/default/HalHealthLoop.cpp
+@@ -34,6 +34,10 @@ void HalHealthLoop::Heartbeat() {
+     callback_->OnHeartbeat();
+ }
+ 
++void HalHealthLoop::OnPowerSupplyEvent(const char* device_name) {
++    callback_->OnPowerSupplyEvent(device_name);
++}
++
+ void HalHealthLoop::ScheduleBatteryUpdate() {
+     // ignore errors. impl may not be able to handle any callbacks, so
+     // update() may return errors.
+diff --git a/health/aidl/default/Health.cpp b/health/aidl/default/Health.cpp
+index d1c6121..21e40b7 100644
+--- a/health/aidl/default/Health.cpp
++++ b/health/aidl/default/Health.cpp
+@@ -432,6 +432,10 @@ void Health::OnInit(HalHealthLoop* hal_health_loop, struct healthd_config* confi
+ // Unlike hwbinder, for binder, there's no need to explicitly call flushCommands()
+ // in PrepareToWait(). See b/139697085.
+ 
++void Health::OnPowerSupplyEvent(const char* device_name) {
++    UpdateChargerPresence(device_name);
++}
++
+ void Health::UpdateChargerPresence(const char* const device_name) {
+     battery_monitor_.updateChargerPresence(device_name);
+ }
+diff --git a/health/aidl/default/include/health-impl/HalHealthLoop.h b/health/aidl/default/include/health-impl/HalHealthLoop.h
+index c46aaa4..f770c0e 100644
+--- a/health/aidl/default/include/health-impl/HalHealthLoop.h
++++ b/health/aidl/default/include/health-impl/HalHealthLoop.h
+@@ -38,6 +38,7 @@ class HalHealthLoopCallback {
+     virtual int OnPrepareToWait() { return -1; }
+     // Called by HalHealthLoop::ScheduleBatteryUpdate
+     virtual void OnHealthInfoChanged(const HealthInfo&) {}
++    virtual void OnPowerSupplyEvent(const char* /* device_name */) {}
+ };
+ 
+ // AIDL version of android::hardware::health::V2_1::implementation::HalHealthLoop.
+@@ -57,6 +58,7 @@ class HalHealthLoop final : public ::android::hardware::health::HealthLoop {
+     virtual void Heartbeat() override;
+     virtual int PrepareToWait() override;
+     virtual void ScheduleBatteryUpdate() override;
++    void OnPowerSupplyEvent(const char* device_name) override;
+ 
+   private:
+     std::shared_ptr<IHealth> service_;
+diff --git a/health/aidl/default/include/health-impl/Health.h b/health/aidl/default/include/health-impl/Health.h
+index b5c7a4a..20238db 100644
+--- a/health/aidl/default/include/health-impl/Health.h
++++ b/health/aidl/default/include/health-impl/Health.h
+@@ -84,6 +84,7 @@ class Health : public BnHealth, public HalHealthLoopCallback {
+     // HalHealthLoopCallback implementation.
+     void OnInit(HalHealthLoop* hal_health_loop, struct healthd_config* config) override;
+     void OnHealthInfoChanged(const HealthInfo& health_info) override;
++    void OnPowerSupplyEvent(const char* device_name) override;
+ 
+     // A subclass may override this if it wants to handle binder events differently.
+     virtual void BinderEvent(uint32_t epevents);
+diff --git a/health/utils/libhealthloop/HealthLoop.cpp b/health/utils/libhealthloop/HealthLoop.cpp
+index 8501f33..f9b9250 100644
+--- a/health/utils/libhealthloop/HealthLoop.cpp
++++ b/health/utils/libhealthloop/HealthLoop.cpp
+@@ -137,22 +137,28 @@ bool HealthLoop::RecvUevents() {
+             // too long -- discard
+             continue;
+         }
+-        if (update_stats) {
+-            continue;
+-        }
+-
+         msg[n] = '\0';
+         msg[n + 1] = '\0';
++        bool power_supply = false;
++        const char* device_name = nullptr;
+         for (char* cp = msg; *cp;) {
+             if (strcmp(cp, "SUBSYSTEM=power_supply") == 0) {
+-                update_stats = true;
+-                break;
++                power_supply = true;
++            } else if (strncmp(cp, "POWER_SUPPLY_NAME=", 18) == 0) {
++                device_name = cp + 18;
+             }
+ 
+             /* advance to after the next \0 */
+             while (*cp++) {
+             }
+         }
++        if (power_supply) {
++            if (device_name != nullptr && *device_name != '\0' &&
++                strchr(device_name, '/') == nullptr) {
++                OnPowerSupplyEvent(device_name);
++            }
++            update_stats = true;
++        }
+     }
+ }
+ 
+diff --git a/health/utils/libhealthloop/include/health/HealthLoop.h b/health/utils/libhealthloop/include/health/HealthLoop.h
+index 43c38dc..ff61d52 100644
+--- a/health/utils/libhealthloop/include/health/HealthLoop.h
++++ b/health/utils/libhealthloop/include/health/HealthLoop.h
+@@ -66,6 +66,9 @@ class HealthLoop {
+     // healthd_mode_ops->battery_update(BatteryProperties*).
+     virtual void ScheduleBatteryUpdate() = 0;
+ 
++    // Refresh charger discovery on kernel power-supply events, without polling.
++    virtual void OnPowerSupplyEvent(const char* /* device_name */) {}
++
+     // Register an epoll event. When there is an event, |func| will be
+     // called with |this| as the first argument and |epevents| as the second.
+     // This may be called in a different thread from where StartLoop is called

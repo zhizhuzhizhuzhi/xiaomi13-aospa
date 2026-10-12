@@ -106,6 +106,21 @@
     ]
   },
   {
+    "path": "hardware/interfaces",
+    "revision": "c0fa2c83463785fd25d6e6813934b7a3ed4dfa44",
+    "patch": "patches/hardware__interfaces.patch",
+    "overlay": [],
+    "files": [
+      "health/aidl/default/ChargerUtils.cpp",
+      "health/aidl/default/HalHealthLoop.cpp",
+      "health/aidl/default/Health.cpp",
+      "health/aidl/default/include/health-impl/HalHealthLoop.h",
+      "health/aidl/default/include/health-impl/Health.h",
+      "health/utils/libhealthloop/HealthLoop.cpp",
+      "health/utils/libhealthloop/include/health/HealthLoop.h"
+    ]
+  },
+  {
     "path": "hardware/qcom/display",
     "revision": "d40d593a63a56ae7a7e9616518c7158fbb27e447",
     "patch": "patches/hardware__qcom__display.patch",
@@ -359,7 +374,8 @@
     "overlay": [],
     "files": [
       "Android.bp",
-      "sm8550-common-vendor.mk"
+      "sm8550-common-vendor.mk",
+      "proprietary/vendor/etc/init/hw/init.batterysecret.rc"
     ]
   }
 ]

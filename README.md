@@ -1,8 +1,30 @@
 # Xiaomi 13 / fuxi — AOSPA 17
 
-基于 AOSPA calcite，适配 Xiaomi 13（SM8550）。设备树、固定 manifest 和本地改动对应 20261012 发布版。
+基于 AOSPA calcite，适配 Xiaomi 13（fuxi / SM8550）。设备树、固定 manifest 和本地改动对应 20261013 发布版。
 
-[线刷包](https://sourceforge.net/projects/xiaomi13-aospa/files/20261012/) · [构建依赖](https://github.com/zhizhuzhizhuzhi/xiaomi13-aospa/releases/tag/build-deps-20261012) · [已知问题](KNOWN_ISSUES.md)
+[线刷包](https://sourceforge.net/projects/xiaomi13-aospa/files/20261013/) · [构建依赖](https://github.com/zhizhuzhizhuzhi/xiaomi13-aospa/releases/tag/build-deps-20261012)
+
+## 20261013 更新
+
+- 恢复高通 GNSS 服务，支持卫星定位与北斗。
+- 补齐电源插拔事件处理，正常更新充电状态。
+- 修复原厂充电认证服务的 USB 组权限，恢复小米 67W 快充模式。
+
+包含此前的音频、相机、自动亮度、圆角、系统 TICK 和 Wi-Fi 热点适配。NR 信号格数校准目前针对 CMCC。
+
+## 刷入
+
+底包为 Xiaomi 13 Global **OS2.0.100.0.VMCMIXM**（Android 15）。下载 `aospa_fuxi-fastboot-20261013.zip`，进入 Fastboot 后执行：
+
+```bash
+fastboot update aospa_fuxi-fastboot-20261013.zip
+```
+
+清除数据并刷入：
+
+```bash
+fastboot -w update aospa_fuxi-fastboot-20261013.zip
+```
 
 ## 环境
 
@@ -68,20 +90,18 @@ bash ../xiaomi13-aospa-kit/scripts/build.sh "$PWD" user 8
 ```bash
 python3 ../xiaomi13-aospa-kit/scripts/package.py "$PWD" \
   out/target/product/fuxi/obj/PACKAGING/target_files_intermediates/aospa_fuxi-target_files \
-  "$PWD/aospa_fuxi-fastboot-local.zip"
+  "$PWD/aospa_fuxi-fastboot-20261013.zip"
 ```
 
-也可将第二个参数替换为本次构建的 target_files ZIP。产物包括 Fastboot ZIP、SHA256 和镜像清单；打包时检查 board、分区、ZIP CRC 及镜像与 target_files 的一致性。
+也可将第二个参数替换为本次构建的 target_files ZIP。产物包括 Fastboot ZIP、SHA256 和镜像清单。
 
 ## 目录
 
 | 目录 / 文件 | 内容 |
 | --- | --- |
 | `manifests/release.xml` | 固定上游 commit |
-| `patches/`、`overlay/`、`projects.json` | 33 个仓库的改动和新增文件 |
+| `patches/`、`overlay/`、`projects.json` | 34 个仓库的改动和新增文件 |
 | `device-tree-snapshot/` | 设备树快照 |
 | `scripts/` | 补丁、依赖、编译和打包工具 |
 | `dependencies.json` | 构建依赖的版本、地址与 SHA256 |
 | `licenses/`、`LICENSE.md` | 许可证与版权信息 |
-
-改动覆盖 SVE 启动兼容、音频 DTBO、vendor ABI、health、相机、自动亮度、CMCC NR 信号、系统 TICK、Wi-Fi/hostapd 和 SELinux。
