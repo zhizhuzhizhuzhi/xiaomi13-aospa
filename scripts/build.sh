@@ -9,6 +9,7 @@ cd "$tree"
 exec 9>.fuxi-build.lock
 flock -n 9 || { echo 'Another fuxi build is using this tree' >&2;exit 1; }
 python3 "$kit/scripts/apply.py" "$PWD" --verify-applied
+python3 "$kit/scripts/fetch-dependencies.py" "$PWD"
 test -s vendor/xiaomi/camera/proprietary/system/priv-app/MiuiCamera/MiuiCamera.apk
 test -s device/xiaomi/fuxi/overlays/SystemUI/res/drawable-nodpi/rounded_corner_top.png
 export BUILD_NUMBER=${BUILD_NUMBER:-20261012.release}

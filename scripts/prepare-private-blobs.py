@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: Apache-2.0
-"""Install user-supplied nonfree inputs; no APK/SO/assets are shipped in this kit."""
+"""Prepare the pinned binary inputs for the fuxi build."""
 import argparse, pathlib, hashlib, shutil, zipfile
 p=argparse.ArgumentParser();p.add_argument('tree',type=pathlib.Path);p.add_argument('inputs',type=pathlib.Path)
 a=p.parse_args();root=a.tree.resolve();inputs=a.inputs.resolve()
 required=['MiuiCamera.apk','libgui-xiaomi.so','FuxiSystemUI.apk']
 for n in required:
-    if not (inputs/n).is_file():raise SystemExit('Missing private input: '+n)
+    if not (inputs/n).is_file():raise SystemExit('Missing build input: '+n)
 expected_apk='8e63c2384770b7097da781bc86284aeceeeefbbe51434ba522b51d1062e1358d'
 if hashlib.sha256((inputs/'MiuiCamera.apk').read_bytes()).hexdigest()!=expected_apk:
     raise SystemExit('MIUI Camera must come from the tested 20261012 ROM')
@@ -35,4 +35,4 @@ dest.parent.mkdir(parents=True,exist_ok=True);dest.write_bytes(libgui)
 for name,data in resources.items():
     dst=root/'device/xiaomi/fuxi/overlays/SystemUI/res/drawable-nodpi'/name
     dst.parent.mkdir(parents=True,exist_ok=True);dst.write_bytes(data)
-print('Private inputs installed. MIUI camera must be from the tested Android 17 release.')
+print('Fuxi build inputs installed.')
