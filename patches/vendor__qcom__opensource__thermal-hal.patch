@@ -1,0 +1,10 @@
+diff --git a/android.hardware.thermal-service.qti.rc b/android.hardware.thermal-service.qti.rc
+index 1311e23..888f276 100644
+--- a/android.hardware.thermal-service.qti.rc
++++ b/android.hardware.thermal-service.qti.rc
+@@ -40,4 +40,4 @@ service vendor.thermal-hal /vendor/bin/hw/android.hardware.thermal-service.qti
+ 
+ on boot
+     wait /sys/kernel/boot_adsp/boot
+-    restart android.thermal-hal
++    restart vendor.thermal-hal

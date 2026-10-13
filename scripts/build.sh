@@ -12,7 +12,8 @@ python3 "$kit/scripts/apply.py" "$PWD" --verify-applied
 python3 "$kit/scripts/fetch-dependencies.py" "$PWD"
 test -s vendor/xiaomi/camera/proprietary/system/priv-app/MiuiCamera/MiuiCamera.apk
 test -s device/xiaomi/fuxi/overlays/SystemUI/res/drawable-nodpi/rounded_corner_top.png
-export BUILD_NUMBER=${BUILD_NUMBER:-20261013.chargingauthfix}
+test -s vendor/xiaomi/sm8550-common/proprietary/vendor/app/SoterService/SoterService.apk
+export BUILD_NUMBER=${BUILD_NUMBER:-20261014}
 source build/envsetup.sh
 lunch "aospa_fuxi-cp2a-$type"
 kernel_out="$PWD/$(get_build_var KERNEL_PREBUILT_DIR)"

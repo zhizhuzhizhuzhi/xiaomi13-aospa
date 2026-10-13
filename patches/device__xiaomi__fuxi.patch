@@ -1,3 +1,40 @@
+diff --git a/BoardConfig.mk b/BoardConfig.mk
+index 400edfc..84427eb 100644
+--- a/BoardConfig.mk
++++ b/BoardConfig.mk
+@@ -22,3 +22,6 @@ TARGET_OTA_ASSERT_DEVICE := fuxi
+ # Properties
+ TARGET_ODM_PROP += $(DEVICE_PATH)/configs/properties/odm.prop
+ TARGET_VENDOR_PROP += $(DEVICE_PATH)/configs/properties/vendor.prop
++
++# Only fuxi selects the stock SM8550 GNSS implementation.
++$(call soong_config_set_bool,qcom_gnss,use_sm8550_prebuilt,true)
+diff --git a/configs/properties/odm.prop b/configs/properties/odm.prop
+index b7f3ab7..3d3f7dd 100644
+--- a/configs/properties/odm.prop
++++ b/configs/properties/odm.prop
+@@ -8,4 +8,7 @@ ro.vendor.touchfeature.type=247
+ ro.product.marketname=Xiaomi 13
+ 
+ # USB
+-vendor.usb.product_string=Xiaomi 13
+\ No newline at end of file
++vendor.usb.product_string=Xiaomi 13
++
++# Stock fuxi under-display fingerprint capability used by SoterService
++ro.hardware.fp.fod=true
+diff --git a/configs/properties/vendor.prop b/configs/properties/vendor.prop
+index 683dcfa..432d62e 100644
+--- a/configs/properties/vendor.prop
++++ b/configs/properties/vendor.prop
+@@ -5,3 +5,7 @@ persist.vendor.fingerprint.sensor_modules=goodix_fod
+ 
+ # NFC
+ ro.vendor.se.chip.model=SN110T
++
++# Stock fuxi UDFPS geometry consumed by SoterService
++persist.vendor.sys.fp.fod.location.X_Y=442,2052
++persist.vendor.sys.fp.fod.size.width_height=196,196
 diff --git a/overlays/Frameworks/res/values/dimens.xml b/overlays/Frameworks/res/values/dimens.xml
 index ee75512..26ed7a0 100644
 --- a/overlays/Frameworks/res/values/dimens.xml
@@ -9,15 +46,3 @@ index ee75512..26ed7a0 100644
      <!-- Height of the status bar.
           Do not read this dimen directly. Use {@link SystemBarUtils#getStatusBarHeight} instead.
           -->
-diff --git a/overlays/WifiRes/res/values/config.xml b/overlays/WifiRes/res/values/config.xml
-index 96da3ce..93e31c0 100644
---- a/overlays/WifiRes/res/values/config.xml
-+++ b/overlays/WifiRes/res/values/config.xml
-@@ -1,5 +1,6 @@
- <?xml version="1.0" encoding="utf-8"?>
- <resources>
-+    <string name="config_wifiFixedCountryCode" translatable="false">US</string>
-     <!-- Default access point SSID used for tethering -->
-     <string name="wifi_tether_configure_ssid_default" translatable="false">Xiaomi 13</string>
- </resources>
-\ No newline at end of file

@@ -9,3 +9,6 @@ ro.product.marketname=Xiaomi 13
 
 # USB
 vendor.usb.product_string=Xiaomi 13
+
+# Stock fuxi under-display fingerprint capability used by SoterService
+ro.hardware.fp.fod=true

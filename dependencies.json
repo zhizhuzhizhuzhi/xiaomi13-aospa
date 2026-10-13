@@ -1,6 +1,14 @@
 {
-  "sha256": "b4e12e136f035401d34a570aed13dd37b849aa20a3f81fdf530380141f98cc3c",
-  "url": "https://github.com/zhizhuzhizhuzhi/xiaomi13-aospa/releases/download/build-deps-20261012/fuxi-build-dependencies-20261012.zip",
-  "bytes": 130863989,
-  "file": "fuxi-build-dependencies-20261012.zip"
+  "sha256": "201c4c70a4c97a3700f3878da314e97d02f07a0ee86fd8c298e2e162d6cd7c10",
+  "url": "https://github.com/zhizhuzhizhuzhi/xiaomi13-aospa/releases/download/build-deps-20261014/fuxi-build-dependencies-20261014.zip",
+  "bytes": 131523068,
+  "file": "fuxi-build-dependencies-20261014.zip",
+  "soter": {
+    "file": "SoterService.apk",
+    "url": "https://raw.githubusercontent.com/TheMuppets/proprietary_vendor_xiaomi_sm8550-common/0c9140245d91660b96dfd80667e7b018d73c2850/proprietary/vendor/app/SoterService/SoterService.apk",
+    "bytes": 33182,
+    "sha256": "b1f5a2a692822aa9e75b67a5aab48c55e3082259641e9b0193e0fe70e81d1cfc",
+    "sha1": "5cef7d2bc300af3fc2d7e72c6b02c54e245eb637",
+    "source": "diting OS2.0.3.0.VLFMIXM"
+  }
 }

@@ -1,0 +1,112 @@
+diff --git a/include/tinyalsa/mixer_plugin.h b/include/tinyalsa/mixer_plugin.h
+index 80fd9f8..f3682b6 100644
+--- a/include/tinyalsa/mixer_plugin.h
++++ b/include/tinyalsa/mixer_plugin.h
+@@ -31,7 +31,6 @@
+ #ifndef __MIXER_PLUGIN_H__
+ #define __MIXER_PLUGIN_H__
+ 
+-#include <pthread.h>
+ 
+ #define MIXER_PLUGIN_OPEN_FN(name)                             \
+     int name##_open(struct mixer_plugin **plugin,              \
+@@ -80,7 +79,6 @@ struct mixer_plugin {
+ 
+     struct snd_control *controls;
+     unsigned int num_controls;
+-    pthread_mutex_t mutex;
+ };
+ 
+ struct snd_value_enum {
+diff --git a/mixer_plugin.c b/mixer_plugin.c
+index 673d307..593dbb6 100644
+--- a/mixer_plugin.c
++++ b/mixer_plugin.c
+@@ -39,6 +39,7 @@
+ #include <errno.h>
+ #include <ctype.h>
+ #include <poll.h>
++#include <pthread.h>
+ #include <dlfcn.h>
+ #include <sys/eventfd.h>
+ #include <sys/ioctl.h>
+@@ -52,6 +53,18 @@
+ 
+ #include "mixer_io.h"
+ 
++/* Legacy AGM plugins allocate mixer_plugin without the newer mutex field.
++ * Keep their ABI intact and synchronize event counts with a process-local lock.
++ * Only count operations are locked; plugin calls and eventfd I/O stay outside.
++ * Plugin close must still quiesce its callbacks, as required by the plugin API.
++ */
++#if INTPTR_MAX == INT64_MAX
++_Static_assert(sizeof(struct mixer_plugin) == 56, "64-bit mixer plugin ABI");
++#else
++_Static_assert(sizeof(struct mixer_plugin) == 32, "32-bit mixer plugin ABI");
++#endif
++static pthread_mutex_t mixer_event_count_mutex = PTHREAD_MUTEX_INITIALIZER;
++
+ struct mixer_plug_data {
+     int card;
+     void *mixer_node;
+@@ -132,9 +145,9 @@ static int mixer_plug_info_integer(struct snd_control *ctl,
+ 
+ void mixer_plug_notifier_cb(struct mixer_plugin *plugin)
+ {
+-    pthread_mutex_lock(&plugin->mutex);
++    pthread_mutex_lock(&mixer_event_count_mutex);
+     plugin->event_cnt++;
+-    pthread_mutex_unlock(&plugin->mutex);
++    pthread_mutex_unlock(&mixer_event_count_mutex);
+     eventfd_write(plugin->eventfd, 1);
+ }
+ 
+@@ -152,12 +165,12 @@ static ssize_t mixer_plug_read_event(void *data, struct snd_ctl_event *ev, size_
+ 
+     if (result > 0) {
+         read_cnt = result / sizeof(struct snd_ctl_event);
+-        pthread_mutex_lock(&plugin->mutex);
++        pthread_mutex_lock(&mixer_event_count_mutex);
+         plugin->event_cnt -= read_cnt;
+         if (plugin->event_cnt < 0) {
+             plugin->event_cnt = 0;
+         }
+-        pthread_mutex_unlock(&plugin->mutex);
++        pthread_mutex_unlock(&mixer_event_count_mutex);
+ 
+         for (i = 0; i < read_cnt; ++i) {
+             eventfd_read(plugin->eventfd, &evfd);
+@@ -184,10 +197,10 @@ static int mixer_plug_subscribe_events(struct mixer_plug_data *plug_data,
+     } else if (plugin->subscribed && !*subscribe) {
+         plugin->ops->subscribe_events(plugin, NULL);
+ 
+-        pthread_mutex_lock(&plugin->mutex);
++        pthread_mutex_lock(&mixer_event_count_mutex);
+         count = plugin->event_cnt;
+         plugin->event_cnt = 0;
+-        pthread_mutex_unlock(&plugin->mutex);
++        pthread_mutex_unlock(&mixer_event_count_mutex);
+         for (int i = 0; i < count; ++i) {
+             eventfd_read(plugin->eventfd, &evfd);
+         }
+@@ -357,10 +370,9 @@ static void mixer_plug_close(void *data)
+     eventfd_t evfd;
+     unsigned int count;
+ 
+-    pthread_mutex_lock(&plugin->mutex);
++    pthread_mutex_lock(&mixer_event_count_mutex);
+     count = plugin->event_cnt;
+-    pthread_mutex_unlock(&plugin->mutex);
+-    pthread_mutex_destroy(&plugin->mutex);
++    pthread_mutex_unlock(&mixer_event_count_mutex);
+ 
+     for (int i = 0; i < count; ++i) {
+         eventfd_read(plugin->eventfd, &evfd);
+@@ -500,7 +512,6 @@ int mixer_plugin_open(unsigned int card, void **data,
+     plug_data->card = card;
+     plug_data->dl_hdl = dl_hdl;
+     plugin->eventfd = eventfd(0, EFD_SEMAPHORE);
+-    pthread_mutex_init(&plugin->mutex, NULL);
+ 
+     *data = plug_data;
+     *ops = &mixer_plug_ops;

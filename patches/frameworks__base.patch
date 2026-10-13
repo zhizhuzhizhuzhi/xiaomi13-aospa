@@ -1,3 +1,393 @@
+diff --git a/core/java/com/android/internal/app/ActivityTrigger.java b/core/java/com/android/internal/app/ActivityTrigger.java
+index cc7ea0201d28..1e37971816f9 100644
+--- a/core/java/com/android/internal/app/ActivityTrigger.java
++++ b/core/java/com/android/internal/app/ActivityTrigger.java
+@@ -40,6 +40,7 @@ public class ActivityTrigger
+ {
+     private static final String TAG = "ActivityTrigger";
+ 
++
+     /** @hide */
+     public ActivityTrigger() {
+         //Log.d(TAG, "ActivityTrigger initialized");
+@@ -52,16 +53,7 @@ public class ActivityTrigger
+ 
+     /** @hide */
+ // QTI_END: 2018-02-20: Core: Performance: Activity Trigger frameworks support
+-    public void activityStartTrigger(ApplicationInfo appInfo, int pid) {
+-        int reserved =0;
+-// QTI_BEGIN: 2018-02-20: Core: Performance: Activity Trigger frameworks support
+-        String activity = null;
+-// QTI_END: 2018-02-20: Core: Performance: Activity Trigger frameworks support
+-        activity = appInfo.packageName + "/" + appInfo.processName + "/" +
+-               appInfo.longVersionCode + "/" + pid;
+-        native_at_startApp(activity, reserved);
+-// QTI_BEGIN: 2018-02-20: Core: Performance: Activity Trigger frameworks support
+-    }
++
+ 
+     /** @hide */
+     public void activityResumeTrigger(Intent intent, ActivityInfo acInfo,
+@@ -98,7 +90,6 @@ public class ActivityTrigger
+ 
+     private native int native_at_startActivity(String activity, int flags);
+ // QTI_END: 2018-02-20: Core: Performance: Activity Trigger frameworks support
+-    private native int native_at_startApp(String activity, int flags);
+ // QTI_BEGIN: 2018-02-20: Core: Performance: Activity Trigger frameworks support
+     private native void native_at_resumeActivity(String activity);
+     private native void native_at_pauseActivity(String activity);
+diff --git a/core/jni/com_android_internal_app_ActivityTrigger.cpp b/core/jni/com_android_internal_app_ActivityTrigger.cpp
+index 92f59219b5f6..023ab057ac40 100644
+--- a/core/jni/com_android_internal_app_ActivityTrigger.cpp
++++ b/core/jni/com_android_internal_app_ActivityTrigger.cpp
+@@ -54,7 +54,6 @@ typedef struct dlLibHandler {
+     void (*startActivity)(const char *, int *);
+ // QTI_END: 2018-02-20: Core: Performance: Activity Trigger frameworks support
+ // QTI_BEGIN: 2019-09-24: Core: Revert "Add a filter to recieve app start info."
+-    void (*startApp)(const char *, int *);
+ // QTI_END: 2019-09-24: Core: Revert "Add a filter to recieve app start info."
+ // QTI_BEGIN: 2018-02-20: Core: Performance: Activity Trigger frameworks support
+     void (*resumeActivity)(const char *);
+@@ -70,12 +69,7 @@ typedef struct dlLibHandler {
+  * Init for activity trigger library
+  */
+ static dlLibHandler mDlLibHandler = {
+-    NULL, NULL, NULL, NULL, NULL, NULL,
+-// QTI_END: 2018-02-20: Core: Performance: Activity Trigger frameworks support
+-// QTI_BEGIN: 2019-09-24: Core: Revert "Add a filter to recieve app start info."
+-    NULL, NULL, NULL, "libqti-at.so"
+-// QTI_END: 2019-09-24: Core: Revert "Add a filter to recieve app start info."
+-// QTI_BEGIN: 2018-02-20: Core: Performance: Activity Trigger frameworks support
++    nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, "libqti-at.so"
+ };
+ 
+ // ----------------------------------------------------------------------------
+@@ -101,7 +95,6 @@ com_android_internal_app_ActivityTrigger_native_at_init()
+ // QTI_END: 2018-02-20: Core: Performance: Activity Trigger frameworks support
+ // QTI_BEGIN: 2019-09-24: Core: Revert "Add a filter to recieve app start info."
+ 
+-    *(void **) (&mDlLibHandler.startApp) = dlsym(mDlLibHandler.dlhandle, "activity_trigger_qspm_start");
+ 
+ // QTI_END: 2019-09-24: Core: Revert "Add a filter to recieve app start info."
+ // QTI_BEGIN: 2018-02-20: Core: Performance: Activity Trigger frameworks support
+@@ -149,7 +142,6 @@ com_android_internal_app_ActivityTrigger_native_at_init()
+         mDlLibHandler.startActivity  = NULL;
+ // QTI_END: 2018-02-20: Core: Performance: Activity Trigger frameworks support
+ // QTI_BEGIN: 2019-09-24: Core: Revert "Add a filter to recieve app start info."
+-        mDlLibHandler.startApp = NULL;
+ // QTI_END: 2019-09-24: Core: Revert "Add a filter to recieve app start info."
+ // QTI_BEGIN: 2018-02-20: Core: Performance: Activity Trigger frameworks support
+         mDlLibHandler.resumeActivity = NULL;
+@@ -172,7 +164,6 @@ com_android_internal_app_ActivityTrigger_native_at_deinit(JNIEnv *env, jobject c
+         mDlLibHandler.startActivity  = NULL;
+ // QTI_END: 2018-02-20: Core: Performance: Activity Trigger frameworks support
+ // QTI_BEGIN: 2019-09-24: Core: Revert "Add a filter to recieve app start info."
+-        mDlLibHandler.startApp = NULL;
+ // QTI_END: 2019-09-24: Core: Revert "Add a filter to recieve app start info."
+ // QTI_BEGIN: 2018-02-20: Core: Performance: Activity Trigger frameworks support
+         mDlLibHandler.resumeActivity = NULL;
+@@ -206,19 +197,7 @@ com_android_internal_app_ActivityTrigger_native_at_startActivity(JNIEnv *env, jo
+ 
+ // QTI_END: 2018-02-20: Core: Performance: Activity Trigger frameworks support
+ // QTI_BEGIN: 2019-09-24: Core: Revert "Add a filter to recieve app start info."
+-static jint
+-com_android_internal_app_ActivityTrigger_native_at_startApp(JNIEnv *env, jobject clazz, jstring activity, jint flags)
+-{
+-    int activiyFlags = flags;
+-    if(mDlLibHandler.startApp && activity) {
+-       const char *actStr = env->GetStringUTFChars(activity, NULL);
+-       if (actStr) {
+-           (*mDlLibHandler.startApp)(actStr, &activiyFlags);
+-           env->ReleaseStringUTFChars(activity, actStr);
+-       }
+-    }
+-    return activiyFlags;
+-}
++
+ 
+ // QTI_END: 2019-09-24: Core: Revert "Add a filter to recieve app start info."
+ // QTI_BEGIN: 2018-02-20: Core: Performance: Activity Trigger frameworks support
+@@ -278,7 +257,6 @@ static JNINativeMethod gMethods[] = {
+     {"native_at_startActivity",  "(Ljava/lang/String;I)I", (void *)com_android_internal_app_ActivityTrigger_native_at_startActivity},
+ // QTI_END: 2018-02-20: Core: Performance: Activity Trigger frameworks support
+ // QTI_BEGIN: 2019-09-24: Core: Revert "Add a filter to recieve app start info."
+-    {"native_at_startApp", "(Ljava/lang/String;I)I", (void *)com_android_internal_app_ActivityTrigger_native_at_startApp},
+ // QTI_END: 2019-09-24: Core: Revert "Add a filter to recieve app start info."
+ // QTI_BEGIN: 2018-02-20: Core: Performance: Activity Trigger frameworks support
+     {"native_at_resumeActivity", "(Ljava/lang/String;)V", (void *)com_android_internal_app_ActivityTrigger_native_at_resumeActivity},
+diff --git a/packages/SettingsLib/src/com/android/settingslib/development/SystemPropPoker.java b/packages/SettingsLib/src/com/android/settingslib/development/SystemPropPoker.java
+index 3f16be184c41..96f1940fe939 100644
+--- a/packages/SettingsLib/src/com/android/settingslib/development/SystemPropPoker.java
++++ b/packages/SettingsLib/src/com/android/settingslib/development/SystemPropPoker.java
+@@ -71,6 +71,11 @@ public class SystemPropPoker  {
+             return ServiceManager.checkService(service);
+         }
+ 
++        @VisibleForTesting
++        boolean isDeclaredHal(String service) {
++            return service.indexOf('/') > 0 && ServiceManager.isDeclared(service);
++        }
++
+         @Override
+         protected Void doInBackground(Void... params) {
+             String[] services = listServices();
+@@ -79,8 +84,22 @@ public class SystemPropPoker  {
+                 return null;
+             }
+             for (String service : services) {
++                // VINTF services use HAL-specific APIs. Settings must not poke them
++                // through a framework Binder transaction. Keep ordinary vendor services.
++                // The remaining names are inaccessible internal endpoints, or the
++                // legacy QSPM endpoint that parses a token before reserved transactions.
++                if (service.equals("vendor.qspmsvc")
++                        || service.equals("suspend_control")
++                        || service.equals("suspend_control_internal")
++                        || service.equals("tracing.proxy")
++                        || service.equals("android.os.casefoldingremover")
++                        || service.equals("storaged")
++                        || service.equals("storaged_pri")
++                        || service.equals("wifinl80211")) {
++                    continue;
++                }
+                 IBinder obj = checkService(service);
+-                if (obj != null) {
++                if (obj != null && !isDeclaredHal(service)) {
+                     Parcel data = Parcel.obtain();
+                     try {
+                         obj.transact(IBinder.SYSPROPS_TRANSACTION, data, null, 0);
+diff --git a/packages/SettingsLib/tests/robotests/src/com/android/settingslib/development/SystemPropPokerTest.java b/packages/SettingsLib/tests/robotests/src/com/android/settingslib/development/SystemPropPokerTest.java
+index d1212fcad864..cb3cc46ed225 100644
+--- a/packages/SettingsLib/tests/robotests/src/com/android/settingslib/development/SystemPropPokerTest.java
++++ b/packages/SettingsLib/tests/robotests/src/com/android/settingslib/development/SystemPropPokerTest.java
+@@ -51,6 +51,7 @@ public class SystemPropPokerTest {
+         doReturn(mPokerTask).when(mSystemPropPoker).createPokerTask();
+         doReturn(new String[] {"testService"}).when(mPokerTask).listServices();
+         doReturn(mMockBinder).when(mPokerTask).checkService("testService");
++        doReturn(false).when(mPokerTask).isDeclaredHal("testService");
+         doReturn(true).when(mMockBinder)
+                 .transact(anyInt(), any(Parcel.class), nullable(Parcel.class), anyInt());
+     }
+@@ -58,6 +59,7 @@ public class SystemPropPokerTest {
+     @Test
+     public void testPoke() throws Exception {
+         mSystemPropPoker.poke();
++        mPokerTask.get(5, java.util.concurrent.TimeUnit.SECONDS);
+         verify(mMockBinder, atLeastOnce())
+                 .transact(anyInt(), any(Parcel.class), nullable(Parcel.class), anyInt());
+     }
+@@ -70,7 +72,40 @@ public class SystemPropPokerTest {
+                 .transact(anyInt(), any(Parcel.class), nullable(Parcel.class), anyInt());
+         mSystemPropPoker.unblockPokes();
+         mSystemPropPoker.poke();
++        mPokerTask.get(5, java.util.concurrent.TimeUnit.SECONDS);
+         verify(mMockBinder, atLeastOnce())
+                 .transact(anyInt(), any(Parcel.class), nullable(Parcel.class), anyInt());
+     }
++    @Test
++    public void testPokeSkipsDeclaredHalAndRestrictedEndpoints() throws Exception {
++        String[] skipped = {"vendor.qspmsvc", "suspend_control",
++                "suspend_control_internal", "tracing.proxy", "android.os.casefoldingremover",
++                "storaged", "storaged_pri", "wifinl80211"};
++        String[] notified = {"vendor.perfservice", "android.hardware.undeclared", "testService"};
++        String[] services = new String[skipped.length + notified.length + 1];
++        services[services.length - 1] = "vendor.test.IHal/default";
++        System.arraycopy(skipped, 0, services, 0, skipped.length);
++        System.arraycopy(notified, 0, services, skipped.length, notified.length);
++        doReturn(services).when(mPokerTask).listServices();
++        doReturn(true).when(mPokerTask).isDeclaredHal("vendor.test.IHal/default");
++        doReturn(mMockBinder).when(mPokerTask).checkService("vendor.test.IHal/default");
++        for (String service : notified) {
++            doReturn(false).when(mPokerTask).isDeclaredHal(service);
++            doReturn(mMockBinder).when(mPokerTask).checkService(service);
++        }
++        mPokerTask.doInBackground();
++        for (String service : skipped) verify(mPokerTask, never()).checkService(service);
++        for (String service : notified) verify(mPokerTask).checkService(service);
++        verify(mMockBinder, org.mockito.Mockito.times(notified.length))
++                .transact(org.mockito.ArgumentMatchers.eq(IBinder.SYSPROPS_TRANSACTION),
++                        any(Parcel.class), nullable(Parcel.class), anyInt());
++    }
++
++    @Test
++    public void testPlainNamesAreNotQueriedAsVintfInstances() {
++        SystemPropPoker.PokerTask task = new SystemPropPoker.PokerTask();
++        org.junit.Assert.assertFalse(task.isDeclaredHal("SurfaceFlinger"));
++        org.junit.Assert.assertFalse(task.isDeclaredHal("vendor.perfservice"));
++    }
++
+ }
+diff --git a/services/core/java/com/android/server/ActivityTriggerService.java b/services/core/java/com/android/server/ActivityTriggerService.java
+deleted file mode 100644
+index 323ad096dc5c..000000000000
+--- a/services/core/java/com/android/server/ActivityTriggerService.java
++++ /dev/null
+@@ -1,106 +0,0 @@
+-/*
+-* Copyright (c) 2019, The Linux Foundation. All rights reserved.
+-*
+-* Redistribution and use in source and binary forms, with or without
+-* modification, are permitted provided that the following conditions are
+-* met:
+-*     * Redistributions of source code must retain the above copyright
+-*       notice, this list of conditions and the following disclaimer.
+-*     * Redistributions in binary form must reproduce the above
+-*       copyright notice, this list of conditions and the following
+-*       disclaimer in the documentation and/or other materials provided
+-*       with the distribution.
+-*     * Neither the name of The Linux Foundation nor the names of its
+-*       contributors may be used to endorse or promote products derived
+-*       from this software without specific prior written permission.
+-*
+-* THIS SOFTWARE IS PROVIDED "AS IS" AND ANY EXPRESS OR IMPLIED
+-* WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+-* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT
+-* ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS
+-* BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+-* CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+-* SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
+-* BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+-* WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+-* OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
+-* IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+-*/
+-
+-package com.android.server;
+-
+-import android.content.pm.ApplicationInfo;
+-import android.util.Slog;
+-import android.content.Context;
+-import com.android.server.am.HostingRecord;
+-import java.lang.Runnable;
+-import android.os.HandlerThread;
+-import android.os.Handler;
+-
+-public class ActivityTriggerService extends SystemService {
+-    private static String TAG = "ActivityTriggerService";
+-    public static final int PROC_ADDED_NOTIFICATION = 1;
+-    public static final int PROC_REMOVED_NOTIFICATION = 0;
+-    private EventHandlerThread eventHandler = new EventHandlerThread("EventHandlerThread");
+-
+-    public ActivityTriggerService(Context context) {
+-        super(context);
+-    }
+-
+-    @Override
+-    public void onStart() {
+-        Slog.i(TAG, "Starting ActivityTriggerService");
+-        eventHandler.start();
+-        publishLocalService(ActivityTriggerService.class, this);
+-    }
+-
+-    /*make non-blocking call to add a new event to the handler's queue.
+-      the event handler is the one responsible for running each event.*/
+-    public void updateRecord(HostingRecord hr, ApplicationInfo info, int pid, int event) {
+-        if(hr != null) {
+-            eventHandler.getHandler().post(new LocalRunnable(info.packageName, info.longVersionCode, info.processName, pid, event));
+-        }
+-    }
+-
+-    public class EventHandlerThread extends HandlerThread {
+-        private Handler handler;
+-        public EventHandlerThread(String name) {
+-            super(name); //no priority specified
+-        }
+-
+-        @Override
+-        protected void onLooperPrepared() {
+-            //attach a handler to the thread
+-            handler = new Handler();
+-        }
+-        //get the handler that queues and runs Runnables
+-        public Handler getHandler() {
+-            return handler;
+-        }
+-    }
+-
+-    static class LocalRunnable implements Runnable {
+-        private String packageName;
+-        private long lvCode;
+-        private String procName;
+-        private int pid;
+-        private int event;
+-
+-        LocalRunnable(String packageName, long lvCode, String procName, int pid, int event) {
+-            this.packageName = packageName;
+-            this.lvCode = lvCode;
+-            this.procName = procName;
+-            this.pid = pid;
+-            this.event = event;
+-        }
+-        @Override
+-        public  void run() {
+-            notifyAction_native(packageName, lvCode, procName, pid, event);
+-        }
+-    }
+-
+-    //Native methods
+-    static native void notifyAction_native(String pkgName, long vCode, String procName, int pid, int event);
+-
+-}
+-
+diff --git a/services/core/java/com/android/server/am/ActivityManagerService.java b/services/core/java/com/android/server/am/ActivityManagerService.java
+index 1b01fc1400c2..9c46cea3a0a2 100644
+--- a/services/core/java/com/android/server/am/ActivityManagerService.java
++++ b/services/core/java/com/android/server/am/ActivityManagerService.java
+@@ -571,7 +571,6 @@ import com.android.server.wm.WindowManagerInternal;
+ import com.android.server.wm.WindowManagerService;
+ import com.android.server.wm.WindowProcessController;
+ // QTI_BEGIN: 2019-11-13: Core: Add mechanism to improve consistancy of notification
+-import com.android.server.ActivityTriggerService;
+ // QTI_END: 2019-11-13: Core: Add mechanism to improve consistancy of notification
+ 
+ import dalvik.annotation.optimization.NeverCompile;
+@@ -1177,10 +1176,7 @@ public class ActivityManagerService extends IActivityManager.Stub
+                 sActiveProcessInfoSelfLocked.remove(pid);
+             }
+         }
+-        ActivityTriggerService atService = LocalServices.getService(ActivityTriggerService.class);
+-        if(atService != null) {
+-            atService.updateRecord(app.getHostingRecord(), app.info, app.getPid(), ActivityTriggerService.PROC_ADDED_NOTIFICATION);
+-        }
++
+         mAtmInternal.onProcessMapped(pid, app.getWindowProcessController());
+     }
+ 
+@@ -1200,10 +1196,7 @@ public class ActivityManagerService extends IActivityManager.Stub
+             synchronized (sActiveProcessInfoSelfLocked) {
+                 sActiveProcessInfoSelfLocked.remove(pid);
+             }
+-            ActivityTriggerService atService = LocalServices.getService(ActivityTriggerService.class);
+-            if(atService != null) {
+-                atService.updateRecord(app.getHostingRecord(), app.info, app.getPid(), ActivityTriggerService.PROC_REMOVED_NOTIFICATION);
+-            }
++
+             mAtmInternal.onProcessUnMapped(pid);
+         }
+         return removed;
+diff --git a/services/core/java/com/android/server/biometrics/sensors/face/FaceService.java b/services/core/java/com/android/server/biometrics/sensors/face/FaceService.java
+index a34791f70533..58c996310ea1 100644
+--- a/services/core/java/com/android/server/biometrics/sensors/face/FaceService.java
++++ b/services/core/java/com/android/server/biometrics/sensors/face/FaceService.java
+@@ -34,6 +34,7 @@ import android.hardware.biometrics.IInvalidationCallback;
+ import android.hardware.biometrics.ITestSession;
+ import android.hardware.biometrics.ITestSessionCallback;
+ import android.hardware.biometrics.face.IFace;
++import android.hardware.biometrics.face.virtualhal.IVirtualHal;
+ import android.hardware.biometrics.face.SensorProps;
+ import android.hardware.face.Face;
+ import android.hardware.face.FaceAuthenticateOptions;
+@@ -817,7 +818,10 @@ public class FaceService extends SystemService {
+         String[] a = ServiceManager.getDeclaredInstances(IFace.DESCRIPTOR);
+         Slog.i(TAG, "Before:getDeclaredInstances: IFace instance found, a.length="
+                 + a.length);
+-        if (!ArrayUtils.contains(a, "virtual")) {
++        final String virtualHal = IVirtualHal.DESCRIPTOR + "/virtual";
++        if (!ArrayUtils.contains(a, "virtual")
++                && (ServiceManager.isDeclared(virtualHal)
++                        || ServiceManager.checkService(virtualHal) != null)) {
+             // Now, the virtual hal is registered with IVirtualHal interface and it is also
+             //   moved from vendor to system_ext partition without a device manifest. So
+             //   if the old vhal is not declared, add here.
 diff --git a/services/core/java/com/android/server/display/brightness/strategy/AutomaticBrightnessStrategy.java b/services/core/java/com/android/server/display/brightness/strategy/AutomaticBrightnessStrategy.java
 index 7afda11e972e..0bce853191e2 100644
 --- a/services/core/java/com/android/server/display/brightness/strategy/AutomaticBrightnessStrategy.java
@@ -25,6 +415,154 @@ index d483985c32ac..acaeeaea5837 100644
          // Create Vibration.Stats as close to the received request as possible, for tracking.
          SingleVibrationSession session = new SingleVibrationSession(token, callerInfo, effect);
          HalVibration vib = session.getVibration();
+diff --git a/services/core/jni/Android.bp b/services/core/jni/Android.bp
+index 852c2609ae1b..1dbc78112803 100644
+--- a/services/core/jni/Android.bp
++++ b/services/core/jni/Android.bp
+@@ -75,7 +75,6 @@ cc_library_static {
+         "com_android_server_utils_LongMethodTracer.cpp",
+         "com_android_server_wm_TaskFpsCallbackController.cpp",
+ // QTI_BEGIN: 2019-11-13: Core: Add mechanism to improve consistancy of notification
+-        "com_android_server_activityTriggerService.cpp",
+ // QTI_END: 2019-11-13: Core: Add mechanism to improve consistancy of notification
+         "onload.cpp",
+         ":lib_cachedAppOptimizer_native",
+diff --git a/services/core/jni/com_android_server_activityTriggerService.cpp b/services/core/jni/com_android_server_activityTriggerService.cpp
+deleted file mode 100644
+index 025091f76e38..000000000000
+--- a/services/core/jni/com_android_server_activityTriggerService.cpp
++++ /dev/null
+@@ -1,95 +0,0 @@
+-/*
+-* Copyright (c) 2019, The Linux Foundation. All rights reserved.
+-*
+-* Redistribution and use in source and binary forms, with or without
+-* modification, are permitted provided that the following conditions are
+-* met:
+-*     * Redistributions of source code must retain the above copyright
+-*       notice, this list of conditions and the following disclaimer.
+-*     * Redistributions in binary form must reproduce the above
+-*       copyright notice, this list of conditions and the following
+-*       disclaimer in the documentation and/or other materials provided
+-*       with the distribution.
+-*     * Neither the name of The Linux Foundation nor the names of its
+-*       contributors may be used to endorse or promote products derived
+-*       from this software without specific prior written permission.
+-*
+-* THIS SOFTWARE IS PROVIDED "AS IS" AND ANY EXPRESS OR IMPLIED
+-* WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+-* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT
+-* ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS
+-* BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+-* CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+-* SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
+-* BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+-* WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+-* OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
+-* IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+-*/
+-
+-#include "jni.h"
+-#include <nativehelper/JNIHelp.h>
+-#include "android_runtime/AndroidRuntime.h"
+-#include <utils/Log.h>
+-#include <dlfcn.h>
+-#include <limits.h>
+-
+-namespace android {
+-
+-//structure which has a handle for dynamically loading the trigger handler lib.
+-
+-typedef struct dlLibHandler {
+-    void *handle;
+-    void (*set_info)(const char*, const char*, int *);
+-    const char *dlname;
+-}dlLibhandler;
+-
+-//initialize the handler
+-static dlLibHandler handler = {
+-    NULL, NULL, "libtrigger-handler.so"
+-};
+-
+-static void trigger_handler_lib_init() {
+-    bool dlError = false;
+-    handler.handle = dlopen(handler.dlname, RTLD_NOW | RTLD_LOCAL);
+-    /*no need to proceed if the lib isn't available*/
+-    if(handler.handle == NULL) {
+-        ALOGE("Activity trigger handling disabled.");
+-        return;
+-    }
+-    *(void **) (&handler.set_info) = dlsym(handler.handle, "set_info");
+-    if(handler.set_info == NULL) {
+-        dlError = true;
+-    }
+-    if(dlError) {
+-        handler.set_info = NULL;
+-        if(handler.handle) dlclose(handler.handle);
+-        handler.handle = NULL;
+-    }
+-}
+-
+-static void notifyAction_native (JNIEnv* env, jobject /*jclazz*/,jstring pkgName, jlong vCode, jstring /*procName*/, jint pid_in, jint flag) {
+-   int pid = (int)pid_in;
+-   std::string versionCode = std::to_string((long)vCode) + std::to_string((int)flag);
+-   const char* version = versionCode.c_str();
+-
+-   if(pkgName && handler.set_info) {
+-     const char *package = env->GetStringUTFChars(pkgName, NULL);
+-       if(package) {
+-           (*handler.set_info)(package,version,&pid);
+-           env->ReleaseStringUTFChars(pkgName, package);
+-       }
+-   }
+-}
+-
+-static JNINativeMethod method_list[] = {
+-   { "notifyAction_native", "(Ljava/lang/String;JLjava/lang/String;II)V", (void*)notifyAction_native },
+-};
+-
+-int register_android_server_ActivityTriggerService(JNIEnv *env) {
+-   //load and link to the handler library
+-   trigger_handler_lib_init();
+-   return jniRegisterNativeMethods(env, "com/android/server/ActivityTriggerService",
+-          method_list, NELEM(method_list));
+-}
+-};
+diff --git a/services/core/jni/onload.cpp b/services/core/jni/onload.cpp
+index 94d40af9c025..544d9b41fd4a 100644
+--- a/services/core/jni/onload.cpp
++++ b/services/core/jni/onload.cpp
+@@ -71,7 +71,6 @@ int register_com_android_server_display_DisplayControl(JNIEnv* env);
+ int register_com_android_server_SystemClockTime(JNIEnv* env);
+ int register_android_server_display_smallAreaDetectionController(JNIEnv* env);
+ // QTI_BEGIN: 2019-11-13: Core: Add mechanism to improve consistancy of notification
+-int register_android_server_ActivityTriggerService(JNIEnv* env);
+ // QTI_END: 2019-11-13: Core: Add mechanism to improve consistancy of notification
+ int register_com_android_server_accessibility_BrailleDisplayConnection(JNIEnv* env);
+ int register_android_server_am_PhantomProcessList(JNIEnv* env);
+@@ -142,7 +141,6 @@ extern "C" jint JNI_OnLoad(JavaVM* vm, void* /* reserved */)
+     register_com_android_server_SystemClockTime(env);
+     register_android_server_display_smallAreaDetectionController(env);
+ // QTI_BEGIN: 2019-11-13: Core: Add mechanism to improve consistancy of notification
+-    register_android_server_ActivityTriggerService(env);
+ // QTI_END: 2019-11-13: Core: Add mechanism to improve consistancy of notification
+     register_com_android_server_accessibility_BrailleDisplayConnection(env);
+     register_android_server_am_PhantomProcessList(env);
+diff --git a/services/java/com/android/server/SystemServer.java b/services/java/com/android/server/SystemServer.java
+index 307af5d267c5..b42ebf83343e 100644
+--- a/services/java/com/android/server/SystemServer.java
++++ b/services/java/com/android/server/SystemServer.java
+@@ -1858,10 +1858,6 @@ public final class SystemServer implements Dumpable {
+                 t.traceEnd();
+             }
+ 
+-// QTI_BEGIN: 2019-11-13: Core: Add mechanism to improve consistancy of notification
+-            mSystemServiceManager.startService(ActivityTriggerService.class);
+-
+-// QTI_END: 2019-11-13: Core: Add mechanism to improve consistancy of notification
+             if (Build.IS_DEBUGGABLE && ProfcollectForwardingService.enabled()) {
+                 t.traceBegin("ProfcollectForwardingService");
+                 mSystemServiceManager.startService(ProfcollectForwardingService.class);
 diff --git a/services/tests/displayservicetests/src/com/android/server/display/brightness/strategy/AutomaticBrightnessStrategyTest.java b/services/tests/displayservicetests/src/com/android/server/display/brightness/strategy/AutomaticBrightnessStrategyTest.java
 index d630c0f81956..96e5b909570d 100644
 --- a/services/tests/displayservicetests/src/com/android/server/display/brightness/strategy/AutomaticBrightnessStrategyTest.java

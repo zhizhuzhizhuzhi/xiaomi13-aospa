@@ -1,5 +1,5 @@
 diff --git a/Android.bp b/Android.bp
-index 89d8f67..e68a150 100644
+index 89d8f67..5f93a04 100644
 --- a/Android.bp
 +++ b/Android.bp
 @@ -4,8 +4,9 @@
@@ -123,6 +123,29 @@ index 89d8f67..e68a150 100644
  
  cc_prebuilt_library_shared {
  	name: "vendor.xiaomi.hardware.micharge@1.0",
+@@ -12978,14 +12949,14 @@ android_app_import {
+ }
+ 
+ android_app_import {
+-	name: "QcomSoterService",
+-	owner: "xiaomi",
+-	apk: "proprietary/system_ext/app/QcomSoterService/QcomSoterService.apk",
+-	certificate: "platform",
+-	dex_preopt: {
+-		enabled: false,
+-	},
+-	system_ext_specific: true,
++        name: "SoterService",
++        owner: "xiaomi",
++        apk: "proprietary/vendor/app/SoterService/SoterService.apk",
++        certificate: "platform",
++        dex_preopt: {
++                enabled: false,
++        },
++        soc_specific: true,
+ }
+ 
+ dex_import {
 @@ -14054,7 +14025,7 @@ cc_prebuilt_binary {
  	target: {
  		android_arm64: {
@@ -155,7 +178,7 @@ index d0b9cf7..92e5162 100644
      seclabel u:r:batterysecret:s0
  
 diff --git a/sm8550-common-vendor.mk b/sm8550-common-vendor.mk
-index 1efdb35..487c73a 100644
+index 1efdb35..5f60d09 100644
 --- a/sm8550-common-vendor.mk
 +++ b/sm8550-common-vendor.mk
 @@ -1093,8 +1093,8 @@ PRODUCT_PACKAGES += \
@@ -169,6 +192,15 @@ index 1efdb35..487c73a 100644
      vendor.xiaomi.hardware.micharge@1.0 \
      vendor.xiaomi.hardware.miface@1.0 \
      vendor.xiaomi.hardware.quickcamera@1.0 \
+@@ -1160,7 +1160,7 @@ PRODUCT_PACKAGES += \
+     TrustZoneAccessService \
+     HotwordEnrollmentXGoogleHEXAGON_WIDEBAND \
+     HotwordEnrollmentYGoogleHEXAGON_WIDEBAND \
+-    QcomSoterService \
++    SoterService \
+     com.android.hotwordenrollment.common.util \
+     android.hardware.radio.config.xml \
+     android.hardware.radio.data.xml \
 @@ -1268,7 +1268,6 @@ PRODUCT_PACKAGES += \
      init.qcom.sensors \
      init.qti.media \
@@ -177,3 +209,16 @@ index 1efdb35..487c73a 100644
      irsc_util \
      ks \
      loadalgo \
+diff --git a/xiaomi13-vendor.mk b/xiaomi13-vendor.mk
+index af943b0..286b04e 100644
+--- a/xiaomi13-vendor.mk
++++ b/xiaomi13-vendor.mk
+@@ -3111,7 +3111,7 @@ PRODUCT_PACKAGES += \
+     TrustZoneAccessService \
+     HotwordEnrollmentOKGoogleHEXAGON_WIDEBAND \
+     HotwordEnrollmentXGoogleHEXAGON_WIDEBAND \
+-    QcomSoterService \
++    SoterService \
+     com.android.hotwordenrollment.common.util \
+     android.hardware.gnss-aidl-service-qti \
+     android.hardware.ir-service.example \

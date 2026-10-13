@@ -22,3 +22,6 @@ TARGET_OTA_ASSERT_DEVICE := fuxi
 # Properties
 TARGET_ODM_PROP += $(DEVICE_PATH)/configs/properties/odm.prop
 TARGET_VENDOR_PROP += $(DEVICE_PATH)/configs/properties/vendor.prop
+
+# Only fuxi selects the stock SM8550 GNSS implementation.
+$(call soong_config_set_bool,qcom_gnss,use_sm8550_prebuilt,true)

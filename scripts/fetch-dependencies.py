@@ -29,5 +29,14 @@ with zipfile.ZipFile(archive) as z:
     for name in expected:
         with z.open(name) as source,(inputs/name).open('wb') as output:
             shutil.copyfileobj(source,output,8*1024*1024)
+soter=meta['soter'];soter_file=inputs/soter['file']
+if not soter_file.exists() or digest(soter_file)!=soter['sha256']:
+    part=soter_file.with_suffix('.apk.part')
+    request=urllib.request.Request(soter['url'],headers={'User-Agent':'xiaomi13-aospa-build'})
+    with urllib.request.urlopen(request,timeout=60) as response,part.open('wb') as f:
+        shutil.copyfileobj(response,f)
+    if part.stat().st_size!=soter['bytes'] or digest(part)!=soter['sha256']:
+        raise SystemExit('SoterService dependency SHA256 mismatch')
+    part.replace(soter_file)
 subprocess.run([sys.executable,str(kit/'scripts/prepare-private-blobs.py'),str(root),str(inputs)],check=True)
 print('Build dependencies ready:',inputs)

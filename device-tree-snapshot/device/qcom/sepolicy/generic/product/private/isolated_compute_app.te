@@ -1,0 +1,5 @@
+# Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# allow isolated_compute_app to be a client of DSP HAL
+# Android 17 isolated compute domains cannot discover vendor DSP services.

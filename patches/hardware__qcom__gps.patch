@@ -1,44 +1,81 @@
+diff --git a/Android.bp b/Android.bp
+index bb55210..34bddd9 100644
+--- a/Android.bp
++++ b/Android.bp
+@@ -47,3 +47,32 @@ qtilocation_cc_defaults {
+         },
+     },
+ }
++
++// Device-selected vendor implementation; generic GNSS remains the default.
++soong_config_module_type {
++    name: "qtilocation_fuxi_cc_defaults",
++    module_type: "cc_defaults",
++    config_namespace: "qcom_gnss",
++    bool_variables: ["use_sm8550_prebuilt"],
++    properties: ["installable", "shared_libs"],
++}
++qtilocation_fuxi_cc_defaults {
++    name: "qtilocation_fuxi_install_defaults",
++    soong_config_variables: {
++        use_sm8550_prebuilt: {
++            installable: false,
++            conditions_default: { installable: true },
++        },
++    },
++}
++qtilocation_fuxi_cc_defaults {
++    name: "qtilocation_fuxi_impl_defaults",
++    soong_config_variables: {
++        use_sm8550_prebuilt: {
++            shared_libs: ["android.hardware.gnss-aidl-impl-qti_sm8550"],
++            conditions_default: {
++                shared_libs: ["android.hardware.gnss-aidl-impl-qti"],
++            },
++        },
++    },
++}
 diff --git a/android/aidl-impl/Android.bp b/android/aidl-impl/Android.bp
-index 8c54533..2296aba 100644
+index 8c54533..b0d2029 100644
 --- a/android/aidl-impl/Android.bp
 +++ b/android/aidl-impl/Android.bp
-@@ -1,5 +1,6 @@
+@@ -1,4 +1,5 @@
  cc_library_shared {
++    defaults: ["qtilocation_fuxi_install_defaults"],
      name: "android.hardware.gnss-aidl-impl-qti",
-+    installable: false,
      vintf_fragments: ["android.hardware.gnss-aidl-service-qti.xml"],
      vendor: true,
-     relative_install_path: "hw",
-@@ -59,6 +60,7 @@ cc_library_shared {
+@@ -58,6 +59,7 @@ cc_library_shared {
+ }
  
  cc_library_shared {
++    defaults: ["qtilocation_fuxi_install_defaults"],
      name: "android.hardware.gnss-aidl-impl-qti_wearable",
-+    installable: false,
      stem: "android.hardware.gnss-aidl-impl-qti",
      vintf_fragments: ["android.hardware.gnss-aidl-service-qti.xml"],
-     vendor: true,
-@@ -119,6 +121,7 @@ cc_library_shared {
+@@ -118,7 +120,9 @@ cc_library_shared {
+ }
  
  cc_binary {
++    defaults: ["qtilocation_fuxi_impl_defaults"],
      name: "android.hardware.gnss-aidl-service-qti",
 +    // Install the launcher; the fuxi GNSS implementation is supplied by vendor blobs.
      vintf_fragments: ["android.hardware.gnss-aidl-service-qti.xml"],
      vendor: true,
      relative_install_path: "hw",
-@@ -145,7 +148,7 @@ cc_binary {
+@@ -145,7 +149,6 @@ cc_binary {
      ] + [
          "libhidlbase",
          "android.hardware.gnss-V2-ndk",
 -        "android.hardware.gnss-aidl-impl-qti",
-+        "android.hardware.gnss-aidl-impl-qti_sm8550",
      ],
  
      cflags: GNSS_CFLAGS,
-@@ -154,6 +157,7 @@ cc_binary {
+@@ -153,6 +156,7 @@ cc_binary {
+ 
  
  cc_binary {
++    defaults: ["qtilocation_fuxi_install_defaults"],
      name: "android.hardware.gnss-aidl-service-qti_wearable",
-+    installable: false,
      stem: "android.hardware.gnss-aidl-service-qti",
      vintf_fragments: ["android.hardware.gnss-aidl-service-qti.xml"],
-     vendor: true,

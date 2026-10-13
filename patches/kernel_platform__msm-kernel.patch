@@ -9,3 +9,70 @@ index ed41fcc2d..29d2d92d9 100644
      srcs: ["scripts/unifdef.c"],
      sanitize: {
          never: true,
+diff --git a/drivers/power/supply/qti_battery_charger.c b/drivers/power/supply/qti_battery_charger.c
+index 30b544e33..4be3f3ed8 100644
+--- a/drivers/power/supply/qti_battery_charger.c
++++ b/drivers/power/supply/qti_battery_charger.c
+@@ -2321,6 +2321,12 @@ static int wls_psy_get_prop(struct power_supply *psy,
+ 	struct psy_state *pst = &bcdev->psy_list[PSY_TYPE_WLS];
+ 	int prop_id, rc;
+ 
++	/* These built-in supplies provide power to the phone, not peripherals. */
++	if (prop == POWER_SUPPLY_PROP_SCOPE) {
++		pval->intval = POWER_SUPPLY_SCOPE_SYSTEM;
++		return 0;
++	}
++
+ 	pval->intval = -ENODATA;
+ 
+ 	if (prop == POWER_SUPPLY_PROP_PRESENT) {
+@@ -2362,6 +2368,7 @@ static int wls_psy_prop_is_writeable(struct power_supply *psy,
+ }
+ 
+ static enum power_supply_property wls_props[] = {
++	POWER_SUPPLY_PROP_SCOPE,
+ 	POWER_SUPPLY_PROP_ONLINE,
+ 	POWER_SUPPLY_PROP_VOLTAGE_NOW,
+ 	POWER_SUPPLY_PROP_VOLTAGE_MAX,
+@@ -2775,6 +2782,12 @@ static int usb_psy_get_prop(struct power_supply *psy,
+ 	struct psy_state *pst = &bcdev->psy_list[PSY_TYPE_USB];
+ 	int prop_id, rc;
+ 
++	/* These built-in supplies provide power to the phone, not peripherals. */
++	if (prop == POWER_SUPPLY_PROP_SCOPE) {
++		pval->intval = POWER_SUPPLY_SCOPE_SYSTEM;
++		return 0;
++	}
++
+ 	pval->intval = -ENODATA;
+ 
+ 	prop_id = get_property_id(pst, prop);
+@@ -2866,6 +2879,7 @@ static int usb_psy_prop_is_writeable(struct power_supply *psy,
+ }
+ 
+ static enum power_supply_property usb_props[] = {
++	POWER_SUPPLY_PROP_SCOPE,
+ 	POWER_SUPPLY_PROP_ONLINE,
+ 	POWER_SUPPLY_PROP_VOLTAGE_NOW,
+ 	POWER_SUPPLY_PROP_VOLTAGE_MAX,
+@@ -2991,6 +3005,12 @@ static int battery_psy_get_prop(struct power_supply *psy,
+ 	struct psy_state *pst = &bcdev->psy_list[PSY_TYPE_BATTERY];
+ 	int prop_id, rc;
+ 
++	/* These built-in supplies provide power to the phone, not peripherals. */
++	if (prop == POWER_SUPPLY_PROP_SCOPE) {
++		pval->intval = POWER_SUPPLY_SCOPE_SYSTEM;
++		return 0;
++	}
++
+ 	pval->intval = -ENODATA;
+ 
+ 	/*
+@@ -3123,6 +3143,7 @@ static int battery_psy_prop_is_writeable(struct power_supply *psy,
+ }
+ 
+ static enum power_supply_property battery_props[] = {
++	POWER_SUPPLY_PROP_SCOPE,
+ 	POWER_SUPPLY_PROP_STATUS,
+ 	POWER_SUPPLY_PROP_HEALTH,
+ 	POWER_SUPPLY_PROP_PRESENT,

@@ -83,3 +83,31 @@ index 7dc61fd..5221c92 100644
  };
  
  // Array containing the paths to fifo data in vendor.
+diff --git a/dolby/src/co/aospa/dolby/xiaomi/preference/DolbyIeqPreference.kt b/dolby/src/co/aospa/dolby/xiaomi/preference/DolbyIeqPreference.kt
+index b51d00d..5910460 100644
+--- a/dolby/src/co/aospa/dolby/xiaomi/preference/DolbyIeqPreference.kt
++++ b/dolby/src/co/aospa/dolby/xiaomi/preference/DolbyIeqPreference.kt
+@@ -28,8 +28,13 @@ class DolbyIeqPreference(
+     override fun onBindViewHolder(holder: PreferenceViewHolder) {
+         super.onBindViewHolder(holder)
+         val iconView = holder.findViewById(R.id.ieq_icon)!! as ImageView
+-        val icon = AppCompatResources.getDrawable(context, getIeqIconResId())
+-        iconView.setImageDrawable(icon)
++        val iconResId = getIeqIconResId()
++        // An unset or unsupported preset has no icon. Resource ID 0 is not
++        // drawable; keep the engine's value and show the existing unknown state.
++        iconView.setImageDrawable(
++            if (iconResId != 0) AppCompatResources.getDrawable(context, iconResId) else null
++        )
++        iconView.visibility = if (iconResId != 0) View.VISIBLE else View.GONE
+     }
+ 
+     private fun getIeqIconResId(): Int =
+@@ -38,6 +43,6 @@ class DolbyIeqPreference(
+             1 -> R.drawable.ic_ieq_balanced
+             2 -> R.drawable.ic_ieq_warm
+             3 -> R.drawable.ic_ieq_detailed
+-            else -> 0 // should never hit this!
++            else -> 0 // Unset or unsupported engine preset.
+         }
+ }

@@ -35,3 +35,6 @@ allow hal_fingerprint_default surfaceflinger:binder transfer;
 get_prop(hal_fingerprint_default, vendor_panel_info_prop)
 set_prop(hal_fingerprint_default, vendor_fp_prop)
 set_prop(hal_fingerprint_default, vendor_fp_info_prop)
+
+# Fingerprint requests boosts through the Perf AIDL service.
+hal_client_domain(hal_fingerprint_default, vendor_hal_perf)

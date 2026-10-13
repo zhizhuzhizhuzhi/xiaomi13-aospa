@@ -1,5 +1,5 @@
 diff --git a/BoardConfigCommon.mk b/BoardConfigCommon.mk
-index 2f22600..ddb4d75 100644
+index 2f22600..8c50f4e 100644
 --- a/BoardConfigCommon.mk
 +++ b/BoardConfigCommon.mk
 @@ -27,7 +27,8 @@ AB_OTA_PARTITIONS += \
@@ -12,6 +12,15 @@ index 2f22600..ddb4d75 100644
  TARGET_CPU_ABI := arm64-v8a
  TARGET_CPU_VARIANT := kryo785
  
+@@ -65,7 +66,7 @@ DEVICE_MANIFEST_FILE += \
+     $(COMMON_PATH)/configs/vintf/manifest_xiaomi.xml
+ 
+ # Init
+-TARGET_INIT_VENDOR_LIB := //$(COMMON_PATH):libinit_xiaomi_sm8550
++$(call soong_config_set,libinit,vendor_init_lib,//$(COMMON_PATH):libinit_xiaomi_sm8550)
+ TARGET_RECOVERY_DEVICE_MODULES := libinit_xiaomi_sm8550
+ 
+ # Kernel
 @@ -86,9 +87,10 @@ BOARD_USES_GENERIC_KERNEL_IMAGE := true
  TARGET_HAS_GENERIC_KERNEL_HEADERS := true
  
@@ -34,8 +43,15 @@ index 2f22600..ddb4d75 100644
  BOARD_EXCLUDE_KERNEL_FROM_RECOVERY_IMAGE := true
  TARGET_RECOVERY_FSTAB := $(COMMON_PATH)/init/fstab.qcom
  TARGET_RECOVERY_PIXEL_FORMAT := RGBX_8888
+@@ -198,3 +201,6 @@ SOONG_CONFIG_XIAOMI_VIBRATOR_USE_EFFECT_STREAM := true
+ 
+ # WiFi
+ include device/qcom/wlan/kalama/BoardConfigWlan.mk
++
++# Use the Skia Vulkan backend for HWUI.
++TARGET_USES_VULKAN := true
 diff --git a/common.mk b/common.mk
-index 361ae3b..c2f53b7 100644
+index 361ae3b..c9f0588 100644
 --- a/common.mk
 +++ b/common.mk
 @@ -223,8 +223,8 @@ PRODUCT_PACKAGES += \
@@ -49,6 +65,15 @@ index 361ae3b..c2f53b7 100644
  
  PRODUCT_COPY_FILES += \
      frameworks/native/data/etc/android.hardware.nfc.ese.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/android.hardware.nfc.ese.xml \
+@@ -289,7 +289,7 @@ PRODUCT_COPY_FILES += \
+ 
+ # Thermal
+ PRODUCT_PACKAGES += \
+-    android.hardware.thermal@2.0-service.qti-v2
++    android.hardware.thermal-service.qti
+ 
+ # Touchscreen
+ PRODUCT_COPY_FILES += \
 @@ -333,3 +333,6 @@ PRODUCT_COPY_FILES += \
      frameworks/native/data/etc/android.hardware.wifi.rtt.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/android.hardware.wifi.rtt.xml \
      frameworks/native/data/etc/android.hardware.wifi.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/android.hardware.wifi.xml \
@@ -56,6 +81,83 @@ index 361ae3b..c2f53b7 100644
 +
 +# Stock QESDK environment checks require both original ABI files.
 +PRODUCT_PACKAGES += fuxi_qesdk_env_lib32 fuxi_qesdk_env_manager32
+diff --git a/configs/vintf/framework_matrix_xiaomi.xml b/configs/vintf/framework_matrix_xiaomi.xml
+index b3662bd..dfa170d 100644
+--- a/configs/vintf/framework_matrix_xiaomi.xml
++++ b/configs/vintf/framework_matrix_xiaomi.xml
+@@ -1657,21 +1657,8 @@
+             <instance>default</instance>
+         </interface>
+     </hal>
+-    <hal format="hidl" optional="true">
+-        <name>vendor.qti.qspmhal</name>
+-        <version>1.0</version>
+-        <interface>
+-            <name>IQspmhal</name>
+-            <instance>default</instance>
+-        </interface>
+-    </hal>
+-    <hal format="aidl" optional="true">
+-        <name>vendor.qti.qspmhal</name>
+-        <interface>
+-            <name>IQspmhal</name>
+-            <instance>default</instance>
+-        </interface>
+-    </hal>
++
++
+     <hal format="aidl" optional="true">
+         <name>vendor.qti.qvirt</name>
+         <version>1-2</version>
+@@ -1704,6 +1691,7 @@
+     </hal>
+     <hal format="aidl" optional="true">
+         <name>vendor.qti.snapdragonServices</name>
++        <version>1-2</version>
+         <interface>
+             <name>ISnapdragonServices</name>
+             <instance>default</instance>
+diff --git a/configs/vintf/manifest_kalama.xml b/configs/vintf/manifest_kalama.xml
+index 5cf8848..fce3aef 100644
+--- a/configs/vintf/manifest_kalama.xml
++++ b/configs/vintf/manifest_kalama.xml
+@@ -528,15 +528,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE
+     </hal>
+     <!-- QSPM-HAL service-->
+     <!--
+-    <hal format="hidl">
+-        <name>vendor.qti.qspmhal</name>
+-        <transport>hwbinder</transport>
+-        <version>1.0</version>
+-        <interface>
+-            <name>IQspmhal</name>
+-            <instance>default</instance>
+-        </interface>
+-    </hal>
++
+     -->
+     <!-- Trusted UI HAL Service -->
+     <hal format="hidl">
+diff --git a/init/init_xiaomi8550.cpp b/init/init_xiaomi8550.cpp
+index 07036e6..57b1368 100644
+--- a/init/init_xiaomi8550.cpp
++++ b/init/init_xiaomi8550.cpp
+@@ -11,6 +11,7 @@
+ 
+ #include <cstdlib>
+ #include <string.h>
++#include <unistd.h>
+ 
+ #define _REALLY_INCLUDE_SYS__SYSTEM_PROPERTIES_H_
+ #include <sys/_system_properties.h>
+@@ -57,6 +58,7 @@ void vendor_load_properties() {
+     // Detect variant and override properties
+     string region = GetProperty("ro.boot.hwc", "");
+     string sku = GetProperty("ro.boot.hardware.sku", "");
++    if (sku.empty()) return;
+ 
+     // Override device specific props
+     set_build_prop("ro.build.product", sku);
 diff --git a/overlays/CarrierConfigRes/res/xml/vendor.xml b/overlays/CarrierConfigRes/res/xml/vendor.xml
 index da45bf8..de454db 100644
 --- a/overlays/CarrierConfigRes/res/xml/vendor.xml
@@ -144,3 +246,48 @@ index da45bf8..de454db 100644
          <boolean name="carrier_volte_available_bool" value="true" />
          <boolean name="carrier_vt_available_bool" value="true" />
          <boolean name="carrier_wfc_ims_available_bool" value="true" />
+diff --git a/proprietary-files.txt b/proprietary-files.txt
+index bae26a9..5e5198b 100644
+--- a/proprietary-files.txt
++++ b/proprietary-files.txt
+@@ -1352,7 +1352,7 @@ vendor/lib64/vendor.qti.sla.service@1.0-impl.so
+ vendor/lib64/vendor.qti.sla.service@1.0.so
+ 
+ # Soter
+-mi_ext/product/app/QcomSoterService/QcomSoterService.apk:system_ext/app/QcomSoterService/QcomSoterService.apk|dae7de6141ae1467a4fdedf7bb7b64ec5ac7534a
++vendor/app/SoterService/SoterService.apk|5cef7d2bc300af3fc2d7e72c6b02c54e245eb637
+ vendor/bin/hw/vendor.qti.hardware.soter@1.0-service
+ vendor/etc/init/vendor.qti.hardware.soter@1.0-service.rc
+ vendor/lib64/hw/vendor.qti.hardware.soter@1.0-impl.so
+diff --git a/sepolicy/private/seapp_contexts b/sepolicy/private/seapp_contexts
+index de57375..d61ba4a 100644
+--- a/sepolicy/private/seapp_contexts
++++ b/sepolicy/private/seapp_contexts
+@@ -1,2 +1,6 @@
+ # Parts
+ user=system seinfo=platform isPrivApp=true name=com.xiaomi.settings domain=parts_app type=system_app_data_file levelFrom=all
++
++# Package selectors retain platform-certificate verification through seinfo.
++user=_app seinfo=platform name=com.android.camera domain=fuxi_camera_app type=app_data_file levelFrom=user
++user=_app seinfo=platform name=com.tencent.soter.soterserver domain=fuxi_soter_app type=app_data_file levelFrom=user
+diff --git a/sepolicy/vendor/hal_fingerprint.te b/sepolicy/vendor/hal_fingerprint.te
+index 37f9c12..d1503e1 100644
+--- a/sepolicy/vendor/hal_fingerprint.te
++++ b/sepolicy/vendor/hal_fingerprint.te
+@@ -35,3 +35,6 @@ allow hal_fingerprint_default surfaceflinger:binder transfer;
+ get_prop(hal_fingerprint_default, vendor_panel_info_prop)
+ set_prop(hal_fingerprint_default, vendor_fp_prop)
+ set_prop(hal_fingerprint_default, vendor_fp_info_prop)
++
++# Fingerprint requests boosts through the Perf AIDL service.
++hal_client_domain(hal_fingerprint_default, vendor_hal_perf)
+diff --git a/sepolicy/vendor/hal_usb.te b/sepolicy/vendor/hal_usb.te
+index a30c257..e74273b 100644
+--- a/sepolicy/vendor/hal_usb.te
++++ b/sepolicy/vendor/hal_usb.te
+@@ -1,2 +1,5 @@
+ allow vendor_hal_usb_qti vendor_sysfs_qcom_battery:dir r_dir_perms;
+ allow vendor_hal_usb_qti vendor_sysfs_qcom_battery:file r_file_perms;
++
++# Read USB device-controller connection state.
++r_dir_file(vendor_hal_usb_qti, sysfs_udc)

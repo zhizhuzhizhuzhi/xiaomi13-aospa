@@ -21,71 +21,114 @@ index 062f041..78fe710 100644
      os::trace_end(tag);
  }
 diff --git a/libs/ui/GraphicBuffer.cpp b/libs/ui/GraphicBuffer.cpp
-index 873b039..cfc99df 100644
+index 873b039..0d8db04 100644
 --- a/libs/ui/GraphicBuffer.cpp
 +++ b/libs/ui/GraphicBuffer.cpp
-@@ -106,7 +106,9 @@ GraphicBuffer::GraphicBuffer()
+@@ -28,9 +28,40 @@
+ #include <utils/Trace.h>
+ 
+ #include <string>
++#include <memory>
++#include <mutex>
++#include <unordered_map>
+ 
+ namespace android {
+ 
++#if defined(LIBUI_IN_VNDK) || defined(__ANDROID_VENDOR__)
++namespace {
++struct VendorBufferMonitors {
++    std::mutex mutex;
++    std::unordered_map<const GraphicBuffer*, std::unique_ptr<DependencyMonitor>> monitors;
++};
++VendorBufferMonitors& vendorBufferMonitors() {
++    // Registry lifetime covers all buffers, including static-object teardown.
++    static auto* const state = new VendorBufferMonitors;
++    return *state;
++}
++void eraseVendorBufferMonitor(const GraphicBuffer* buffer) {
++    auto& state = vendorBufferMonitors();
++    std::lock_guard<std::mutex> lock(state.mutex);
++    state.monitors.erase(buffer);
++}
++} // namespace
++
++DependencyMonitor& GraphicBuffer::getDependencyMonitor() {
++    auto& state = vendorBufferMonitors();
++    std::lock_guard<std::mutex> lock(state.mutex);
++    auto& monitor = state.monitors[this];
++    if (!monitor) monitor = std::make_unique<DependencyMonitor>();
++    return *monitor;
++}
++#endif
++
++
+ // ===========================================================================
+ // Buffer and implementation of ANativeWindowBuffer
+ // ===========================================================================
+@@ -106,7 +137,7 @@ GraphicBuffer::GraphicBuffer()
      usage  = 0;
      layerCount = 0;
      handle = nullptr;
-+    #if !defined(LIBUI_IN_VNDK) && !defined(__ANDROID_VENDOR__)
-     mDependencyMonitor.setToken(std::to_string(mId));
-+    #endif
+-    mDependencyMonitor.setToken(std::to_string(mId));
++    getDependencyMonitor().setToken(std::to_string(mId));
  }
  
  // deprecated
-@@ -159,7 +161,9 @@ GraphicBuffer::GraphicBuffer(const GraphicBufferAllocator::AllocationRequest& re
+@@ -159,7 +190,7 @@ GraphicBuffer::GraphicBuffer(const GraphicBufferAllocator::AllocationRequest& re
          usage = request.usage;
          usage_deprecated = int(usage);
          std::string name = request.requestorName;
-+        #if !defined(LIBUI_IN_VNDK) && !defined(__ANDROID_VENDOR__)
-         mDependencyMonitor.setToken(name.append(":").append(std::to_string(mId)));
-+        #endif
+-        mDependencyMonitor.setToken(name.append(":").append(std::to_string(mId)));
++        getDependencyMonitor().setToken(name.append(":").append(std::to_string(mId)));
      }
  }
  
-@@ -262,7 +266,9 @@ status_t GraphicBuffer::initWithSize(uint32_t inWidth, uint32_t inHeight,
+@@ -172,6 +203,9 @@ GraphicBuffer::~GraphicBuffer()
+     for (auto& [callback, context] : mDeathCallbacks) {
+         callback(context, mId);
+     }
++#if defined(LIBUI_IN_VNDK) || defined(__ANDROID_VENDOR__)
++    eraseVendorBufferMonitor(this);
++#endif
+ }
+ 
+ void GraphicBuffer::free_handle()
+@@ -262,7 +296,7 @@ status_t GraphicBuffer::initWithSize(uint32_t inWidth, uint32_t inHeight,
          usage = inUsage;
          usage_deprecated = int(usage);
          stride = static_cast<int>(outStride);
-+        #if !defined(LIBUI_IN_VNDK) && !defined(__ANDROID_VENDOR__)
-         mDependencyMonitor.setToken(requestorName.append(":").append(std::to_string(mId)));
-+        #endif
+-        mDependencyMonitor.setToken(requestorName.append(":").append(std::to_string(mId)));
++        getDependencyMonitor().setToken(requestorName.append(":").append(std::to_string(mId)));
      }
      return err;
  }
-@@ -626,7 +632,9 @@ status_t GraphicBuffer::unflatten(void const*& buffer, size_t& size, int const*&
+@@ -626,7 +660,7 @@ status_t GraphicBuffer::unflatten(void const*& buffer, size_t& size, int const*&
          name = "<Unknown>";
      }
  
-+    #if !defined(LIBUI_IN_VNDK) && !defined(__ANDROID_VENDOR__)
-     mDependencyMonitor.setToken(name.append(":").append(std::to_string(mId)));
-+    #endif
+-    mDependencyMonitor.setToken(name.append(":").append(std::to_string(mId)));
++    getDependencyMonitor().setToken(name.append(":").append(std::to_string(mId)));
  
      buffer = static_cast<void const*>(static_cast<uint8_t const*>(buffer) + sizeNeeded);
      size -= sizeNeeded;
 diff --git a/libs/ui/include/ui/GraphicBuffer.h b/libs/ui/include/ui/GraphicBuffer.h
-index b8d9464..4991e02 100644
+index b8d9464..eb1de50 100644
 --- a/libs/ui/include/ui/GraphicBuffer.h
 +++ b/libs/ui/include/ui/GraphicBuffer.h
-@@ -240,7 +240,15 @@ public:
+@@ -240,7 +240,12 @@ public:
  
      void addDeathCallback(GraphicBufferDeathCallback deathCallback, void* context);
  
--    DependencyMonitor& getDependencyMonitor() { return mDependencyMonitor; }
-+    DependencyMonitor& getDependencyMonitor() {
 +#if !defined(LIBUI_IN_VNDK) && !defined(__ANDROID_VENDOR__)
-+        return mDependencyMonitor;
+     DependencyMonitor& getDependencyMonitor() { return mDependencyMonitor; }
 +#else
-+        // Keep vendor GraphicBuffer ABI compatible with existing camera HALs.
-+        static DependencyMonitor vendorMonitor;
-+        return vendorMonitor;
++    // Per-buffer external state preserves the legacy vendor object size.
++    DependencyMonitor& getDependencyMonitor();
 +#endif
-+    }
  
  private:
      ~GraphicBuffer();
-@@ -309,7 +317,10 @@ private:
+@@ -309,7 +314,10 @@ private:
      std::vector<std::pair<GraphicBufferDeathCallback, void* /*mDeathCallbackContext*/>>
              mDeathCallbacks;
  

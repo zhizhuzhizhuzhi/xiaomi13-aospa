@@ -1,0 +1,35 @@
+diff --git a/configs/kalama/kalama.mk b/configs/kalama/kalama.mk
+index 1c3e9c7..5190c90 100644
+--- a/configs/kalama/kalama.mk
++++ b/configs/kalama/kalama.mk
+@@ -218,10 +218,7 @@ persist.vendor.audio.fluence.tmic.enabled=false
+ 
+ ##fluencetype can be "fluence" or "fluencepro" or "none"
+ PRODUCT_PROPERTY_OVERRIDES += \
+-ro.qc.sdk.audio.fluencetype=none\
+-persist.audio.fluence.voicecall=true\
+-persist.audio.fluence.voicerec=false\
+-persist.audio.fluence.speaker=true
++ro.qc.sdk.audio.fluencetype=none
+ 
+ ##speaker protection v3 switch and ADSP AFE API version
+ PRODUCT_PROPERTY_OVERRIDES += \
+@@ -358,7 +355,6 @@ vendor.audio.volume.headset.gain.depcal=true
+ 
+ #enable dualmic fluence for voice communication
+ PRODUCT_PROPERTY_OVERRIDES += \
+-persist.audio.fluence.voicecomm=true
+ 
+ #enable c2 based encoders/decoders as default NT decoders/encoders
+ PRODUCT_PROPERTY_OVERRIDES += \
+@@ -509,3 +505,10 @@ endif
+ 
+ AUDIO_FEATURE_ENABLED_GKI := true
+ BUILD_AUDIO_TECHPACK_SOURCE := true
++
++# Framework audio properties must be initialized from the system partition.
++PRODUCT_SYSTEM_PROPERTIES += \
++    persist.audio.fluence.voicecall=true \
++    persist.audio.fluence.voicerec=false \
++    persist.audio.fluence.speaker=true \
++    persist.audio.fluence.voicecomm=true

@@ -22,15 +22,11 @@ index 16c413a..c08f60d 100644
 +# Public camera JNI libraries and their SNPE runtime dependency.
 +/(vendor|odm)/lib64/(libmialgo_ai_vision|libSNPE|libc\+\+_shared)\.so u:object_r:same_process_hal_file:s0
 diff --git a/sepolicy/vendor/platform_app.te b/sepolicy/vendor/platform_app.te
-index 58469dc..3121e64 100644
+index 58469dc..f13b82e 100644
 --- a/sepolicy/vendor/platform_app.te
 +++ b/sepolicy/vendor/platform_app.te
-@@ -7,3 +7,8 @@ get_prop(platform_app, vendor_camera_prop)
+@@ -7,3 +7,4 @@ get_prop(platform_app, vendor_camera_prop)
  get_prop(platform_app, vendor_fp_prop)
  get_prop(platform_app, vendor_display_prop)
  get_prop(platform_app, vendor_panel_info_prop)
 +
-+# Xiaomi MIVI callbacks for platform applications targeting Android 16 or older.
-+hal_client_domain(platform_app_36, vendor_hal_camerapostproc_xiaomi)
-+binder_call(platform_app_36, hal_camera_default)
-+allow platform_app_36 hal_camera_default:fd use;

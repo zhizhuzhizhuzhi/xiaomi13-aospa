@@ -11,6 +11,7 @@
 
 #include <cstdlib>
 #include <string.h>
+#include <unistd.h>
 
 #define _REALLY_INCLUDE_SYS__SYSTEM_PROPERTIES_H_
 #include <sys/_system_properties.h>
@@ -57,6 +58,7 @@ void vendor_load_properties() {
     // Detect variant and override properties
     string region = GetProperty("ro.boot.hwc", "");
     string sku = GetProperty("ro.boot.hardware.sku", "");
+    if (sku.empty()) return;
 
     // Override device specific props
     set_build_prop("ro.build.product", sku);

@@ -1,2 +1,6 @@
 # Parts
 user=system seinfo=platform isPrivApp=true name=com.xiaomi.settings domain=parts_app type=system_app_data_file levelFrom=all
+
+# Package selectors retain platform-certificate verification through seinfo.
+user=_app seinfo=platform name=com.android.camera domain=fuxi_camera_app type=app_data_file levelFrom=user
+user=_app seinfo=platform name=com.tencent.soter.soterserver domain=fuxi_soter_app type=app_data_file levelFrom=user

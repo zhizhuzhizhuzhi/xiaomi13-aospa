@@ -1,0 +1,8 @@
+// SPDX-License-Identifier: Apache-2.0
+cc_test {
+    name: "fuxi_vendor_buffer_monitor_test",
+    vendor: true,
+    srcs: ["GraphicBufferMonitorTest.cpp"],
+    shared_libs: ["libui", "libutils"],
+    test_suites: ["device-tests"],
+}

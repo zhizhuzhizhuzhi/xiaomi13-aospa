@@ -16,3 +16,98 @@ index d554e0b..4cdd3f1 100644
  com.qualcomm.qti.wifidisplayhal::IDSManager                  u:object_r:vendor_wifidisplayhalservice_hwservice:s0
  vendor.qti.hardware.audiohalext::IAudioHalExt                u:object_r:hal_audio_hwservice:s0
  com.qualcomm.qti.imscmservice::IImsCmService                 u:object_r:vendor_hal_imsrcsd_hwservice:s0
+diff --git a/sepolicy/qva/vendor/common/ssgtzd.te b/sepolicy/qva/vendor/common/ssgtzd.te
+index 4b22c69..235aab2 100644
+--- a/sepolicy/qva/vendor/common/ssgtzd.te
++++ b/sepolicy/qva/vendor/common/ssgtzd.te
+@@ -3,3 +3,6 @@ allow vendor_ssgtzd self:udp_socket create_socket_perms;
+ 
+ #Allow ssgtzd to access servicemanager
+ binder_call(vendor_ssgtzd, servicemanager)
++
++# SSG TZ uses the vendor QTR SDK for diagnostic events.
++qtr_sdk_use(vendor_ssgtzd)
+diff --git a/vendor/init/init.qti.kernel.rc b/vendor/init/init.qti.kernel.rc
+index 25769c9..da91e8a 100644
+--- a/vendor/init/init.qti.kernel.rc
++++ b/vendor/init/init.qti.kernel.rc
+@@ -40,13 +40,6 @@ service memory-init-boot /vendor/bin/sh /vendor/bin/init.kernel.init_boot-memory
+     disabled
+     oneshot
+ 
+-service memory-post-boot /vendor/bin/sh /vendor/bin/init.kernel.post_boot-memory.sh
+-    class core
+-    user root
+-    group root
+-    disabled
+-    oneshot
+-
+ on early-init
+     # Set the console loglevel to < KERN_WARN
+     # Set the default message loglevel to KERN_INFO
+@@ -168,7 +161,6 @@ on property:sys.boot_completed=1
+     write /proc/sys/vm/page-cluster 0
+     start kernel-boot
+     start kernel-post-boot
+-    start memory-post-boot
+ 
+ on property:vendor.pasr.enabled=false
+     stop pasr-hal
+diff --git a/vendor/init/kalama/bin/init.kernel.post_boot-kalama_default_3_4_1.sh b/vendor/init/kalama/bin/init.kernel.post_boot-kalama_default_3_4_1.sh
+index 44bfa7c..e76a0c9 100755
+--- a/vendor/init/kalama/bin/init.kernel.post_boot-kalama_default_3_4_1.sh
++++ b/vendor/init/kalama/bin/init.kernel.post_boot-kalama_default_3_4_1.sh
+@@ -114,7 +114,7 @@ echo 325 > /proc/sys/walt/walt_low_latency_task_threshold
+ 
+ # cpuset parameters
+ echo 0-2 > /dev/cpuset/background/cpus
+-echo 0-2 > /dev/cpuset/system-background/cpus
++echo 0-6 > /dev/cpuset/system-background/cpus
+ 
+ # Turn off scheduler boost at the end
+ echo 0 > /proc/sys/walt/sched_boost
+diff --git a/vendor/init/qti-init.mk b/vendor/init/qti-init.mk
+index a18902d..20756e3 100644
+--- a/vendor/init/qti-init.mk
++++ b/vendor/init/qti-init.mk
+@@ -35,7 +35,6 @@ PRODUCT_PACKAGES += \
+     init.class_main.sh \
+     init.crda.sh \
+     init.kernel.init_boot-memory.sh \
+-    init.kernel.post_boot-memory.sh \
+     init.mdm.sh \
+     init.qcom.class_core.sh \
+     init.qcom.coex.sh \
+diff --git a/vendor/init/system_dlkm_modprobe.sh b/vendor/init/system_dlkm_modprobe.sh
+index 7c1f2d8..e253c56 100644
+--- a/vendor/init/system_dlkm_modprobe.sh
++++ b/vendor/init/system_dlkm_modprobe.sh
+@@ -5,7 +5,7 @@
+ # Confidential and Proprietary - Qualcomm Technologies, Inc.
+ #=============================================================================
+ 
+-SYSTEM_DLKM_DIR="/system_dlkm/lib/modules"
++SYSTEM_DLKM_DIR="/system_dlkm/lib/modules/$(uname -r)"
+ VENDOR_DLKM_DIR="/vendor_dlkm/lib/modules"
+ 
+ MODPROBE="/vendor/bin/modprobe"
+diff --git a/vendor/perf/qti-perf.mk b/vendor/perf/qti-perf.mk
+index 5fac908..6d469b0 100644
+--- a/vendor/perf/qti-perf.mk
++++ b/vendor/perf/qti-perf.mk
+@@ -37,7 +37,7 @@ PRODUCT_VENDOR_PROPERTIES += \
+     ro.vendor.perf-hal.ver=3.0 \
+     ro.vendor.extension_library=libqti-perfd-client.so \
+     ro.vendor.perf.scroll_opt=true \
+-    ro.vendor.qspm.enable=true \
++    ro.vendor.qspm.enable=false \
+     vendor.perf.framepacing.enable=1
+ 
+ ifeq (,$(filter 4.14, $(TARGET_KERNEL_VERSION)))
+@@ -54,3 +54,6 @@ PRODUCT_VENDOR_PROPERTIES += \
+ 
+ # Get non-open-source specific aspects
+ $(call inherit-product-if-exists, vendor/qcom/common/vendor/perf/perf-vendor.mk)
++
++# AP engine is removed with its QSPM backend.
++PRODUCT_COPY_FILES := $(filter-out %/QGPE.xml:$(TARGET_COPY_OUT_VENDOR)/etc/lm/QGPE.xml,$(PRODUCT_COPY_FILES))

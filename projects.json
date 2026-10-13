@@ -3,11 +3,17 @@
     "path": "device/qcom/common",
     "revision": "df812783f7f38702769c2b32f927c6ea1ea9d78a",
     "patch": "patches/device__qcom__common.patch",
-    "overlay": [],
     "files": [
       "sepolicy/generic/vendor/common/vndservice_contexts",
-      "sepolicy/qva/vendor/common/hwservice_contexts"
-    ]
+      "sepolicy/qva/vendor/common/hwservice_contexts",
+      "sepolicy/qva/vendor/common/ssgtzd.te",
+      "vendor/init/init.qti.kernel.rc",
+      "vendor/init/kalama/bin/init.kernel.post_boot-kalama_default_3_4_1.sh",
+      "vendor/init/qti-init.mk",
+      "vendor/init/system_dlkm_modprobe.sh",
+      "vendor/perf/qti-perf.mk"
+    ],
+    "overlay": []
   },
   {
     "path": "device/qcom/sepolicy",
@@ -22,39 +28,54 @@
     "path": "device/xiaomi/fuxi",
     "revision": "f4b3ea7a50431d0868f1948ea93ec17884434a5e",
     "patch": "patches/device__xiaomi__fuxi.patch",
-    "overlay": [],
     "files": [
-      "overlays/Frameworks/res/values/dimens.xml",
-      "overlays/WifiRes/res/values/config.xml"
-    ]
+      "BoardConfig.mk",
+      "configs/properties/odm.prop",
+      "configs/properties/vendor.prop",
+      "overlays/Frameworks/res/values/dimens.xml"
+    ],
+    "overlay": []
   },
   {
     "path": "device/xiaomi/sepolicy",
     "revision": "8dcddf5ef0402c373431696e4589c59d55a51740",
     "patch": "patches/device__xiaomi__sepolicy.patch",
-    "overlay": [],
     "files": [
       "vendor/hal_citsensorservice_xiaomi.te",
       "vendor/hal_display_config.te",
       "vendor/hal_displayfeature_xiaomi.te",
       "vendor/radio.te"
-    ]
+    ],
+    "overlay": []
   },
   {
     "path": "device/xiaomi/sm8550-common",
     "revision": "93546c5ef300c5a04b1c8eea907086d1ed84aac4",
     "patch": "patches/device__xiaomi__sm8550-common.patch",
-    "overlay": [
-      "qesdk-compat/Android.mk",
-      "sepolicy/vendor/vendor_modem_manager.te",
-      "sepolicy/vendor/vendor_qms.te",
-      "sepolicy/vendor/vndservice.te",
-      "sepolicy/vendor/vndservice_contexts"
-    ],
     "files": [
       "BoardConfigCommon.mk",
       "common.mk",
-      "overlays/CarrierConfigRes/res/xml/vendor.xml"
+      "configs/vintf/framework_matrix_xiaomi.xml",
+      "configs/vintf/manifest_kalama.xml",
+      "init/init_xiaomi8550.cpp",
+      "overlays/CarrierConfigRes/res/xml/vendor.xml",
+      "proprietary-files.txt",
+      "sepolicy/private/seapp_contexts",
+      "sepolicy/vendor/hal_fingerprint.te",
+      "sepolicy/vendor/hal_usb.te"
+    ],
+    "overlay": [
+      "qesdk-compat/Android.mk",
+      "sepolicy/private/device_as_webcam.te",
+      "sepolicy/private/fuxi_apps.te",
+      "sepolicy/public/fuxi_apps.te",
+      "sepolicy/vendor/fuxi_apps.te",
+      "sepolicy/vendor/vendor_modem_manager.te",
+      "sepolicy/vendor/vendor_qms.te",
+      "sepolicy/vendor/vndservice.te",
+      "sepolicy/vendor/vndservice_contexts",
+      "tests/Android.bp",
+      "tests/GraphicBufferMonitorTest.cpp"
     ]
   },
   {
@@ -84,41 +105,37 @@
     "path": "frameworks/base",
     "revision": "2d3deacd4c78b696368d42a7857ac784afda3175",
     "patch": "patches/frameworks__base.patch",
+    "files": [
+      "core/java/com/android/internal/app/ActivityTrigger.java",
+      "core/jni/com_android_internal_app_ActivityTrigger.cpp",
+      "packages/SettingsLib/src/com/android/settingslib/development/SystemPropPoker.java",
+      "packages/SettingsLib/tests/robotests/src/com/android/settingslib/development/SystemPropPokerTest.java",
+      "services/core/java/com/android/server/ActivityTriggerService.java",
+      "services/core/java/com/android/server/am/ActivityManagerService.java",
+      "services/core/java/com/android/server/biometrics/sensors/face/FaceService.java",
+      "services/core/java/com/android/server/display/brightness/strategy/AutomaticBrightnessStrategy.java",
+      "services/core/java/com/android/server/vibrator/VibratorManagerService.java",
+      "services/core/jni/Android.bp",
+      "services/core/jni/com_android_server_activityTriggerService.cpp",
+      "services/core/jni/onload.cpp",
+      "services/java/com/android/server/SystemServer.java",
+      "services/tests/displayservicetests/src/com/android/server/display/brightness/strategy/AutomaticBrightnessStrategyTest.java"
+    ],
     "overlay": [
       "services/core/java/com/android/server/vibrator/SystemTickHapticPolicy.java",
       "services/tests/vibrator/src/com/android/server/vibrator/SystemTickHapticPolicyTest.java"
-    ],
-    "files": [
-      "services/core/java/com/android/server/display/brightness/strategy/AutomaticBrightnessStrategy.java",
-      "services/core/java/com/android/server/vibrator/VibratorManagerService.java",
-      "services/tests/displayservicetests/src/com/android/server/display/brightness/strategy/AutomaticBrightnessStrategyTest.java"
     ]
   },
   {
     "path": "frameworks/native",
     "revision": "9b6253730b3c5f7440491a09823d6708d6d59871",
     "patch": "patches/frameworks__native.patch",
-    "overlay": [],
     "files": [
       "libs/binder/OS_android.cpp",
       "libs/ui/GraphicBuffer.cpp",
       "libs/ui/include/ui/GraphicBuffer.h"
-    ]
-  },
-  {
-    "path": "hardware/interfaces",
-    "revision": "c0fa2c83463785fd25d6e6813934b7a3ed4dfa44",
-    "patch": "patches/hardware__interfaces.patch",
-    "overlay": [],
-    "files": [
-      "health/aidl/default/ChargerUtils.cpp",
-      "health/aidl/default/HalHealthLoop.cpp",
-      "health/aidl/default/Health.cpp",
-      "health/aidl/default/include/health-impl/HalHealthLoop.h",
-      "health/aidl/default/include/health-impl/Health.h",
-      "health/utils/libhealthloop/HealthLoop.cpp",
-      "health/utils/libhealthloop/include/health/HealthLoop.h"
-    ]
+    ],
+    "overlay": []
   },
   {
     "path": "hardware/qcom/display",
@@ -134,21 +151,23 @@
     "path": "hardware/qcom/gps",
     "revision": "b6e91d46bef12efab7690d6ff92b766b3cf770f7",
     "patch": "patches/hardware__qcom__gps.patch",
-    "overlay": [],
     "files": [
+      "Android.bp",
       "android/aidl-impl/Android.bp"
-    ]
+    ],
+    "overlay": []
   },
   {
     "path": "hardware/xiaomi",
     "revision": "70c74dd57583458248cac34601a1361012ecbc01",
     "patch": "patches/hardware__xiaomi.patch",
-    "overlay": [],
     "files": [
       "aidl/sensors/Android.bp",
       "aidl/vibrator/aidl/Vibrator.cpp",
-      "aidl/vibrator/effect/effect.cpp"
-    ]
+      "aidl/vibrator/effect/effect.cpp",
+      "dolby/src/co/aospa/dolby/xiaomi/preference/DolbyIeqPreference.kt"
+    ],
+    "overlay": []
   },
   {
     "path": "kernel_platform/build/kernel",
@@ -175,7 +194,8 @@
     "patch": "patches/kernel_platform__msm-kernel.patch",
     "overlay": [],
     "files": [
-      "Android.bp"
+      "Android.bp",
+      "drivers/power/supply/qti_battery_charger.c"
     ]
   },
   {
@@ -255,20 +275,21 @@
   {
     "path": "packages/modules/Wifi",
     "revision": "d7c04a17f8eb8a01f50e7697934c618f79ef75b7",
-    "patch": "patches/packages__modules__Wifi.patch",
+    "patch": null,
     "overlay": [],
-    "files": [
-      "service/ServiceWifiResources/res/values/config.xml",
-      "service/ServiceWifiResources/res/values/overlayable.xml",
-      "service/java/com/android/server/wifi/WifiCountryCode.java"
-    ]
+    "files": []
   },
   {
     "path": "system/core",
     "revision": "a39957699ee525fb94a11839e4e0fd2041503309",
     "patch": "patches/system__core.patch",
-    "overlay": [],
+    "overlay": [
+      "init/vendor_init.h",
+      "init/vendor_init.cpp"
+    ],
     "files": [
+      "init/Android.bp",
+      "init/property_service.cpp",
       "libprocessgroup/processgroup.cpp"
     ]
   },
@@ -315,12 +336,16 @@
     "path": "vendor/qcom/common",
     "revision": "220d639a1222c5c5a818d01360482c93af048e16",
     "patch": "patches/vendor__qcom__common.patch",
-    "overlay": [],
     "files": [
-      "system/telephony/proprietary/system_ext/etc/sysconfig/qti_whitelist_system_ext.xml",
+      "system/perf/perf-vendor.mk",
+      "system/telephony/telephony-vendor.mk",
       "vendor/display/5.15/Android.bp",
+      "vendor/perf/Android.bp",
+      "vendor/perf/perf-vendor.mk",
+      "vendor/perf/proprietary/vendor/bin/vendor.qti.qspmhal-service",
       "vendor/wlan/Android.bp"
-    ]
+    ],
+    "overlay": []
   },
   {
     "path": "vendor/qcom/opensource/camera-kernel",
@@ -346,14 +371,14 @@
     "path": "vendor/xiaomi/camera",
     "revision": "6cfcc8fcbc659bcde91e871ca9f489fee6143fdf",
     "patch": "patches/vendor__xiaomi__camera.patch",
-    "overlay": [
-      "patches/0010-Support-Android-17-stream-configuration-constructor.patch",
-      "patches/0011-Support-Android-17-total-capture-result.patch"
-    ],
     "files": [
       "Android.bp",
       "sepolicy/vendor/file_contexts",
       "sepolicy/vendor/platform_app.te"
+    ],
+    "overlay": [
+      "patches/0010-Support-Android-17-stream-configuration-constructor.patch",
+      "patches/0011-Support-Android-17-total-capture-result.patch"
     ]
   },
   {
@@ -374,8 +399,46 @@
     "overlay": [],
     "files": [
       "Android.bp",
+      "proprietary/vendor/etc/init/hw/init.batterysecret.rc",
       "sm8550-common-vendor.mk",
-      "proprietary/vendor/etc/init/hw/init.batterysecret.rc"
+      "xiaomi13-vendor.mk"
     ]
+  },
+  {
+    "path": "external/tinyalsa",
+    "revision": "6f37e03f15bcf7d949bc342f054247e529d6b344",
+    "patch": "patches/external__tinyalsa.patch",
+    "files": [
+      "include/tinyalsa/mixer_plugin.h",
+      "mixer_plugin.c"
+    ],
+    "overlay": []
+  },
+  {
+    "path": "vendor/qcom/opensource/audio-hal/primary-hal",
+    "revision": "467ef3674bdda999a21af9d224f37cd6dc3686dd",
+    "patch": "patches/vendor__qcom__opensource__audio-hal__primary-hal.patch",
+    "files": [
+      "configs/kalama/kalama.mk"
+    ],
+    "overlay": []
+  },
+  {
+    "path": "vendor/qcom/opensource/thermal-hal",
+    "revision": "e6606b4637b49ca0d993661015689bcad2d9f46c",
+    "patch": "patches/vendor__qcom__opensource__thermal-hal.patch",
+    "files": [
+      "android.hardware.thermal-service.qti.rc"
+    ],
+    "overlay": []
+  },
+  {
+    "path": "vendor/qcom/opensource/core-utils",
+    "revision": "1b2dc299e2a3302a3f38dd7577152db74a8a86a1",
+    "patch": "patches/vendor__qcom__opensource__core-utils.patch",
+    "files": [
+      "vendor_framework_compatibility_matrix.xml"
+    ],
+    "overlay": []
   }
 ]

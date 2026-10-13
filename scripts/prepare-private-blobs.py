@@ -4,13 +4,18 @@
 import argparse, pathlib, hashlib, shutil, zipfile
 p=argparse.ArgumentParser();p.add_argument('tree',type=pathlib.Path);p.add_argument('inputs',type=pathlib.Path)
 a=p.parse_args();root=a.tree.resolve();inputs=a.inputs.resolve()
-required=['MiuiCamera.apk','libgui-xiaomi.so','FuxiSystemUI.apk']
+required=['MiuiCamera.apk','libgui-xiaomi.so','FuxiSystemUI.apk','SoterService.apk']
 for n in required:
     if not (inputs/n).is_file():raise SystemExit('Missing build input: '+n)
-expected_apk='8e63c2384770b7097da781bc86284aeceeeefbbe51434ba522b51d1062e1358d'
+expected_apk='921b3b2f0fc3bdcb18a3168759c8e0b7359ba97446047a5ac56830f21475aa79'
 if hashlib.sha256((inputs/'MiuiCamera.apk').read_bytes()).hexdigest()!=expected_apk:
-    raise SystemExit('MIUI Camera must come from the tested 20261012 ROM')
+    raise SystemExit('MIUI Camera must come from the 20261014 build dependency')
 camera=root/'vendor/xiaomi/camera'
+soter=inputs/'SoterService.apk'
+if hashlib.sha256(soter.read_bytes()).hexdigest()!='b1f5a2a692822aa9e75b67a5aab48c55e3082259641e9b0193e0fe70e81d1cfc':
+    raise SystemExit('SoterService must match the pinned diting OS2 version')
+dest=root/'vendor/xiaomi/sm8550-common/proprietary/vendor/app/SoterService/SoterService.apk'
+dest.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(soter,dest)
 data=(inputs/'libgui-xiaomi.so').read_bytes()
 old=b'android.hardware.graphics.common-V5-ndk.so';new=b'android.hardware.graphics.common-V7-ndk.so'
 if old in data:data=data.replace(old,new)

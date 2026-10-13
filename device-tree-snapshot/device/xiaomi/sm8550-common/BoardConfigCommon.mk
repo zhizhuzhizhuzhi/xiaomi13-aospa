@@ -66,7 +66,7 @@ DEVICE_MANIFEST_FILE += \
     $(COMMON_PATH)/configs/vintf/manifest_xiaomi.xml
 
 # Init
-TARGET_INIT_VENDOR_LIB := //$(COMMON_PATH):libinit_xiaomi_sm8550
+$(call soong_config_set,libinit,vendor_init_lib,//$(COMMON_PATH):libinit_xiaomi_sm8550)
 TARGET_RECOVERY_DEVICE_MODULES := libinit_xiaomi_sm8550
 
 # Kernel
@@ -201,3 +201,6 @@ SOONG_CONFIG_XIAOMI_VIBRATOR_USE_EFFECT_STREAM := true
 
 # WiFi
 include device/qcom/wlan/kalama/BoardConfigWlan.mk
+
+# Use the Skia Vulkan backend for HWUI.
+TARGET_USES_VULKAN := true

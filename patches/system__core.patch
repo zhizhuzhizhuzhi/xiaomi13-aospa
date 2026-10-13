@@ -1,3 +1,49 @@
+diff --git a/init/Android.bp b/init/Android.bp
+index 2783c9b..703542f 100644
+--- a/init/Android.bp
++++ b/init/Android.bp
+@@ -96,6 +96,7 @@ init_device_sources = [
+     "uevent_dependency_graph.cpp",
+     "ueventd.cpp",
+     "ueventd_parser.cpp",
++    "vendor_init.cpp",
+ ]
+ 
+ soong_config_module_type {
+@@ -243,7 +244,10 @@ cc_defaults {
+     ],
+     whole_static_libs: [
+         "libcap",
+-    ],
++    ] + select(soong_config_variable("libinit", "vendor_init_lib"), {
++        any @ flag_val: [flag_val],
++        default: [],
++    }),
+     header_libs: ["bootimg_headers"],
+     proto: {
+         type: "lite",
+diff --git a/init/property_service.cpp b/init/property_service.cpp
+index b70057f..1b9a0fc 100644
+--- a/init/property_service.cpp
++++ b/init/property_service.cpp
+@@ -74,6 +74,7 @@
+ #include "subcontext.h"
+ #include "system/core/init/property_service.pb.h"
+ #include "util.h"
++#include "vendor_init.h"
+ 
+ [[maybe_unused]] static constexpr char APPCOMPAT_OVERRIDE_PROP_FOLDERNAME[] =
+         "/dev/__properties__/appcompat_override";
+@@ -1239,6 +1240,9 @@ void PropertyLoadBootDefaults() {
+         }
+     }
+ 
++    // Update with vendor-specific property runtime overrides.
++    vendor_load_properties();
++
+     property_initialize_ro_product_props();
+     property_derive_build_fingerprint();
+ 
 diff --git a/libprocessgroup/processgroup.cpp b/libprocessgroup/processgroup.cpp
 index 7648c21..2a8aef2 100644
 --- a/libprocessgroup/processgroup.cpp

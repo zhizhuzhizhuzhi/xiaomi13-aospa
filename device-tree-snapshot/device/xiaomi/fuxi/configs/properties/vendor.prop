@@ -5,3 +5,7 @@ persist.vendor.fingerprint.sensor_modules=goodix_fod
 
 # NFC
 ro.vendor.se.chip.model=SN110T
+
+# Stock fuxi UDFPS geometry consumed by SoterService
+persist.vendor.sys.fp.fod.location.X_Y=442,2052
+persist.vendor.sys.fp.fod.size.width_height=196,196
