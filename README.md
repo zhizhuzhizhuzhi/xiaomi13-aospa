@@ -104,7 +104,6 @@ python3 ../xiaomi13-aospa-kit/scripts/package.py "$PWD" \
 | --- | --- |
 | `manifests/release.xml` | 固定上游 commit |
 | `patches/`、`overlay/`、`projects.json` | 34 个仓库的改动和新增文件 |
-| `device-tree-snapshot/` | 设备树快照 |
 | `scripts/` | 补丁、依赖、编译和打包工具 |
 | `dependencies.json` | 构建依赖的版本、地址与 SHA256 |
 | `licenses/`、`LICENSE.md` | 许可证与版权信息 |

@@ -1,2 +1,0 @@
-allow hal_ir_default ir_spi_device:chr_file { ioctl open read write };
-get_prop(hal_ir_default, lirc_prop)

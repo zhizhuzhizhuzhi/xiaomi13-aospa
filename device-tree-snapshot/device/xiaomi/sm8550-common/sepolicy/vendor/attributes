@@ -1,4 +1,0 @@
-# SLA
-attribute hal_slaservice;
-attribute hal_slaservice_client;
-attribute hal_slaservice_server;
