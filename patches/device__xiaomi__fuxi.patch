@@ -35,6 +35,18 @@ index 683dcfa..432d62e 100644
 +# Stock fuxi UDFPS geometry consumed by SoterService
 +persist.vendor.sys.fp.fod.location.X_Y=442,2052
 +persist.vendor.sys.fp.fod.size.width_height=196,196
+diff --git a/overlays/Frameworks/res/values/config.xml b/overlays/Frameworks/res/values/config.xml
+index 0fff697..207fe61 100644
+--- a/overlays/Frameworks/res/values/config.xml
++++ b/overlays/Frameworks/res/values/config.xml
+@@ -423,4 +423,6 @@
+         black in software (to avoid aliasing or emulate a cutout that is not physically existent).
+         -->
+     <bool name="config_fillMainBuiltInDisplayCutout">true</bool>
++    <bool name="config_screen_off_udfps_enabled">true</bool>
++    <bool name="config_screen_off_udfps_default_on">true</bool>
+ </resources>
+\ No newline at end of file
 diff --git a/overlays/Frameworks/res/values/dimens.xml b/overlays/Frameworks/res/values/dimens.xml
 index ee75512..26ed7a0 100644
 --- a/overlays/Frameworks/res/values/dimens.xml

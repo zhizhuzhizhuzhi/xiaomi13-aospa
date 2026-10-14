@@ -32,7 +32,8 @@
       "BoardConfig.mk",
       "configs/properties/odm.prop",
       "configs/properties/vendor.prop",
-      "overlays/Frameworks/res/values/dimens.xml"
+      "overlays/Frameworks/res/values/dimens.xml",
+      "overlays/Frameworks/res/values/config.xml"
     ],
     "overlay": []
   },
@@ -75,7 +76,8 @@
       "sepolicy/vendor/vndservice.te",
       "sepolicy/vendor/vndservice_contexts",
       "tests/Android.bp",
-      "tests/GraphicBufferMonitorTest.cpp"
+      "tests/GraphicBufferMonitorTest.cpp",
+      "sepolicy/vendor/system_app.te"
     ]
   },
   {
@@ -165,7 +167,10 @@
       "aidl/sensors/Android.bp",
       "aidl/vibrator/aidl/Vibrator.cpp",
       "aidl/vibrator/effect/effect.cpp",
-      "dolby/src/co/aospa/dolby/xiaomi/preference/DolbyIeqPreference.kt"
+      "dolby/src/co/aospa/dolby/xiaomi/preference/DolbyIeqPreference.kt",
+      "IFAAService/AndroidManifest.xml",
+      "IFAAService/src/org/ifaa/aidl/manager/IfaaService.kt",
+      "interfaces/xiaomi/hardware/mlipay/1.0/IMlipayService.hal"
     ],
     "overlay": []
   },

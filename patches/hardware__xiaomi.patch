@@ -1,3 +1,140 @@
+diff --git a/IFAAService/AndroidManifest.xml b/IFAAService/AndroidManifest.xml
+index 3731c7b..20ce68f 100644
+--- a/IFAAService/AndroidManifest.xml
++++ b/IFAAService/AndroidManifest.xml
+@@ -7,6 +7,8 @@
+     android:sharedUserId="android.uid.system"
+     package="org.ifaa.aidl.manager">
+ 
++    <uses-permission android:name="android.permission.USE_BIOMETRIC_INTERNAL" />
++
+     <application
+         android:label="@string/app_name"
+         android:persistent="true">
+diff --git a/IFAAService/src/org/ifaa/aidl/manager/IfaaService.kt b/IFAAService/src/org/ifaa/aidl/manager/IfaaService.kt
+index dc89544..d2dd885 100644
+--- a/IFAAService/src/org/ifaa/aidl/manager/IfaaService.kt
++++ b/IFAAService/src/org/ifaa/aidl/manager/IfaaService.kt
+@@ -7,6 +7,8 @@ package org.ifaa.aidl.manager
+ 
+ import android.app.Service
+ import android.content.Intent
++import android.hardware.fingerprint.FingerprintManager
++import android.os.Binder
+ import android.os.Build
+ import android.os.IHwBinder
+ import android.os.SystemProperties
+@@ -27,7 +29,10 @@ class IfaaService : Service() {
+     private val mBinder = object : IfaaManagerService.Stub() {
+         override fun getSupportBIOTypes(): Int {
+             val fpVendor = SystemProperties.get(FP_VENDOR_PROP, "")
+-            val isUdfps = SystemProperties.getBoolean(IS_UDFPS_PROP, false)
++            val isUdfps = withServiceIdentity {
++                getSystemService(FingerprintManager::class.java)
++                    ?.sensorPropertiesInternal?.any { it.isAnyUdfpsType } == true
++            }
+ 
+             val supportedBioMask = when (!invalidFpVendors.contains(fpVendor.lowercase())) {
+                 true -> AUTH_TYPE_FINGERPRINT or AUTH_TYPE_IRIS
+@@ -36,12 +41,13 @@ class IfaaService : Service() {
+ 
+             val ifaaProp = SystemProperties.getInt(
+                 SUPPORTED_BIO_MASK_PROP, 0
+-            ) and supportedBioMask or when (isUdfps) {
++            ) and supportedBioMask
++
++            return ifaaProp or when (isUdfps && (ifaaProp and AUTH_TYPE_FINGERPRINT) != 0) {
+                 true -> AUTH_TYPE_OPTICAL_FINGERPRINT
+                 else -> 0
+             }
+ 
+-            return ifaaProp
+         }
+ 
+         override fun startBIOManager(authType: Int) = when (authType) {
+@@ -115,45 +121,41 @@ class IfaaService : Service() {
+     override fun onBind(intent: Intent) = mBinder
+ 
+     private fun getMlipayService() = _mlipayService ?: runCatching {
+-        IMlipayService.getService(true)
++        IMlipayService.getService(false)
+     }.onSuccess {
+         _mlipayService = it
+         it.linkToDeath(mlipayServiceDeathRecipient, 0)
++    }.onFailure {
++        Log.e(LOG_TAG, "Unable to obtain mlipay service", it)
+     }.getOrNull()
+ 
+-    private fun initExtString(): String {
+-        val obj = JSONObject()
+-        val keyInfo = JSONObject()
+-
+-        val xy = SystemProperties.get(UDFPS_LOCATION_X_Y_PROP, "")
+-        val wh = SystemProperties.get(UDFPS_SIZE_W_H_PROP, "")
+-
+-        try {
+-            if (!validateVal(xy) || !validateVal(wh)) {
+-                Log.e(LOG_TAG, "initExtString: invalidate, xy: $xy, wh: $wh")
+-                return ""
+-            }
+-
+-            val split = xy.split(",")
+-            val split2 = wh.split(",")
+-
+-            keyInfo.put("startX", split[0].toInt())
+-            keyInfo.put("startY", split[1].toInt())
+-            keyInfo.put("width", split2[0].toInt())
+-            keyInfo.put("height", split2[1].toInt())
+-            keyInfo.put("navConflict", true)
+-
+-            obj.put("type", 0)
+-            obj.put("fullView", keyInfo)
+-
+-            return obj.toString()
+-        } catch (e: Exception) {
+-            Log.e(LOG_TAG, "initExtString: Exception, xy: $xy, wh: $wh", e)
+-            return ""
++    private inline fun <T> withServiceIdentity(block: () -> T): T {
++        val token = Binder.clearCallingIdentity()
++        return try {
++            block()
++        } finally {
++            Binder.restoreCallingIdentity(token)
+         }
+     }
+ 
+-    private fun validateVal(str: String) = !"".equals(str, ignoreCase = true) && str.contains(",")
++    private fun initExtString(): String = withServiceIdentity {
++        val sensor = getSystemService(FingerprintManager::class.java)
++            ?.sensorPropertiesInternal?.firstOrNull { it.isAnyUdfpsType }
++            ?: return@withServiceIdentity ""
++        val location = sensor.location
++        val radius = location.sensorRadius
++        if (radius <= 0) return@withServiceIdentity ""
++        JSONObject().apply {
++            put("type", 0)
++            put("fullView", JSONObject().apply {
++                put("startX", location.sensorLocationX - radius)
++                put("startY", location.sensorLocationY - radius)
++                put("width", radius * 2)
++                put("height", radius * 2)
++                put("navConflict", true)
++            })
++        }.toString()
++    }
+ 
+     companion object {
+         private val LOG_TAG = IfaaService::class.simpleName!!
+@@ -171,9 +173,6 @@ class IfaaService : Service() {
+ 
+         private const val SUPPORTED_BIO_MASK_PROP = "persist.vendor.sys.pay.ifaa"
+         private const val FP_VENDOR_PROP = "persist.vendor.sys.fp.vendor"
+-        private const val IS_UDFPS_PROP = "ro.hardware.fp.udfps"
+-        private const val UDFPS_LOCATION_X_Y_PROP = "persist.vendor.sys.fp.udfps.location.X_Y"
+-        private const val UDFPS_SIZE_W_H_PROP = "persist.vendor.sys.fp.udfps.size.width_height"
+ 
+         private val invalidFpVendors = arrayOf(
+             "",
 diff --git a/aidl/sensors/Android.bp b/aidl/sensors/Android.bp
 index f00c5e9..a210b59 100644
 --- a/aidl/sensors/Android.bp
@@ -111,3 +248,13 @@ index b51d00d..5910460 100644
 +            else -> 0 // Unset or unsupported engine preset.
          }
  }
+diff --git a/interfaces/xiaomi/hardware/mlipay/1.0/IMlipayService.hal b/interfaces/xiaomi/hardware/mlipay/1.0/IMlipayService.hal
+index 9f573de..f126537 100644
+--- a/interfaces/xiaomi/hardware/mlipay/1.0/IMlipayService.hal
++++ b/interfaces/xiaomi/hardware/mlipay/1.0/IMlipayService.hal
+@@ -11,5 +11,4 @@ interface IMlipayService {
+     ifaa_key_get_version() generates (int32_t result);
+     ifaa_key_prepare() generates (string hex);
+     ifaa_key_load(string data_text, string sign_text) generates (int32_t result);
+-    ifaa_key_extract(vec<uint8_t> buf, uint32_t buf_len) generates (int32_t result);
+ };

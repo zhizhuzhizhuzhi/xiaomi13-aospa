@@ -12,7 +12,9 @@ if target.is_dir():
         for f in sorted(target.rglob('*')):
             if f.is_file():z.write(f,f.relative_to(target).as_posix())
 else:archive=target
-host=root/'out/host/linux-x86';env=os.environ.copy();env['PATH']=str(host/'bin')+':'+env['PATH']
+build_out=pathlib.Path(os.environ.get('OUT_DIR','out'))
+if not build_out.is_absolute():build_out=root/build_out
+host=build_out/'host/linux-x86';env=os.environ.copy();env['PATH']=str(host/'bin')+':'+env['PATH']
 part=pathlib.Path(str(out)+'.part')
 subprocess.run([str(host/'bin/img_from_target_files'),'-p',str(host),str(archive),str(part)],env=env,check=True)
 def sha(stream):

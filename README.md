@@ -1,8 +1,13 @@
 # Xiaomi 13 / fuxi — AOSPA 17
 
-基于 AOSPA calcite，适配 Xiaomi 13（fuxi / SM8550）。设备树、固定 manifest 和本地改动对应 20261014 发布版。
+基于 AOSPA calcite，适配 Xiaomi 13（fuxi / SM8550）。设备树、固定 manifest 和本地改动对应 20261015 发布版。
 
-[线刷包](https://sourceforge.net/projects/xiaomi13-aospa/files/20261014/) · [构建依赖](https://github.com/zhizhuzhizhuzhi/xiaomi13-aospa/releases/tag/build-deps-20261014)
+[线刷包](https://sourceforge.net/projects/xiaomi13-aospa/files/20261015/) · [构建依赖](https://github.com/zhizhuzhizhuzhi/xiaomi13-aospa/releases/tag/build-deps-20261014)
+
+## 20261015 更新
+
+- 修复支付宝 IFAA 指纹支付能力查询、屏下指纹区域和 mlipay 接口调用。
+- 启用关闭 AOD 后的熄屏指纹解锁。
 
 ## 20261014 更新
 
@@ -17,16 +22,16 @@
 
 ## 刷入
 
-底包为 Xiaomi 13 Global **OS2.0.100.0.VMCMIXM**（Android 15）。下载 `aospa_fuxi-fastboot-20261014.zip`，进入 Fastboot 后执行：
+底包为 Xiaomi 13 Global **OS2.0.100.0.VMCMIXM**（Android 15）。下载 `aospa_fuxi-fastboot-20261015.zip`，进入 Fastboot 后执行：
 
 ```bash
-fastboot update aospa_fuxi-fastboot-20261014.zip
+fastboot update aospa_fuxi-fastboot-20261015.zip
 ```
 
 清除数据并刷入：
 
 ```bash
-fastboot -w update aospa_fuxi-fastboot-20261014.zip
+fastboot -w update aospa_fuxi-fastboot-20261015.zip
 ```
 
 ## 环境
@@ -82,21 +87,25 @@ bash ../xiaomi13-aospa-kit/scripts/build.sh "$PWD" userdebug 8
 
 目标为 `aospa_fuxi-cp2a-userdebug`。脚本依次构建 kalama GKI、模块、合并 DT、OTA、otatools 和 target_files。
 
+两种构建分别使用 `out`（userdebug）和 `out-user-release`（user），各自保留增量产物。可通过 `OUT_DIR` 指定其他输出目录。
+
 编译 `user`：
 
 ```bash
 bash ../xiaomi13-aospa-kit/scripts/build.sh "$PWD" user 8
 ```
 
+`user` 构建与 release keys 签名是两个步骤；当前发布的 20261015 包为 userdebug/test-keys。
+
 ## Fastboot 打包
 
 ```bash
 python3 ../xiaomi13-aospa-kit/scripts/package.py "$PWD" \
   out/target/product/fuxi/obj/PACKAGING/target_files_intermediates/aospa_fuxi-target_files \
-  "$PWD/aospa_fuxi-fastboot-20261014.zip"
+  "$PWD/aospa_fuxi-fastboot-20261015.zip"
 ```
 
-也可将第二个参数替换为本次构建的 target_files ZIP。产物包括 Fastboot ZIP、SHA256 和镜像清单。
+打包 user 产物时设置 `OUT_DIR="$PWD/out-user-release"`，并使用该目录下的 target_files。也可将第二个参数替换为本次构建的 target_files ZIP。产物包括 Fastboot ZIP、SHA256 和镜像清单。
 
 ## 目录
 

@@ -1,0 +1,4 @@
+
+# IFAA capability discovery reads the fingerprint vendor and payment support.
+get_prop(system_app, vendor_fp_prop)
+get_prop(system_app, vendor_payment_security_prop)
