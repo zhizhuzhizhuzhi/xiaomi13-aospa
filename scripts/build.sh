@@ -15,9 +15,9 @@ test -s device/xiaomi/fuxi/overlays/SystemUI/res/drawable-nodpi/rounded_corner_t
 test -s vendor/xiaomi/sm8550-common/proprietary/vendor/app/SoterService/SoterService.apk
 export BUILD_NUMBER=${BUILD_NUMBER:-20261015}
 if [ -z "${OUT_DIR:-}" ]; then
-  if [ "$type" = user ]; then export OUT_DIR="$PWD/out-user-release"; else export OUT_DIR="$PWD/out"; fi
+  if [ "$type" = user ]; then export OUT_DIR=out-user-release; else export OUT_DIR=out; fi
 else
-  case "$OUT_DIR" in /*) ;; *) export OUT_DIR="$PWD/$OUT_DIR" ;; esac
+  case "$OUT_DIR" in /*) export OUT_DIR=$(realpath -m --relative-to="$PWD" "$OUT_DIR") ;; esac
 fi
 source build/envsetup.sh
 lunch "aospa_fuxi-cp2a-$type"
