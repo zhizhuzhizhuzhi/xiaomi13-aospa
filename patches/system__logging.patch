@@ -1,0 +1,32 @@
+diff --git a/logd/LogAudit.cpp b/logd/LogAudit.cpp
+index 372ccdd..1555379 100644
+--- a/logd/LogAudit.cpp
++++ b/logd/LogAudit.cpp
+@@ -335,6 +335,9 @@ int LogAudit::logPrint(const char* fmt, ...) {
+                   : LOGGER_ENTRY_MAX_PAYLOAD;
+     size_t message_len = str_len + sizeof(android_log_event_string_t);
+ 
++    // Kernel audit records belong to logd, not to the process that triggered
++    // the denial. Keep them available to privileged readers without exposing
++    // them through an app's per-UID logcat access.
+     unsigned int notify = 0;
+ 
+     if (events) {  // begin scope for event buffer
+@@ -349,7 +352,7 @@ int LogAudit::logPrint(const char* fmt, ...) {
+         memcpy(event->data + str_len - denial_metadata.length(),
+                denial_metadata.c_str(), denial_metadata.length());
+ 
+-        rc = logbuf->Log(LOG_ID_EVENTS, now, uid, pid, tid, reinterpret_cast<char*>(event),
++        rc = logbuf->Log(LOG_ID_EVENTS, now, AID_LOGD, pid, tid, reinterpret_cast<char*>(event),
+                          (message_len <= UINT16_MAX) ? (uint16_t)message_len : UINT16_MAX);
+         if (rc >= 0) {
+             notify |= 1 << LOG_ID_EVENTS;
+@@ -402,7 +405,7 @@ int LogAudit::logPrint(const char* fmt, ...) {
+         strncpy(newstr + 1 + str_len + prefix_len + suffix_len,
+                 denial_metadata.c_str(), denial_metadata.length());
+ 
+-        rc = logbuf->Log(LOG_ID_MAIN, now, uid, pid, tid, newstr,
++        rc = logbuf->Log(LOG_ID_MAIN, now, AID_LOGD, pid, tid, newstr,
+                          (message_len <= UINT16_MAX) ? (uint16_t)message_len : UINT16_MAX);
+ 
+         if (rc >= 0) {

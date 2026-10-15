@@ -1,5 +1,5 @@
 diff --git a/BoardConfigCommon.mk b/BoardConfigCommon.mk
-index 2f22600..8c50f4e 100644
+index 2f22600..2c839fc 100644
 --- a/BoardConfigCommon.mk
 +++ b/BoardConfigCommon.mk
 @@ -27,7 +27,8 @@ AB_OTA_PARTITIONS += \
@@ -29,9 +29,9 @@ index 2f22600..8c50f4e 100644
 -TARGET_HEALTH_CHARGING_CONTROL_CHARGING_DISABLED  := 1
 -TARGET_HEALTH_CHARGING_CONTROL_CHARGING_PATH := /sys/class/qcom-battery/night_charging
 +# Current health HAL uses Soong configuration, rather than legacy TARGET vars.
-+$(call soong_config_set,lineage_health,charging_control_charging_enabled,0)
-+$(call soong_config_set,lineage_health,charging_control_charging_disabled,1)
-+$(call soong_config_set,lineage_health,charging_control_charging_path,/sys/class/qcom-battery/night_charging)
++$(call soong_config_set,aospa_health,charging_control_charging_enabled,0)
++$(call soong_config_set,aospa_health,charging_control_charging_disabled,1)
++$(call soong_config_set,aospa_health,charging_control_charging_path,/sys/class/qcom-battery/night_charging)
  
  # Metadata
  BOARD_USES_METADATA_PARTITION := true
@@ -43,7 +43,15 @@ index 2f22600..8c50f4e 100644
  BOARD_EXCLUDE_KERNEL_FROM_RECOVERY_IMAGE := true
  TARGET_RECOVERY_FSTAB := $(COMMON_PATH)/init/fstab.qcom
  TARGET_RECOVERY_PIXEL_FORMAT := RGBX_8888
-@@ -198,3 +201,6 @@ SOONG_CONFIG_XIAOMI_VIBRATOR_USE_EFFECT_STREAM := true
+@@ -157,6 +160,7 @@ SOONG_CONFIG_SENSORS_XIAOMI_USES_UDFPS_SENSOR := true
+ 
+ # Verified Boot
+ BOARD_AVB_ENABLE := true
++# AVB verification and dm-verity disabled by explicit user request.
+ BOARD_AVB_MAKE_VBMETA_IMAGE_ARGS += --flags 3
+ BOARD_MOVE_GSI_AVB_KEYS_TO_VENDOR_BOOT := true
+ 
+@@ -198,3 +202,6 @@ SOONG_CONFIG_XIAOMI_VIBRATOR_USE_EFFECT_STREAM := true
  
  # WiFi
  include device/qcom/wlan/kalama/BoardConfigWlan.mk
@@ -51,9 +59,18 @@ index 2f22600..8c50f4e 100644
 +# Use the Skia Vulkan backend for HWUI.
 +TARGET_USES_VULKAN := true
 diff --git a/common.mk b/common.mk
-index 361ae3b..c9f0588 100644
+index 361ae3b..328efce 100644
 --- a/common.mk
 +++ b/common.mk
+@@ -185,7 +185,7 @@ PRODUCT_COPY_FILES += \
+ 
+ # Lineage Health
+ PRODUCT_PACKAGES += \
+-    vendor.lineage.health-service.default
++    vendor.aospa.health-service.default
+ 
+ # Logging
+ SPAMMY_LOG_TAGS := \
 @@ -223,8 +223,8 @@ PRODUCT_PACKAGES += \
      IFAAService
  
@@ -281,6 +298,14 @@ index 37f9c12..d1503e1 100644
 +
 +# Fingerprint requests boosts through the Perf AIDL service.
 +hal_client_domain(hal_fingerprint_default, vendor_hal_perf)
+diff --git a/sepolicy/vendor/hal_lineage_health.te b/sepolicy/vendor/hal_lineage_health.te
+deleted file mode 100644
+index a6aeebc..0000000
+--- a/sepolicy/vendor/hal_lineage_health.te
++++ /dev/null
+@@ -1,2 +0,0 @@
+-allow hal_lineage_health_default vendor_sysfs_qcom_battery:dir r_dir_perms;
+-allow hal_lineage_health_default vendor_sysfs_qcom_battery:file rw_file_perms;
 diff --git a/sepolicy/vendor/hal_usb.te b/sepolicy/vendor/hal_usb.te
 index a30c257..e74273b 100644
 --- a/sepolicy/vendor/hal_usb.te

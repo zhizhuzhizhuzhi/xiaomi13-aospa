@@ -1,0 +1,9 @@
+# HwBinder IPC from client to server
+binder_call(hal_aospa_health_client, hal_aospa_health_server)
+
+hal_attribute_service(hal_aospa_health, hal_aospa_health_service)
+binder_call(hal_aospa_health_server, servicemanager)
+allow hal_aospa_health_client hal_aospa_health_service:service_manager find;
+
+# Allow binder communication with platform_app
+binder_call(hal_aospa_health, platform_app)

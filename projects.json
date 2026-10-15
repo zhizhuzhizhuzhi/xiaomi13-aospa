@@ -19,10 +19,10 @@
     "path": "device/qcom/sepolicy",
     "revision": "e4732e532ed97ed8220b1e19f8933c0c68e00949",
     "patch": "patches/device__qcom__sepolicy.patch",
-    "overlay": [],
     "files": [
       "generic/product/private/isolated_compute_app.te"
-    ]
+    ],
+    "overlay": []
   },
   {
     "path": "device/xiaomi/fuxi",
@@ -32,8 +32,8 @@
       "BoardConfig.mk",
       "configs/properties/odm.prop",
       "configs/properties/vendor.prop",
-      "overlays/Frameworks/res/values/dimens.xml",
-      "overlays/Frameworks/res/values/config.xml"
+      "overlays/Frameworks/res/values/config.xml",
+      "overlays/Frameworks/res/values/dimens.xml"
     ],
     "overlay": []
   },
@@ -63,6 +63,7 @@
       "proprietary-files.txt",
       "sepolicy/private/seapp_contexts",
       "sepolicy/vendor/hal_fingerprint.te",
+      "sepolicy/vendor/hal_lineage_health.te",
       "sepolicy/vendor/hal_usb.te"
     ],
     "overlay": [
@@ -71,29 +72,39 @@
       "sepolicy/private/fuxi_apps.te",
       "sepolicy/public/fuxi_apps.te",
       "sepolicy/vendor/fuxi_apps.te",
+      "sepolicy/vendor/hal_aospa_health.te",
+      "sepolicy/vendor/system_app.te",
       "sepolicy/vendor/vendor_modem_manager.te",
       "sepolicy/vendor/vendor_qms.te",
       "sepolicy/vendor/vndservice.te",
       "sepolicy/vendor/vndservice_contexts",
       "tests/Android.bp",
-      "tests/GraphicBufferMonitorTest.cpp",
-      "sepolicy/vendor/system_app.te"
+      "tests/GraphicBufferMonitorTest.cpp"
     ]
+  },
+  {
+    "path": "external/tinyalsa",
+    "revision": "6f37e03f15bcf7d949bc342f054247e529d6b344",
+    "patch": "patches/external__tinyalsa.patch",
+    "files": [
+      "include/tinyalsa/mixer_plugin.h",
+      "mixer_plugin.c"
+    ],
+    "overlay": []
   },
   {
     "path": "external/wpa_supplicant_8",
     "revision": "cffc5ffd2651f79a834df64d67431fc7856a3bb1",
     "patch": "patches/external__wpa_supplicant_8.patch",
-    "overlay": [],
     "files": [
       "src/drivers/driver_nl80211.c"
-    ]
+    ],
+    "overlay": []
   },
   {
     "path": "frameworks/av",
     "revision": "d0cf9d91af5d97de09b80dc4a9ca9088ed05cfdd",
     "patch": "patches/frameworks__av.patch",
-    "overlay": [],
     "files": [
       "media/codec2/hal/hidl/1.0/utils/ComponentStore.cpp",
       "media/codec2/hal/hidl/1.0/utils/include/codec2/hidl/1.0/ComponentStore.h",
@@ -101,21 +112,37 @@
       "media/codec2/hal/hidl/1.1/utils/include/codec2/hidl/1.1/ComponentStore.h",
       "media/codec2/hal/hidl/1.2/utils/ComponentStore.cpp",
       "media/codec2/hal/hidl/1.2/utils/include/codec2/hidl/1.2/ComponentStore.h"
-    ]
+    ],
+    "overlay": []
   },
   {
     "path": "frameworks/base",
     "revision": "2d3deacd4c78b696368d42a7857ac784afda3175",
     "patch": "patches/frameworks__base.patch",
     "files": [
+      "Android.bp",
       "core/java/com/android/internal/app/ActivityTrigger.java",
+      "core/java/com/android/internal/lineage/app/LineageContextConstants.java",
+      "core/java/com/android/internal/lineage/health/HealthInterface.java",
+      "core/java/com/android/internal/lineage/health/IHealthInterface.aidl",
       "core/jni/com_android_internal_app_ActivityTrigger.cpp",
+      "core/res/AndroidManifest.xml",
       "packages/SettingsLib/src/com/android/settingslib/development/SystemPropPoker.java",
       "packages/SettingsLib/tests/robotests/src/com/android/settingslib/development/SystemPropPokerTest.java",
       "services/core/java/com/android/server/ActivityTriggerService.java",
       "services/core/java/com/android/server/am/ActivityManagerService.java",
       "services/core/java/com/android/server/biometrics/sensors/face/FaceService.java",
       "services/core/java/com/android/server/display/brightness/strategy/AutomaticBrightnessStrategy.java",
+      "services/core/java/com/android/server/lineage/health/ChargingControlController.java",
+      "services/core/java/com/android/server/lineage/health/ChargingControlNotification.java",
+      "services/core/java/com/android/server/lineage/health/FastChargeController.java",
+      "services/core/java/com/android/server/lineage/health/HealthInterfaceService.java",
+      "services/core/java/com/android/server/lineage/health/LineageHealthFeature.java",
+      "services/core/java/com/android/server/lineage/health/Util.java",
+      "services/core/java/com/android/server/lineage/health/ccprovider/ChargingControlProvider.java",
+      "services/core/java/com/android/server/lineage/health/ccprovider/Deadline.java",
+      "services/core/java/com/android/server/lineage/health/ccprovider/Limit.java",
+      "services/core/java/com/android/server/lineage/health/ccprovider/Toggle.java",
       "services/core/java/com/android/server/vibrator/VibratorManagerService.java",
       "services/core/jni/Android.bp",
       "services/core/jni/com_android_server_activityTriggerService.cpp",
@@ -124,6 +151,18 @@
       "services/tests/displayservicetests/src/com/android/server/display/brightness/strategy/AutomaticBrightnessStrategyTest.java"
     ],
     "overlay": [
+      "core/java/com/android/internal/aospa/health/HealthInterface.java",
+      "core/java/com/android/internal/aospa/health/IHealthInterface.aidl",
+      "services/core/java/com/android/server/aospa/health/AospaHealthFeature.java",
+      "services/core/java/com/android/server/aospa/health/ChargingControlController.java",
+      "services/core/java/com/android/server/aospa/health/ChargingControlNotification.java",
+      "services/core/java/com/android/server/aospa/health/FastChargeController.java",
+      "services/core/java/com/android/server/aospa/health/HealthInterfaceService.java",
+      "services/core/java/com/android/server/aospa/health/Util.java",
+      "services/core/java/com/android/server/aospa/health/ccprovider/ChargingControlProvider.java",
+      "services/core/java/com/android/server/aospa/health/ccprovider/Deadline.java",
+      "services/core/java/com/android/server/aospa/health/ccprovider/Limit.java",
+      "services/core/java/com/android/server/aospa/health/ccprovider/Toggle.java",
       "services/core/java/com/android/server/vibrator/SystemTickHapticPolicy.java",
       "services/tests/vibrator/src/com/android/server/vibrator/SystemTickHapticPolicyTest.java"
     ]
@@ -143,11 +182,11 @@
     "path": "hardware/qcom/display",
     "revision": "d40d593a63a56ae7a7e9616518c7158fbb27e447",
     "patch": "patches/hardware__qcom__display.patch",
-    "overlay": [],
     "files": [
       "composer/Android.bp",
       "qmaa/Android.bp"
-    ]
+    ],
+    "overlay": []
   },
   {
     "path": "hardware/qcom/gps",
@@ -164,12 +203,12 @@
     "revision": "70c74dd57583458248cac34601a1361012ecbc01",
     "patch": "patches/hardware__xiaomi.patch",
     "files": [
+      "IFAAService/AndroidManifest.xml",
+      "IFAAService/src/org/ifaa/aidl/manager/IfaaService.kt",
       "aidl/sensors/Android.bp",
       "aidl/vibrator/aidl/Vibrator.cpp",
       "aidl/vibrator/effect/effect.cpp",
       "dolby/src/co/aospa/dolby/xiaomi/preference/DolbyIeqPreference.kt",
-      "IFAAService/AndroidManifest.xml",
-      "IFAAService/src/org/ifaa/aidl/manager/IfaaService.kt",
       "interfaces/xiaomi/hardware/mlipay/1.0/IMlipayService.hal"
     ],
     "overlay": []
@@ -178,64 +217,63 @@
     "path": "kernel_platform/build/kernel",
     "revision": "6b67ab4293f31aaf562c74e2d275eef629c9d970",
     "patch": "patches/kernel_platform__build__kernel.patch",
-    "overlay": [],
     "files": [
       "android/merge_dtbs.py"
-    ]
+    ],
+    "overlay": []
   },
   {
     "path": "kernel_platform/external/dtc",
     "revision": "1c21f26c627948021a5aa5269ac66443e447f212",
     "patch": "patches/kernel_platform__external__dtc.patch",
-    "overlay": [],
     "files": [
       "Android.bp",
       "libfdt/Android.bp"
-    ]
+    ],
+    "overlay": []
   },
   {
     "path": "kernel_platform/msm-kernel",
     "revision": "3bc107ddbfeae15edb30307b6798ea59576fffd8",
     "patch": "patches/kernel_platform__msm-kernel.patch",
-    "overlay": [],
     "files": [
       "Android.bp",
       "drivers/power/supply/qti_battery_charger.c"
-    ]
+    ],
+    "overlay": []
   },
   {
     "path": "kernel_platform/prebuilts/asuite",
     "revision": "74ad3853994048a3150780bd1e5930aa82e29f36",
     "patch": "patches/kernel_platform__prebuilts__asuite.patch",
-    "overlay": [],
     "files": [
       "acloud/linux-x86/Android.bp"
-    ]
+    ],
+    "overlay": []
   },
   {
     "path": "kernel_platform/prebuilts/build-tools",
     "revision": "fe528f8d0a32bde2ae487801cbab4e05de91f218",
     "patch": "patches/kernel_platform__prebuilts__build-tools.patch",
-    "overlay": [],
     "files": [
       "Android.bp"
-    ]
+    ],
+    "overlay": []
   },
   {
     "path": "kernel_platform/prebuilts/clang/host/linux-x86",
     "revision": "c420e3ab93e51a2f2ab4f8e8b517463c34a7e8bd",
     "patch": "patches/kernel_platform__prebuilts__clang__host__linux-x86.patch",
-    "overlay": [],
     "files": [
       "Android.bp",
       "soong/Android.bp"
-    ]
+    ],
+    "overlay": []
   },
   {
     "path": "kernel_platform/prebuilts/ndk-r23",
     "revision": "93532f3052c14fbb337ff57d5732128dc7481ee6",
     "patch": "patches/kernel_platform__prebuilts__ndk-r23.patch",
-    "overlay": [],
     "files": [
       "Android.mk",
       "sources/android/cpufeatures/Android.mk",
@@ -253,88 +291,185 @@
       "sources/third_party/shaderc/third_party/glslang/Android.mk",
       "sources/third_party/shaderc/third_party/spirv-tools/Android.mk",
       "sources/third_party/vulkan/src/build-android/jni/Android.mk"
-    ]
+    ],
+    "overlay": []
   },
   {
     "path": "kernel_platform/prebuilts/tradefed",
     "revision": "b2fc0f35ec5ff5d1e73e7f37cbfe016a686cc10a",
     "patch": "patches/kernel_platform__prebuilts__tradefed.patch",
-    "overlay": [],
     "files": [
       "filegroups/suite/Android.bp",
       "filegroups/tradefed/Android.bp",
       "test_harness/Android.bp"
-    ]
+    ],
+    "overlay": []
   },
   {
     "path": "kernel_platform/tools/mkbootimg",
     "revision": "db9f3716c72d7612fc507b89d1fc3876f061350e",
     "patch": "patches/kernel_platform__tools__mkbootimg.patch",
-    "overlay": [],
     "files": [
       "Android.bp",
       "gki/Android.bp",
       "gki/Android.mk"
-    ]
+    ],
+    "overlay": []
+  },
+  {
+    "path": "packages/apps/ParanoidSettings",
+    "revision": "fde67cc7164e896cf93ecde221dc03f0f3aba81a",
+    "patch": "patches/packages__apps__ParanoidSettings.patch",
+    "files": [
+      "src/co/aospa/settings/lineage/health/ChargingControlSettings.java",
+      "src/co/aospa/settings/lineage/health/ChargingLimitPreference.java",
+      "src/co/aospa/settings/lineage/health/ChargingSpeedPreferenceController.java",
+      "src/co/aospa/settings/lineage/health/TimePreference.java"
+    ],
+    "overlay": []
+  },
+  {
+    "path": "packages/apps/Settings",
+    "revision": "493979b3540c224cd60dddc8151596dafbd6a298",
+    "patch": "patches/packages__apps__Settings.patch",
+    "files": [
+      "src/com/android/settings/fuelgauge/batteryusage/db/BatteryStateDatabase.java"
+    ],
+    "overlay": []
   },
   {
     "path": "packages/modules/Wifi",
     "revision": "d7c04a17f8eb8a01f50e7697934c618f79ef75b7",
     "patch": null,
-    "overlay": [],
-    "files": []
+    "files": [],
+    "overlay": []
   },
   {
     "path": "system/core",
     "revision": "a39957699ee525fb94a11839e4e0fd2041503309",
     "patch": "patches/system__core.patch",
-    "overlay": [
-      "init/vendor_init.h",
-      "init/vendor_init.cpp"
-    ],
     "files": [
       "init/Android.bp",
       "init/property_service.cpp",
       "libprocessgroup/processgroup.cpp"
+    ],
+    "overlay": [
+      "init/vendor_init.cpp",
+      "init/vendor_init.h"
     ]
   },
   {
     "path": "system/libbase",
     "revision": "57472395e655f3103fbcf93c8815a1568458a93f",
     "patch": "patches/system__libbase.patch",
-    "overlay": [],
     "files": [
       "file.cpp",
       "strings.cpp"
-    ]
+    ],
+    "overlay": []
+  },
+  {
+    "path": "system/logging",
+    "revision": "4010206fb6dacb689efd5c24b567170d6f27b7f9",
+    "patch": "patches/system__logging.patch",
+    "files": [
+      "logd/LogAudit.cpp"
+    ],
+    "overlay": []
   },
   {
     "path": "system/media",
     "revision": "9f10617d1b6ac37b1e18dfeb23063b4fb696a2fc",
     "patch": "patches/system__media.patch",
-    "overlay": [
-      "audio_route/audio_route_vendor_legacy.c"
-    ],
     "files": [
       "audio_route/Android.bp"
+    ],
+    "overlay": [
+      "audio_route/audio_route_vendor_legacy.c"
     ]
   },
   {
     "path": "system/memory/libdmabufheap",
     "revision": "b4e435b3c7fd79b1b9c8d65ce91b969cceb0273f",
     "patch": "patches/system__memory__libdmabufheap.patch",
-    "overlay": [],
     "files": [
       "BufferAllocatorWrapper.cpp"
-    ]
+    ],
+    "overlay": []
   },
   {
     "path": "vendor/aospa",
     "revision": "519bf66a7a393a98a2a1adbec559833ae86e9cef",
     "patch": "patches/vendor__aospa.patch",
-    "overlay": [],
     "files": [
-      "products/fuxi/aospa_fuxi.mk"
+      "interfaces/health/Android.bp",
+      "interfaces/health/aidl_api/vendor.lineage.health/1/.hash",
+      "interfaces/health/aidl_api/vendor.lineage.health/1/vendor/lineage/health/ChargingControlSupportedMode.aidl",
+      "interfaces/health/aidl_api/vendor.lineage.health/1/vendor/lineage/health/IChargingControl.aidl",
+      "interfaces/health/aidl_api/vendor.lineage.health/2/.hash",
+      "interfaces/health/aidl_api/vendor.lineage.health/2/vendor/lineage/health/ChargingControlSupportedMode.aidl",
+      "interfaces/health/aidl_api/vendor.lineage.health/2/vendor/lineage/health/ChargingLimitInfo.aidl",
+      "interfaces/health/aidl_api/vendor.lineage.health/2/vendor/lineage/health/FastChargeMode.aidl",
+      "interfaces/health/aidl_api/vendor.lineage.health/2/vendor/lineage/health/IChargingControl.aidl",
+      "interfaces/health/aidl_api/vendor.lineage.health/2/vendor/lineage/health/IFastCharge.aidl",
+      "interfaces/health/aidl_api/vendor.lineage.health/current/vendor/lineage/health/ChargingControlSupportedMode.aidl",
+      "interfaces/health/aidl_api/vendor.lineage.health/current/vendor/lineage/health/ChargingLimitInfo.aidl",
+      "interfaces/health/aidl_api/vendor.lineage.health/current/vendor/lineage/health/FastChargeMode.aidl",
+      "interfaces/health/aidl_api/vendor.lineage.health/current/vendor/lineage/health/IChargingControl.aidl",
+      "interfaces/health/aidl_api/vendor.lineage.health/current/vendor/lineage/health/IFastCharge.aidl",
+      "interfaces/health/default/Android.bp",
+      "interfaces/health/default/ChargingControl.cpp",
+      "interfaces/health/default/ChargingControl.h",
+      "interfaces/health/default/FastCharge.cpp",
+      "interfaces/health/default/FastCharge.h",
+      "interfaces/health/default/service.cpp",
+      "interfaces/health/default/vendor.lineage.health-service.default.rc",
+      "interfaces/health/default/vendor.lineage.health-service.default.xml",
+      "interfaces/health/vendor/lineage/health/ChargingControlSupportedMode.aidl",
+      "interfaces/health/vendor/lineage/health/ChargingLimitInfo.aidl",
+      "interfaces/health/vendor/lineage/health/FastChargeMode.aidl",
+      "interfaces/health/vendor/lineage/health/IChargingControl.aidl",
+      "interfaces/health/vendor/lineage/health/IFastCharge.aidl",
+      "products/fuxi/aospa_fuxi.mk",
+      "sepolicy/private/platform_app.te",
+      "sepolicy/private/service.te",
+      "sepolicy/private/service_contexts",
+      "sepolicy/private/system_server.te",
+      "sepolicy/public/attributes",
+      "sepolicy/vendor/file_contexts",
+      "sepolicy/vendor/hal_lineage_health.te",
+      "sepolicy/vendor/hal_lineage_health_default.te",
+      "sepolicy/vendor/service.te",
+      "sepolicy/vendor/service_contexts",
+      "target/config/aospa_vendor_framework_compatibility_matrix.xml",
+      "target/config/permissions/org.lineageos.health.xml",
+      "target/product/aospa-target.mk"
+    ],
+    "overlay": [
+      "interfaces/health/aidl_api/vendor.aospa.health/1/.hash",
+      "interfaces/health/aidl_api/vendor.aospa.health/1/vendor/aospa/health/ChargingControlSupportedMode.aidl",
+      "interfaces/health/aidl_api/vendor.aospa.health/1/vendor/aospa/health/IChargingControl.aidl",
+      "interfaces/health/aidl_api/vendor.aospa.health/2/.hash",
+      "interfaces/health/aidl_api/vendor.aospa.health/2/vendor/aospa/health/ChargingControlSupportedMode.aidl",
+      "interfaces/health/aidl_api/vendor.aospa.health/2/vendor/aospa/health/ChargingLimitInfo.aidl",
+      "interfaces/health/aidl_api/vendor.aospa.health/2/vendor/aospa/health/FastChargeMode.aidl",
+      "interfaces/health/aidl_api/vendor.aospa.health/2/vendor/aospa/health/IChargingControl.aidl",
+      "interfaces/health/aidl_api/vendor.aospa.health/2/vendor/aospa/health/IFastCharge.aidl",
+      "interfaces/health/aidl_api/vendor.aospa.health/current/vendor/aospa/health/ChargingControlSupportedMode.aidl",
+      "interfaces/health/aidl_api/vendor.aospa.health/current/vendor/aospa/health/ChargingLimitInfo.aidl",
+      "interfaces/health/aidl_api/vendor.aospa.health/current/vendor/aospa/health/FastChargeMode.aidl",
+      "interfaces/health/aidl_api/vendor.aospa.health/current/vendor/aospa/health/IChargingControl.aidl",
+      "interfaces/health/aidl_api/vendor.aospa.health/current/vendor/aospa/health/IFastCharge.aidl",
+      "interfaces/health/default/vendor.aospa.health-service.default.rc",
+      "interfaces/health/default/vendor.aospa.health-service.default.xml",
+      "interfaces/health/vendor/aospa/health/ChargingControlSupportedMode.aidl",
+      "interfaces/health/vendor/aospa/health/ChargingLimitInfo.aidl",
+      "interfaces/health/vendor/aospa/health/FastChargeMode.aidl",
+      "interfaces/health/vendor/aospa/health/IChargingControl.aidl",
+      "interfaces/health/vendor/aospa/health/IFastCharge.aidl",
+      "sepolicy/vendor/hal_aospa_health.te",
+      "sepolicy/vendor/hal_aospa_health_default.te",
+      "target/config/permissions/org.aospa.health.xml"
     ]
   },
   {
@@ -353,24 +488,51 @@
     "overlay": []
   },
   {
+    "path": "vendor/qcom/opensource/audio-hal/primary-hal",
+    "revision": "467ef3674bdda999a21af9d224f37cd6dc3686dd",
+    "patch": "patches/vendor__qcom__opensource__audio-hal__primary-hal.patch",
+    "files": [
+      "configs/kalama/kalama.mk"
+    ],
+    "overlay": []
+  },
+  {
     "path": "vendor/qcom/opensource/camera-kernel",
     "revision": "6534dd3840cd6f8860a37e8a02d3e3a30e1af28d",
     "patch": "patches/vendor__qcom__opensource__camera-kernel.patch",
-    "overlay": [],
     "files": [
       "Kbuild",
       "Makefile"
-    ]
+    ],
+    "overlay": []
+  },
+  {
+    "path": "vendor/qcom/opensource/core-utils",
+    "revision": "1b2dc299e2a3302a3f38dd7577152db74a8a86a1",
+    "patch": "patches/vendor__qcom__opensource__core-utils.patch",
+    "files": [
+      "vendor_framework_compatibility_matrix.xml"
+    ],
+    "overlay": []
+  },
+  {
+    "path": "vendor/qcom/opensource/thermal-hal",
+    "revision": "e6606b4637b49ca0d993661015689bcad2d9f46c",
+    "patch": "patches/vendor__qcom__opensource__thermal-hal.patch",
+    "files": [
+      "android.hardware.thermal-service.qti.rc"
+    ],
+    "overlay": []
   },
   {
     "path": "vendor/qcom/opensource/video-driver",
     "revision": "37b2c92791d9e87d4782f02acc3f4f4a978bb1ce",
     "patch": "patches/vendor__qcom__opensource__video-driver.patch",
-    "overlay": [],
     "files": [
       "Kbuild",
       "Makefile"
-    ]
+    ],
+    "overlay": []
   },
   {
     "path": "vendor/xiaomi/camera",
@@ -390,59 +552,22 @@
     "path": "vendor/xiaomi/fuxi",
     "revision": "2b14579b06bec045e4fe8437d5bba099e13089bc",
     "patch": "patches/vendor__xiaomi__fuxi.patch",
-    "overlay": [],
     "files": [
       "Android.bp",
       "fuxi-vendor.mk",
       "proprietary/vendor/etc/displayconfig/display_id_4630947006070067843.xml"
-    ]
+    ],
+    "overlay": []
   },
   {
     "path": "vendor/xiaomi/sm8550-common",
     "revision": "b35fb86a965ad70af4e106eeaa6b9be180c75352",
     "patch": "patches/vendor__xiaomi__sm8550-common.patch",
-    "overlay": [],
     "files": [
       "Android.bp",
       "proprietary/vendor/etc/init/hw/init.batterysecret.rc",
       "sm8550-common-vendor.mk",
       "xiaomi13-vendor.mk"
-    ]
-  },
-  {
-    "path": "external/tinyalsa",
-    "revision": "6f37e03f15bcf7d949bc342f054247e529d6b344",
-    "patch": "patches/external__tinyalsa.patch",
-    "files": [
-      "include/tinyalsa/mixer_plugin.h",
-      "mixer_plugin.c"
-    ],
-    "overlay": []
-  },
-  {
-    "path": "vendor/qcom/opensource/audio-hal/primary-hal",
-    "revision": "467ef3674bdda999a21af9d224f37cd6dc3686dd",
-    "patch": "patches/vendor__qcom__opensource__audio-hal__primary-hal.patch",
-    "files": [
-      "configs/kalama/kalama.mk"
-    ],
-    "overlay": []
-  },
-  {
-    "path": "vendor/qcom/opensource/thermal-hal",
-    "revision": "e6606b4637b49ca0d993661015689bcad2d9f46c",
-    "patch": "patches/vendor__qcom__opensource__thermal-hal.patch",
-    "files": [
-      "android.hardware.thermal-service.qti.rc"
-    ],
-    "overlay": []
-  },
-  {
-    "path": "vendor/qcom/opensource/core-utils",
-    "revision": "1b2dc299e2a3302a3f38dd7577152db74a8a86a1",
-    "patch": "patches/vendor__qcom__opensource__core-utils.patch",
-    "files": [
-      "vendor_framework_compatibility_matrix.xml"
     ],
     "overlay": []
   }
