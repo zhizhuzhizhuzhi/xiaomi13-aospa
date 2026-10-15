@@ -8,8 +8,8 @@
 
 | 发布目录 | 构建与签名 | 对应源码 |
 | --- | --- | --- |
-| [`20261015`](https://sourceforge.net/projects/xiaomi13-aospa/files/20261015/) | userdebug / test-keys | [`7f09118`](https://github.com/zhizhuzhizhuzhi/xiaomi13-aospa/tree/7f09118) |
-| [`20261015-release`](https://sourceforge.net/projects/xiaomi13-aospa/files/20261015-release/) | user / release-keys，AVB 校验关闭 | [`557ecdd`](https://github.com/zhizhuzhizhuzhi/xiaomi13-aospa/tree/557ecdd) |
+| [`20261015`](https://sourceforge.net/projects/xiaomi13-aospa/files/20261015/) | userdebug / test-keys | [浏览源码](https://github.com/zhizhuzhizhuzhi/xiaomi13-aospa/tree/7f09118) · [下载 ZIP](https://github.com/zhizhuzhizhuzhi/xiaomi13-aospa/archive/7f09118.zip) |
+| [`20261015-release`](https://sourceforge.net/projects/xiaomi13-aospa/files/20261015-release/) | user / release-keys，AVB 校验关闭 | [浏览源码](https://github.com/zhizhuzhizhuzhi/xiaomi13-aospa/tree/557ecdd) · [下载 ZIP](https://github.com/zhizhuzhizhuzhi/xiaomi13-aospa/archive/557ecdd.zip) |
 
 两个版本并行更新，可按需要选择。
 
