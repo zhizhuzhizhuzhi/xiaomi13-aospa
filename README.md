@@ -1,8 +1,17 @@
 # Xiaomi 13 / fuxi — AOSPA 17
 
-基于 AOSPA calcite，适配 Xiaomi 13（fuxi / SM8550）。设备树、固定 manifest 和本地改动对应 20261015 release 发布版。
+基于 AOSPA calcite，适配 Xiaomi 13（fuxi / SM8550）。20261015 同时提供 userdebug/test-keys 和 user/release-keys 两种独立、并行的发布。
 
-[release 线刷包](https://sourceforge.net/projects/xiaomi13-aospa/files/20261015-release/) · [旧 userdebug 包](https://sourceforge.net/projects/xiaomi13-aospa/files/20261015/) · [构建依赖](https://github.com/zhizhuzhizhuzhi/xiaomi13-aospa/releases/tag/build-deps-20261014)
+[userdebug 线刷包](https://sourceforge.net/projects/xiaomi13-aospa/files/20261015/) · [user/release 线刷包](https://sourceforge.net/projects/xiaomi13-aospa/files/20261015-release/) · [构建依赖](https://github.com/zhizhuzhizhuzhi/xiaomi13-aospa/releases/tag/build-deps-20261014)
+
+## 并行发布
+
+| 发布目录 | 构建与签名 | 对应源码 |
+| --- | --- | --- |
+| [`20261015`](https://sourceforge.net/projects/xiaomi13-aospa/files/20261015/) | userdebug / test-keys | [`7f09118`](https://github.com/zhizhuzhizhuzhi/xiaomi13-aospa/tree/7f09118) |
+| [`20261015-release`](https://sourceforge.net/projects/xiaomi13-aospa/files/20261015-release/) | user / release-keys，AVB 校验关闭 | [`557ecdd`](https://github.com/zhizhuzhizhuzhi/xiaomi13-aospa/tree/557ecdd) |
+
+两个版本分别提供下载和更新。下方 release 专属改动与验证结果适用于 user/release 构建；两种构建使用各自独立的输出目录。
 
 ## 20261015 release 更新
 
@@ -21,9 +30,9 @@
 
 已通过 284 个 APK、40 个 APEX 的实际证书与 payload 公钥核验、OTA 整包签名、ZIP CRC、fuxi 板级与镜像一致性检查，并完成 A 槽保留数据刷写。实机已正常进入系统（`sys.boot_completed=1`），确认 `user/release-keys`、`ro.debuggable=0`、SELinux Enforcing，未发现 KernelSU 内核模块或 ksud/Zygisk/TrickyStore 进程；不承诺支付或完整性检测通过。
 
-从旧 test-keys 包切换到 release-keys，应用和系统数据兼容性可能变化，升级前请备份。
+在 test-keys 和 release-keys 两种签名之间切换，应用和系统数据兼容性可能变化，切换前请备份。
 
-## 20261015 原有更新
+## 20261015 两版本共同更新
 
 - 修复支付宝 IFAA 指纹支付能力查询、屏下指纹区域和 mlipay 接口调用。
 - 启用关闭 AOD 后的熄屏指纹解锁。
@@ -41,13 +50,21 @@
 
 ## 刷入
 
-底包为 Xiaomi 13 Global **OS2.0.100.0.VMCMIXM**（Android 15）。下载 `aospa_fuxi-fastboot-user-noavb-20261015.zip`，进入 Fastboot 后执行：
+底包为 Xiaomi 13 Global **OS2.0.100.0.VMCMIXM**（Android 15）。选择所需构建，进入 Fastboot 后执行对应命令。
+
+userdebug / test-keys：
+
+```bash
+fastboot --slot=a --skip-secondary --disable-super-optimization update aospa_fuxi-fastboot-20261015.zip
+```
+
+user / release-keys：
 
 ```bash
 fastboot --slot=a --skip-secondary --disable-super-optimization update aospa_fuxi-fastboot-user-noavb-20261015.zip
 ```
 
-清除数据并刷入：
+如需清除数据，可在所选版本的命令中加入 `-w`。以下以 user/release 为例：
 
 ```bash
 fastboot --slot=a --skip-secondary --disable-super-optimization -w update aospa_fuxi-fastboot-user-noavb-20261015.zip
@@ -114,7 +131,7 @@ bash ../xiaomi13-aospa-kit/scripts/build.sh "$PWD" userdebug 8
 bash ../xiaomi13-aospa-kit/scripts/build.sh "$PWD" user 8
 ```
 
-`user` 构建与 release keys 签名是两个步骤；`20261015-release` 发布包为 user/release-keys，旧 `20261015` 目录保留 userdebug/test-keys 包。签名密钥不随源码发布；正式签名需分别映射 APK、APEX 容器证书和 payload 密钥，并用 releasekey 签署 OTA。
+`user` 构建与 release keys 签名是两个步骤；`20261015` 的 userdebug/test-keys 与 `20261015-release` 的 user/release-keys 为并行发布。签名密钥不随源码发布；正式签名需分别映射 APK、APEX 容器证书和 payload 密钥，并用 releasekey 签署 OTA。
 
 ## Fastboot 打包
 
