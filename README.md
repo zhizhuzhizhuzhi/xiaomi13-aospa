@@ -19,7 +19,7 @@
 3989f361e7abea10cfbbf04ef81e74649e5100f511506ed3e3a4c186800ef8ad
 ```
 
-已通过 284 个 APK、40 个 APEX 的实际证书与 payload 公钥核验、OTA 整包签名、ZIP CRC、fuxi 板级与镜像一致性检查，并完成 A 槽保留数据刷写。本次刷后启动复核尚未完成；不承诺支付或完整性检测通过。
+已通过 284 个 APK、40 个 APEX 的实际证书与 payload 公钥核验、OTA 整包签名、ZIP CRC、fuxi 板级与镜像一致性检查，并完成 A 槽保留数据刷写。实机已正常进入系统（`sys.boot_completed=1`），确认 `user/release-keys`、`ro.debuggable=0`、SELinux Enforcing，未发现 KernelSU 内核模块或 ksud/Zygisk/TrickyStore 进程；不承诺支付或完整性检测通过。
 
 从旧 test-keys 包切换到 release-keys，应用和系统数据兼容性可能变化，升级前请备份。
 
