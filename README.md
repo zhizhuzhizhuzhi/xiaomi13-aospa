@@ -17,7 +17,6 @@
 
 - `user` / `release-keys`，APK、APEX 容器及 payload、OTA 使用自有密钥正式签名，保留原有 OEM presigned 签名。
 - 默认关闭 AVB verification 和 dm-verity（顶层 `vbmeta Flags: 3`）；保留 AVB 镜像格式和签名元数据，不要求刷完后额外修改 vbmeta。
-- 不包含 KernelSU、Zygisk、TrickyStore 或 Play Integrity Fix。
 - health HAL、framework 服务、AIDL API 快照和 SELinux 接口迁移为 AOSPA health；保留上游版权及许可证。
 - AVC 审计日志归属 logd UID，普通应用不能再按自身 UID 读取这些记录，系统审计仍保留。
 - 修正 ParanoidSettings 的 health 引用以及 Settings Room 数据库 schema 导出配置。
