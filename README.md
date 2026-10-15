@@ -11,28 +11,19 @@
 | [`20261015`](https://sourceforge.net/projects/xiaomi13-aospa/files/20261015/) | userdebug / test-keys | [`7f09118`](https://github.com/zhizhuzhizhuzhi/xiaomi13-aospa/tree/7f09118) |
 | [`20261015-release`](https://sourceforge.net/projects/xiaomi13-aospa/files/20261015-release/) | user / release-keys，AVB 校验关闭 | [`557ecdd`](https://github.com/zhizhuzhizhuzhi/xiaomi13-aospa/tree/557ecdd) |
 
-两个版本分别提供下载和更新。下方 release 专属改动适用于 user/release 构建；两种构建使用各自独立的输出目录。
+两个版本并行更新，可按需要选择。
 
 ## 20261015 release 更新
 
-- `user` / `release-keys`，APK、APEX 容器及 payload、OTA 使用自有密钥正式签名，保留原有 OEM presigned 签名。
-- 默认关闭 AVB verification 和 dm-verity（顶层 `vbmeta Flags: 3`）；保留 AVB 镜像格式和签名元数据，不要求刷完后额外修改 vbmeta。
-- health HAL、framework 服务、AIDL API 快照和 SELinux 接口迁移为 AOSPA health；保留上游版权及许可证。
-- AVC 审计日志归属 logd UID，普通应用不能再按自身 UID 读取这些记录，系统审计仍保留。
-- 修正 ParanoidSettings 的 health 引用以及 Settings Room 数据库 schema 导出配置。
+- 使用 user 构建和正式 release 签名。
+- 默认关闭 AVB 校验。
+- 充电控制组件统一为 AOSPA 命名。
+- 修复普通应用可读取 SELinux 拒绝日志的问题。
 
-发布文件为 `aospa_fuxi-fastboot-user-noavb-20261015.zip`（4,833,114,284 字节），SHA256：
+## 20261015 共同更新
 
-```text
-3989f361e7abea10cfbbf04ef81e74649e5100f511506ed3e3a4c186800ef8ad
-```
-
-在 test-keys 和 release-keys 两种签名之间切换，应用和系统数据兼容性可能变化，切换前请备份。
-
-## 20261015 两版本共同更新
-
-- 修复支付宝 IFAA 指纹支付能力查询、屏下指纹区域和 mlipay 接口调用。
-- 启用关闭 AOD 后的熄屏指纹解锁。
+- 修复支付宝指纹支付接口适配。
+- 支持关闭 AOD 后的熄屏指纹解锁。
 
 ## 20261014 更新
 
@@ -45,9 +36,21 @@
 
 包含相机、自动亮度、圆角、GNSS、充电和 Soter 适配。NR 信号格数校准目前针对 CMCC。
 
+## 下载校验
+
+release 包：`aospa_fuxi-fastboot-user-noavb-20261015.zip`，4,833,114,284 字节。
+
+SHA256：
+
+```text
+3989f361e7abea10cfbbf04ef81e74649e5100f511506ed3e3a4c186800ef8ad
+```
+
 ## 刷入
 
 底包为 Xiaomi 13 Global **OS2.0.100.0.VMCMIXM**（Android 15）。选择所需构建，进入 Fastboot 后执行对应命令。
+
+在 test-keys 和 release-keys 之间切换前请备份，应用和系统数据可能不兼容。
 
 userdebug / test-keys：
 
