@@ -13,7 +13,7 @@ python3 "$kit/scripts/fetch-dependencies.py" "$PWD"
 test -s vendor/xiaomi/camera/proprietary/system/priv-app/MiuiCamera/MiuiCamera.apk
 test -s device/xiaomi/fuxi/overlays/SystemUI/res/drawable-nodpi/rounded_corner_top.png
 test -s vendor/xiaomi/sm8550-common/proprietary/vendor/app/SoterService/SoterService.apk
-export BUILD_NUMBER=${BUILD_NUMBER:-20261015}
+export BUILD_NUMBER=${BUILD_NUMBER:-20261016}
 if [ -z "${OUT_DIR:-}" ]; then
   if [ "$type" = user ]; then export OUT_DIR=out-user-release; else export OUT_DIR=out; fi
 else

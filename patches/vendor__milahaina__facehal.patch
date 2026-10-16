@@ -1,0 +1,141 @@
+diff --git a/App/Android.bp b/App/Android.bp
+index 0b403ac..ae106ca 100644
+--- a/App/Android.bp
++++ b/App/Android.bp
+@@ -1,5 +1,5 @@
+ android_app {
+-    name: "MiLahainaVisionPrivate",
++    name: "MiLahainaVision",
+     srcs: ["src/**/*.java", "src/**/*.kt"],
+     static_libs: [
+         "androidx.core_core",
+@@ -15,20 +15,6 @@ android_app {
+     optimize: {
+         enabled: false,
+     },
+-    installable: false,
+-}
+-
+-android_app_import {
+-    name: "MiLahainaVision",
+-    apk: ":MiLahainaVisionPrivate",
+-    privileged: true,
+-    vendor: true,
+-    required: [
+-        "privapp_whitelist_org.milahaina.vision.xml",
+-        "MiLahainaVisionOverlay",
+-    ],
+-    preprocessed: true,
+-    dex_preopt: {
+-        enabled: false,
+-    },
++    system_ext_specific: true,
++    required: ["privapp_whitelist_org.milahaina.vision.xml"],
+ }
+diff --git a/App/AndroidManifest.xml b/App/AndroidManifest.xml
+index ac91596..55b6d65 100644
+--- a/App/AndroidManifest.xml
++++ b/App/AndroidManifest.xml
+@@ -20,6 +20,7 @@
+         <activity
+             android:name=".activities.EnrollActivity"
+             android:exported="true"
++            android:permission="android.permission.MANAGE_BIOMETRIC"
+             android:excludeFromRecents="true"
+             android:launchMode="standard"
+             android:screenOrientation="portrait"
+diff --git a/default/Face.cpp b/default/Face.cpp
+index 6552d0c..11747a2 100644
+--- a/default/Face.cpp
++++ b/default/Face.cpp
+@@ -33,6 +33,8 @@ using aidl::android::hardware::biometrics::common::SensorStrength;
+ Face::Face() {
+     SensorProps props;
+     FaceEngine::getInstance().getSensorProps(props);    
++    // RGB software face recognition is restricted to convenience unlock.
++    props.commonProps.sensorStrength = SensorStrength::CONVENIENCE;
+     mSensorProps.push_back(props);
+ }
+ 
+diff --git a/facehal.mk b/facehal.mk
+index 05ec35d..d6eb7fd 100644
+--- a/facehal.mk
++++ b/facehal.mk
+@@ -14,7 +14,7 @@
+ # limitations under the License.
+ #
+ 
+-LOCAL_PATH := $(call my-dir)
++MILAHAINA_FACEHAL_PATH := vendor/milahaina/facehal
+ 
+ # Face HAL Service, Enrollment App, and Overlays
+ PRODUCT_PACKAGES += \
+@@ -24,7 +24,7 @@ PRODUCT_PACKAGES += \
+ 
+ # Face HAL SELinux Policies
+ BOARD_VENDOR_SEPOLICY_DIRS += \
+-    $(LOCAL_PATH)/sepolicy
++    $(MILAHAINA_FACEHAL_PATH)/sepolicy
+ 
+ # Enable Logging
+ MILAHAINA_FACEHAL_ENABLE_LOGGING ?= false
+@@ -35,7 +35,11 @@ $(call add_soong_config_var_value,milahaina_facehal,enable_logging,$(MILAHAINA_F
+ MILAHAINA_FACEHAL_ENGINE_MODEL ?= milahaina
+ 
+ ifeq ($(MILAHAINA_FACEHAL_ENGINE_MODEL),megvii)
+-PRODUCT_SOONG_NAMESPACES += $(LOCAL_PATH)/lib/megvii
++PRODUCT_SOONG_NAMESPACES += $(MILAHAINA_FACEHAL_PATH)/lib/megvii
+ else
+-PRODUCT_SOONG_NAMESPACES += $(LOCAL_PATH)/lib/milahaina
++PRODUCT_SOONG_NAMESPACES += $(MILAHAINA_FACEHAL_PATH)/lib/milahaina
+ endif
++
++PRODUCT_SOONG_NAMESPACES += vendor/milahaina/facehal
++
++DEVICE_FRAMEWORK_COMPATIBILITY_MATRIX_FILE += vendor/milahaina/facehal/framework_compatibility_matrix.xml
+diff --git a/interface/Android.bp b/interface/Android.bp
+index 2641d14..2780b7d 100644
+--- a/interface/Android.bp
++++ b/interface/Android.bp
+@@ -1,4 +1,5 @@
+ aidl_interface {
++    owner: "milahaina",
+     name: "vendor.milahaina.biometrics.face",
+     vendor_available: true,
+     srcs: [
+diff --git a/lib/milahaina/Android.bp b/lib/milahaina/Android.bp
+index df74006..9f3659b 100644
+--- a/lib/milahaina/Android.bp
++++ b/lib/milahaina/Android.bp
+@@ -21,6 +21,7 @@ cc_prebuilt_library_shared {
+                 "libcutils",
+                 "liblog",
+                 "libutils",
++                "libsensorndkbridge",
+             ],
+         },
+     },
+diff --git a/permissions/Android.bp b/permissions/Android.bp
+index a67b602..15c35cb 100644
+--- a/permissions/Android.bp
++++ b/permissions/Android.bp
+@@ -2,5 +2,5 @@ prebuilt_etc {
+     name: "privapp_whitelist_org.milahaina.vision.xml",
+     src: "privapp_whitelist_org.milahaina.vision.xml",
+     sub_dir: "permissions",
+-    vendor: true,
++    system_ext_specific: true,
+ }
+diff --git a/sepolicy/hal_milahaina_biometrics_face.te b/sepolicy/hal_milahaina_biometrics_face.te
+index 9ee8725..ca3576b 100644
+--- a/sepolicy/hal_milahaina_biometrics_face.te
++++ b/sepolicy/hal_milahaina_biometrics_face.te
+@@ -15,7 +15,7 @@ typeattribute hal_milahaina_biometrics_face hal_camera_client;
+ allow hal_milahaina_biometrics_face fwk_camera_hwservice:hwservice_manager find;
+ allow hal_milahaina_biometrics_face hidl_token_hwservice:hwservice_manager find;
+ 
+-dontaudit hal_milahaina_biometrics_face system_file:file *;
++
+ 
+ # Allow access to camera service for NDK Camera API
+ allow hal_milahaina_biometrics_face cameraserver_service:service_manager find;

@@ -139,3 +139,51 @@ index b8d9464..eb1de50 100644
  };
  
  } // namespace android
+diff --git a/services/surfaceflinger/QtiExtension/QtiSurfaceFlingerExtension.cpp b/services/surfaceflinger/QtiExtension/QtiSurfaceFlingerExtension.cpp
+index a25744f..74bc130 100644
+--- a/services/surfaceflinger/QtiExtension/QtiSurfaceFlingerExtension.cpp
++++ b/services/surfaceflinger/QtiExtension/QtiSurfaceFlingerExtension.cpp
+@@ -656,7 +656,22 @@ void QtiSurfaceFlingerExtension::qtiSetEarlyWakeUpConfig(const sp<DisplayDevice>
+ 
+ void QtiSurfaceFlingerExtension::qtiUpdateVsyncConfiguration() {
+ #ifdef PHASE_OFFSET_EXTN
+-    if (!g_comp_ext_intf_.phaseOffsetExtnIntf || !mQtiFlinger || !mQtiFlinger->mScheduler ||
++    if (!mQtiFlinger || !mQtiFlinger->mScheduler) {
++        return;
++    }
++
++    if (std::this_thread::get_id() != mQtiFlinger->mMainThreadId) {
++        // IdleTimer can hold mModeTransitionMutex here, while the main thread
++        // holds mStateLock and waits for mModeTransitionMutex. Post without
++        // waiting so the caller can release its lock before this work runs.
++        static_cast<void>(mQtiFlinger->mScheduler->schedule([this] {
++            Mutex::Autolock lock(mQtiFlinger->mStateLock);
++            qtiUpdateVsyncConfiguration();
++        }));
++        return;
++    }
++
++    if (!g_comp_ext_intf_.phaseOffsetExtnIntf ||
+         !mQtiFlinger->mScheduler->getVsyncConfiguration_ptr()) {
+         return;
+     }
+@@ -673,8 +688,17 @@ void QtiSurfaceFlingerExtension::qtiUpdateVsyncConfiguration() {
+         // Populate the fps supported on device in mOffsetCache
+         ConditionalLock lock(mQtiFlinger->mStateLock,
+                              std::this_thread::get_id() != mQtiFlinger->mMainThreadId);
+-        const auto displayOpt = mQtiFlinger->mPhysicalDisplays.get(
+-                mQtiFlinger->getFrontInternalDisplayLocked()->getPhysicalId());
++        // Resolve the display when the queued task runs, since hotplug may
++        // have changed it after the request was posted.
++        const auto internalDisplay = mQtiFlinger->getFrontInternalDisplayLocked();
++        if (!internalDisplay) {
++            return;
++        }
++        const auto displayOpt =
++                mQtiFlinger->mPhysicalDisplays.get(internalDisplay->getPhysicalId());
++        if (!displayOpt) {
++            return;
++        }
+ 
+         const auto& display = displayOpt->get();
+         const auto& snapshot = display.snapshot();

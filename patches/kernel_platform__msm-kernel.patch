@@ -10,10 +10,30 @@ index ed41fcc2d..29d2d92d9 100644
      sanitize: {
          never: true,
 diff --git a/drivers/power/supply/qti_battery_charger.c b/drivers/power/supply/qti_battery_charger.c
-index 30b544e33..4be3f3ed8 100644
+index 30b544e33..1ebb51215 100644
 --- a/drivers/power/supply/qti_battery_charger.c
 +++ b/drivers/power/supply/qti_battery_charger.c
-@@ -2321,6 +2321,12 @@ static int wls_psy_get_prop(struct power_supply *psy,
+@@ -2007,6 +2007,7 @@ static void battery_chg_update_usb_type_work(struct work_struct *work)
+ 	struct battery_chg_dev *bcdev = container_of(work,
+ 					struct battery_chg_dev, usb_type_work);
+ 	struct psy_state *pst = &bcdev->psy_list[PSY_TYPE_USB];
++	enum power_supply_type old_type = usb_psy_desc.type;
+ 	int rc;
+ 
+ #ifdef CONFIG_QTI_POGO_CHG
+@@ -2074,6 +2075,11 @@ static void battery_chg_update_usb_type_work(struct work_struct *work)
+ 		usb_psy_desc.type = POWER_SUPPLY_TYPE_UNKNOWN;
+ 		break;
+ 	}
++	/* Notify after the asynchronous type update, even if the earlier
++	 * status notification was already consumed by userspace.
++	 */
++	if (old_type != usb_psy_desc.type && pst->psy)
++		power_supply_changed(pst->psy);
+ }
+ 
+ static void battery_chg_check_status_work(struct work_struct *work)
+@@ -2321,6 +2327,12 @@ static int wls_psy_get_prop(struct power_supply *psy,
  	struct psy_state *pst = &bcdev->psy_list[PSY_TYPE_WLS];
  	int prop_id, rc;
  
@@ -26,7 +46,7 @@ index 30b544e33..4be3f3ed8 100644
  	pval->intval = -ENODATA;
  
  	if (prop == POWER_SUPPLY_PROP_PRESENT) {
-@@ -2362,6 +2368,7 @@ static int wls_psy_prop_is_writeable(struct power_supply *psy,
+@@ -2362,6 +2374,7 @@ static int wls_psy_prop_is_writeable(struct power_supply *psy,
  }
  
  static enum power_supply_property wls_props[] = {
@@ -34,7 +54,7 @@ index 30b544e33..4be3f3ed8 100644
  	POWER_SUPPLY_PROP_ONLINE,
  	POWER_SUPPLY_PROP_VOLTAGE_NOW,
  	POWER_SUPPLY_PROP_VOLTAGE_MAX,
-@@ -2775,6 +2782,12 @@ static int usb_psy_get_prop(struct power_supply *psy,
+@@ -2775,6 +2788,12 @@ static int usb_psy_get_prop(struct power_supply *psy,
  	struct psy_state *pst = &bcdev->psy_list[PSY_TYPE_USB];
  	int prop_id, rc;
  
@@ -47,7 +67,7 @@ index 30b544e33..4be3f3ed8 100644
  	pval->intval = -ENODATA;
  
  	prop_id = get_property_id(pst, prop);
-@@ -2866,6 +2879,7 @@ static int usb_psy_prop_is_writeable(struct power_supply *psy,
+@@ -2866,6 +2885,7 @@ static int usb_psy_prop_is_writeable(struct power_supply *psy,
  }
  
  static enum power_supply_property usb_props[] = {
@@ -55,7 +75,7 @@ index 30b544e33..4be3f3ed8 100644
  	POWER_SUPPLY_PROP_ONLINE,
  	POWER_SUPPLY_PROP_VOLTAGE_NOW,
  	POWER_SUPPLY_PROP_VOLTAGE_MAX,
-@@ -2991,6 +3005,12 @@ static int battery_psy_get_prop(struct power_supply *psy,
+@@ -2991,6 +3011,12 @@ static int battery_psy_get_prop(struct power_supply *psy,
  	struct psy_state *pst = &bcdev->psy_list[PSY_TYPE_BATTERY];
  	int prop_id, rc;
  
@@ -68,7 +88,7 @@ index 30b544e33..4be3f3ed8 100644
  	pval->intval = -ENODATA;
  
  	/*
-@@ -3123,6 +3143,7 @@ static int battery_psy_prop_is_writeable(struct power_supply *psy,
+@@ -3123,6 +3149,7 @@ static int battery_psy_prop_is_writeable(struct power_supply *psy,
  }
  
  static enum power_supply_property battery_props[] = {

@@ -23,11 +23,14 @@ if archive.stat().st_size!=meta['bytes'] or digest(archive)!=meta['sha256']:
     raise SystemExit('Dependency archive differs from pinned release')
 inputs=cache/'inputs';inputs.mkdir(exist_ok=True)
 expected={'MiuiCamera.apk','libgui-xiaomi.so','FuxiSystemUI.apk','DEPENDENCIES.json'}
+expected.update('extras/'+r['path'] for r in meta.get('extras',[]))
 with zipfile.ZipFile(archive) as z:
-    if set(z.namelist())!=expected or len(z.namelist())!=4 or z.testzip() is not None:
+    if set(z.namelist())!=expected or len(z.namelist())!=len(expected) or z.testzip() is not None:
         raise SystemExit('Invalid dependency archive')
     for name in expected:
-        with z.open(name) as source,(inputs/name).open('wb') as output:
+        destination=inputs/name
+        destination.parent.mkdir(parents=True,exist_ok=True)
+        with z.open(name) as source,destination.open('wb') as output:
             shutil.copyfileobj(source,output,8*1024*1024)
 soter=meta['soter'];soter_file=inputs/soter['file']
 if not soter_file.exists() or digest(soter_file)!=soter['sha256']:
@@ -39,4 +42,11 @@ if not soter_file.exists() or digest(soter_file)!=soter['sha256']:
         raise SystemExit('SoterService dependency SHA256 mismatch')
     part.replace(soter_file)
 subprocess.run([sys.executable,str(kit/'scripts/prepare-private-blobs.py'),str(root),str(inputs)],check=True)
+for record in meta.get('extras',[]):
+    source=inputs/'extras'/record['path'];destination=root/record['path']
+    if not destination.resolve().is_relative_to(root):raise SystemExit('Invalid supplemental path')
+    if source.stat().st_size!=record['bytes'] or digest(source)!=record['sha256']:
+        raise SystemExit('Supplemental dependency mismatch: '+record['path'])
+    destination.parent.mkdir(parents=True,exist_ok=True)
+    shutil.copyfile(source,destination);destination.chmod(record['mode'])
 print('Build dependencies ready:',inputs)

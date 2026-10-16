@@ -35,6 +35,17 @@ index 683dcfa..432d62e 100644
 +# Stock fuxi UDFPS geometry consumed by SoterService
 +persist.vendor.sys.fp.fod.location.X_Y=442,2052
 +persist.vendor.sys.fp.fod.size.width_height=196,196
+diff --git a/device.mk b/device.mk
+index 07cf625..1d61f6b 100644
+--- a/device.mk
++++ b/device.mk
+@@ -24,3 +24,6 @@ PRODUCT_PACKAGES += \
+     FuxiSystemUI \
+     FuxiWifiRes \
+     FuxiWifiResMainline \
++
++# Standard AIDL face unlock (RGB convenience class).
++$(call inherit-product, vendor/milahaina/facehal/facehal.mk)
 diff --git a/overlays/Frameworks/res/values/config.xml b/overlays/Frameworks/res/values/config.xml
 index 0fff697..207fe61 100644
 --- a/overlays/Frameworks/res/values/config.xml

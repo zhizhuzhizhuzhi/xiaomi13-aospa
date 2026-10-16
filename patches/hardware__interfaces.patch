@@ -1,0 +1,102 @@
+diff --git a/health/aidl/default/HalHealthLoop.cpp b/health/aidl/default/HalHealthLoop.cpp
+index ec23c10..859a7ef 100644
+--- a/health/aidl/default/HalHealthLoop.cpp
++++ b/health/aidl/default/HalHealthLoop.cpp
+@@ -34,6 +34,10 @@ void HalHealthLoop::Heartbeat() {
+     callback_->OnHeartbeat();
+ }
+ 
++void HalHealthLoop::UpdateChargerPresence(const char* device_name) {
++    callback_->UpdateChargerPresence(device_name);
++}
++
+ void HalHealthLoop::ScheduleBatteryUpdate() {
+     // ignore errors. impl may not be able to handle any callbacks, so
+     // update() may return errors.
+diff --git a/health/aidl/default/include/health-impl/HalHealthLoop.h b/health/aidl/default/include/health-impl/HalHealthLoop.h
+index c46aaa4..0089442 100644
+--- a/health/aidl/default/include/health-impl/HalHealthLoop.h
++++ b/health/aidl/default/include/health-impl/HalHealthLoop.h
+@@ -38,6 +38,7 @@ class HalHealthLoopCallback {
+     virtual int OnPrepareToWait() { return -1; }
+     // Called by HalHealthLoop::ScheduleBatteryUpdate
+     virtual void OnHealthInfoChanged(const HealthInfo&) {}
++    virtual void UpdateChargerPresence(const char* /*device_name*/) {}
+ };
+ 
+ // AIDL version of android::hardware::health::V2_1::implementation::HalHealthLoop.
+@@ -57,6 +58,7 @@ class HalHealthLoop final : public ::android::hardware::health::HealthLoop {
+     virtual void Heartbeat() override;
+     virtual int PrepareToWait() override;
+     virtual void ScheduleBatteryUpdate() override;
++    void UpdateChargerPresence(const char* device_name) override;
+ 
+   private:
+     std::shared_ptr<IHealth> service_;
+diff --git a/health/aidl/default/include/health-impl/Health.h b/health/aidl/default/include/health-impl/Health.h
+index b5c7a4a..a786cfd 100644
+--- a/health/aidl/default/include/health-impl/Health.h
++++ b/health/aidl/default/include/health-impl/Health.h
+@@ -115,7 +115,7 @@ class Health : public BnHealth, public HalHealthLoopCallback {
+     //
+     // If device_name is present in config.ignoredPowerSupplyNames, it will
+     // always be considered absent.
+-    void UpdateChargerPresence(const char* const device_name);
++    void UpdateChargerPresence(const char* const device_name) override;
+ 
+   private:
+     friend LinkedCallback;  // for exposing death_recipient_
+diff --git a/health/utils/libhealthloop/HealthLoop.cpp b/health/utils/libhealthloop/HealthLoop.cpp
+index 8501f33..6d3254d 100644
+--- a/health/utils/libhealthloop/HealthLoop.cpp
++++ b/health/utils/libhealthloop/HealthLoop.cpp
+@@ -137,22 +137,29 @@ bool HealthLoop::RecvUevents() {
+             // too long -- discard
+             continue;
+         }
+-        if (update_stats) {
+-            continue;
+-        }
+-
+         msg[n] = '\0';
+         msg[n + 1] = '\0';
++        bool power_supply = false;
++        const char* device_name = nullptr;
+         for (char* cp = msg; *cp;) {
+             if (strcmp(cp, "SUBSYSTEM=power_supply") == 0) {
+-                update_stats = true;
+-                break;
++                power_supply = true;
++            } else if (strncmp(cp, "POWER_SUPPLY_NAME=", 18) == 0) {
++                device_name = cp + 18;
+             }
+ 
+             /* advance to after the next \0 */
+             while (*cp++) {
+             }
+         }
++        if (power_supply) {
++            update_stats = true;
++            // A supply name is a single sysfs directory component.
++            if (device_name && *device_name && !strchr(device_name, '/') &&
++                strcmp(device_name, ".") != 0 && strcmp(device_name, "..") != 0) {
++                UpdateChargerPresence(device_name);
++            }
++        }
+     }
+ }
+ 
+diff --git a/health/utils/libhealthloop/include/health/HealthLoop.h b/health/utils/libhealthloop/include/health/HealthLoop.h
+index 43c38dc..4915827 100644
+--- a/health/utils/libhealthloop/include/health/HealthLoop.h
++++ b/health/utils/libhealthloop/include/health/HealthLoop.h
+@@ -66,6 +66,9 @@ class HealthLoop {
+     // healthd_mode_ops->battery_update(BatteryProperties*).
+     virtual void ScheduleBatteryUpdate() = 0;
+ 
++    // Refresh a named supply before publishing the batched health update.
++    virtual void UpdateChargerPresence(const char* /*device_name*/) {}
++
+     // Register an epoll event. When there is an event, |func| will be
+     // called with |this| as the first argument and |epevents| as the second.
+     // This may be called in a different thread from where StartLoop is called

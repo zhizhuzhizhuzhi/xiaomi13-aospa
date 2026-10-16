@@ -1,8 +1,8 @@
 {
-  "sha256": "201c4c70a4c97a3700f3878da314e97d02f07a0ee86fd8c298e2e162d6cd7c10",
-  "url": "https://github.com/zhizhuzhizhuzhi/xiaomi13-aospa/releases/download/build-deps-20261014/fuxi-build-dependencies-20261014.zip",
-  "bytes": 131523068,
-  "file": "fuxi-build-dependencies-20261014.zip",
+  "sha256": "4843b8cf653bc93a4f288d3db83bab3ea976beb4d95abc3749318db26db6a0c3",
+  "url": "https://github.com/zhizhuzhizhuzhi/xiaomi13-aospa/releases/download/build-deps-20261016/fuxi-build-dependencies-20261016.zip",
+  "bytes": 131576310,
+  "file": "fuxi-build-dependencies-20261016.zip",
   "soter": {
     "file": "SoterService.apk",
     "url": "https://raw.githubusercontent.com/TheMuppets/proprietary_vendor_xiaomi_sm8550-common/0c9140245d91660b96dfd80667e7b018d73c2850/proprietary/vendor/app/SoterService/SoterService.apk",
@@ -10,5 +10,31 @@
     "sha256": "b1f5a2a692822aa9e75b67a5aab48c55e3082259641e9b0193e0fe70e81d1cfc",
     "sha1": "5cef7d2bc300af3fc2d7e72c6b02c54e245eb637",
     "source": "diting OS2.0.3.0.VLFMIXM"
-  }
+  },
+  "extras": [
+    {
+      "path": "vendor/qcom/common/vendor/perf/proprietary/vendor/bin/vendor.qti.qspmhal-service",
+      "bytes": 52248,
+      "sha256": "923753dab1aa392519dc3ebb614fc40c3554972b80f1324d367a89193ac887e8",
+      "mode": 436
+    },
+    {
+      "path": "vendor/qcom/common/vendor/perf/proprietary/vendor/lib64/libqspm-mem-utils-vendor.so",
+      "bytes": 51920,
+      "sha256": "78f688ad7ca4945c520a910bc6c079762a974a5b55c11eb35c0af75b913378e4",
+      "mode": 436
+    },
+    {
+      "path": "vendor/qcom/common/vendor/perf/proprietary/vendor/lib64/vendor.qti.qspmhal-V1-ndk.so",
+      "bytes": 85680,
+      "sha256": "85830009aa52b62109595841d2da326076cb3a641fc1468d2b7cd885a8672ce0",
+      "mode": 436
+    },
+    {
+      "path": "vendor/qcom/common/vendor/perf/proprietary/vendor/lib64/vendor.qti.qspmhal-impl.so",
+      "bytes": 69232,
+      "sha256": "51ebce9b307a621850204fe310b47810719870a32c22e29b414c0387daf25583",
+      "mode": 436
+    }
+  ]
 }

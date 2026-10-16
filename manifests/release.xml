@@ -1300,4 +1300,5 @@
   <project name="trusty/lk/trusty" path="trusty/kernel" revision="5be72d300cbf5ac4563e337873821fc0b48fe102" upstream="refs/heads/ks-aosp.lnx.17.0.r1-rel" groups="25Q2-fs-release,25Q4-fs-release,26Q2-fs-release,pdk,qc-common-sys-intf,trunk-fs-release,trusty,vsdk_exc_L0,vsdk_exc_L1,vsdk_exc_L2,vsdk_exc_L3,vsdk_exc_L4,vsdk_exc_L5"/>
   <project name="trusty/user/desktop" revision="ecc8581b1c26a2c5241fa3c53cca48d960af7fb9" upstream="refs/heads/ks-aosp.lnx.17.0.r1-rel" groups="25Q2-fs-release,25Q4-fs-release,26Q2-fs-release,android-desktop,pdk,qc-common-sys-intf,trunk-fs-release,trusty,vsdk_exc_L0,vsdk_exc_L1,vsdk_exc_L2,vsdk_exc_L3,vsdk_exc_L4,vsdk_exc_L5"/>
   <project name="trusty/vendor/google/aosp" revision="26ed8c1312ec8ee8fec119acfeb3fbfc0d24e6b6" upstream="refs/heads/ks-aosp.lnx.17.0.r1-rel" groups="25Q2-fs-release,25Q4-fs-release,26Q2-fs-release,pdk,qc-common-sys-intf,trunk-fs-release,trusty,vsdk_exc_L0,vsdk_exc_L1,vsdk_exc_L2,vsdk_exc_L3,vsdk_exc_L4,vsdk_exc_L5"/>
+  <project name="IPSBHANGU/AOSP-FACEHAL" path="vendor/milahaina/facehal" remote="github" revision="70a026654b2d739631b47579dbad12ba4f229c1e"/>
 </manifest>

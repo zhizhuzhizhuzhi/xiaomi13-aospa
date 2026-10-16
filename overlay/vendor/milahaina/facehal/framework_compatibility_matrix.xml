@@ -1,0 +1,10 @@
+<compatibility-matrix version="1.0" type="framework">
+    <hal format="aidl" optional="true">
+        <name>vendor.milahaina.biometrics.face</name>
+        <version>2</version>
+        <interface>
+            <name>IVisionService</name>
+            <instance>default</instance>
+        </interface>
+    </hal>
+</compatibility-matrix>

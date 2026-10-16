@@ -32,6 +32,7 @@
       "BoardConfig.mk",
       "configs/properties/odm.prop",
       "configs/properties/vendor.prop",
+      "device.mk",
       "overlays/Frameworks/res/values/config.xml",
       "overlays/Frameworks/res/values/dimens.xml"
     ],
@@ -174,7 +175,21 @@
     "files": [
       "libs/binder/OS_android.cpp",
       "libs/ui/GraphicBuffer.cpp",
-      "libs/ui/include/ui/GraphicBuffer.h"
+      "libs/ui/include/ui/GraphicBuffer.h",
+      "services/surfaceflinger/QtiExtension/QtiSurfaceFlingerExtension.cpp"
+    ],
+    "overlay": []
+  },
+  {
+    "path": "hardware/interfaces",
+    "revision": "c0fa2c83463785fd25d6e6813934b7a3ed4dfa44",
+    "patch": "patches/hardware__interfaces.patch",
+    "files": [
+      "health/aidl/default/HalHealthLoop.cpp",
+      "health/aidl/default/include/health-impl/HalHealthLoop.h",
+      "health/aidl/default/include/health-impl/Health.h",
+      "health/utils/libhealthloop/HealthLoop.cpp",
+      "health/utils/libhealthloop/include/health/HealthLoop.h"
     ],
     "overlay": []
   },
@@ -470,6 +485,25 @@
       "sepolicy/vendor/hal_aospa_health.te",
       "sepolicy/vendor/hal_aospa_health_default.te",
       "target/config/permissions/org.aospa.health.xml"
+    ]
+  },
+  {
+    "path": "vendor/milahaina/facehal",
+    "revision": "70a026654b2d739631b47579dbad12ba4f229c1e",
+    "patch": "patches/vendor__milahaina__facehal.patch",
+    "files": [
+      "App/Android.bp",
+      "App/AndroidManifest.xml",
+      "default/Face.cpp",
+      "facehal.mk",
+      "interface/Android.bp",
+      "lib/milahaina/Android.bp",
+      "permissions/Android.bp",
+      "sepolicy/hal_milahaina_biometrics_face.te"
+    ],
+    "overlay": [
+      "Android.bp",
+      "framework_compatibility_matrix.xml"
     ]
   },
   {
