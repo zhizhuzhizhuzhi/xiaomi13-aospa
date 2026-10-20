@@ -1,0 +1,60 @@
+diff --git a/libdmabufinfo/Android.bp b/libdmabufinfo/Android.bp
+index d64d4b2..0c7ed8a 100644
+--- a/libdmabufinfo/Android.bp
++++ b/libdmabufinfo/Android.bp
+@@ -35,8 +35,27 @@ cc_defaults {
+     ],
+ }
+ 
++// Bind the loader's existing flag for every libdmabufinfo variant. The
++// read-only binding needs no runtime flag storage or cross-partition service.
++cc_aconfig_library {
++    name: "libdmabufinfo_bpf_flags",
++    aconfig_declarations: "android_bpfprogs_flags",
++    mode: "force-read-only",
++    vendor_available: true,
++    product_available: true,
++    host_supported: true,
++    native_bridge_supported: true,
++    apex_available: [
++        "//apex_available:platform",
++        "com.android.art",
++        "com.android.art.debug",
++    ],
++    min_sdk_version: "S",
++}
++
+ cc_library_static {
+     name: "libdmabufinfo",
++    static_libs: ["libdmabufinfo_bpf_flags"],
+     vendor_available: true,
+     product_available: true,
+     host_supported: true,
+diff --git a/libdmabufinfo/dmabuf_per_buffer_stats.cpp b/libdmabufinfo/dmabuf_per_buffer_stats.cpp
+index 02462a7..62eac69 100644
+--- a/libdmabufinfo/dmabuf_per_buffer_stats.cpp
++++ b/libdmabufinfo/dmabuf_per_buffer_stats.cpp
+@@ -14,6 +14,8 @@
+  * limitations under the License.
+  */
+ 
++#include <android_bpfprogs_flags.h>
++
+ #include "dmabuf_bpf_stats.h"
+ #include "dmabuf_sysfs_stats.h"
+ 
+@@ -21,8 +23,12 @@ namespace android {
+ namespace dmabufinfo {
+ 
+ bool GetDmabufPerBufferStats(DmabufPerBufferStats& stats) {
+-    return android::dmabufinfo::GetDmabufBPFStats(stats) ||
+-           android::dmabufinfo::GetDmabufSysfsStats(stats);
++    // Use the same build-time feature selection as bpfloader. A selected
++    // backend must succeed; its failures must not be hidden by another backend.
++    if (android::bpfprogs::flags::load_dmabuf_iterator()) {
++        return GetDmabufBPFStats(stats);
++    }
++    return GetDmabufSysfsStats(stats);
+ }
+ 
+ }  // namespace dmabufinfo

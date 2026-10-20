@@ -1,3 +1,23 @@
+diff --git a/src/com/android/settings/core/SettingsBaseActivity.java b/src/com/android/settings/core/SettingsBaseActivity.java
+index deed076..df4e328 100644
+--- a/src/com/android/settings/core/SettingsBaseActivity.java
++++ b/src/com/android/settings/core/SettingsBaseActivity.java
+@@ -52,7 +52,6 @@ import com.android.settingslib.widget.SettingsThemeHelper;
+ import com.google.android.material.appbar.AppBarLayout;
+ import com.google.android.material.appbar.CollapsingToolbarLayout;
+ import com.google.android.material.floatingtoolbar.FloatingToolbarLayout;
+-import com.google.android.material.resources.TextAppearanceConfig;
+ import com.google.android.setupcompat.util.WizardManagerHelper;
+ import com.google.android.setupdesign.util.ThemeHelper;
+ 
+@@ -120,7 +119,6 @@ public class SettingsBaseActivity extends FragmentActivity implements CategoryHa
+             hideInternalActionBar();
+         }
+         getLifecycle().addObserver(new HideNonSystemOverlayMixin(this));
+-        TextAppearanceConfig.setShouldLoadFontSynchronously(true);
+ 
+         mCategoryMixin = new CategoryMixin(this);
+         getLifecycle().addObserver(mCategoryMixin);
 diff --git a/src/com/android/settings/fuelgauge/batteryusage/db/BatteryStateDatabase.java b/src/com/android/settings/fuelgauge/batteryusage/db/BatteryStateDatabase.java
 index c3aea08..b0768e2 100644
 --- a/src/com/android/settings/fuelgauge/batteryusage/db/BatteryStateDatabase.java

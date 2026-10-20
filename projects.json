@@ -185,7 +185,9 @@
       "media/codec2/hal/hidl/1.1/utils/ComponentStore.cpp",
       "media/codec2/hal/hidl/1.1/utils/include/codec2/hidl/1.1/ComponentStore.h",
       "media/codec2/hal/hidl/1.2/utils/ComponentStore.cpp",
-      "media/codec2/hal/hidl/1.2/utils/include/codec2/hidl/1.2/ComponentStore.h"
+      "media/codec2/hal/hidl/1.2/utils/include/codec2/hidl/1.2/ComponentStore.h",
+      "media/libaudiopermission/AppOpsSession.cpp",
+      "media/utils/ServiceUtilities.cpp"
     ],
     "overlay": []
   },
@@ -195,23 +197,50 @@
     "patch": "patches/frameworks__base.patch",
     "files": [
       "Android.bp",
+      "apex/jobscheduler/service/java/com/android/server/job/controllers/QuotaController.java",
+      "core/java/android/os/VibratorInfo.java",
       "core/java/com/android/internal/app/ActivityTrigger.java",
       "core/java/com/android/internal/content/NativeLibraryHelper.java",
       "core/java/com/android/internal/lineage/app/LineageContextConstants.java",
       "core/java/com/android/internal/lineage/health/HealthInterface.java",
       "core/java/com/android/internal/lineage/health/IHealthInterface.aidl",
+      "core/java/com/android/internal/util/ContrastColorUtil.java",
       "core/jni/com_android_internal_app_ActivityTrigger.cpp",
       "core/res/AndroidManifest.xml",
+      "core/res/res/values/config.xml",
+      "core/res/res/values/strings.xml",
+      "data/etc/privapp-permissions-platform.xml",
+      "libs/WindowManager/Shell/src/com/android/wm/shell/ShellTaskOrganizer.java",
+      "libs/WindowManager/Shell/src/com/android/wm/shell/transition/Transitions.java",
       "packages/SettingsLib/src/com/android/settingslib/development/SystemPropPoker.java",
       "packages/SettingsLib/tests/robotests/src/com/android/settingslib/development/SystemPropPokerTest.java",
+      "packages/SystemUI/pods/build/Android.bp",
+      "packages/SystemUI/pods/graphics/src/main/ImageLoaderImpl.kt",
+      "packages/SystemUI/src/com/android/systemui/biometrics/BiometricPromptLottieViewWrapper.kt",
+      "packages/SystemUI/src/com/android/systemui/keyguard/KeyguardService.java",
+      "packages/SystemUI/src/com/android/systemui/keyguard/domain/interactor/FromGoneTransitionInteractor.kt",
+      "packages/SystemUI/src/com/android/systemui/statusbar/notification/stack/MagneticNotificationRowManagerImpl.kt",
       "packages/SystemUI/src/com/android/systemui/statusbar/pipeline/ims/data/repository/ImsRepository.kt",
+      "services/appwidget/java/com/android/server/appwidget/AppWidgetServiceImpl.java",
       "services/autofill/java/com/android/server/autofill/AutofillManagerServiceImpl.java",
       "services/autofill/java/com/android/server/autofill/RemoteAugmentedAutofillService.java",
       "services/core/java/com/android/server/ActivityTriggerService.java",
+      "services/core/java/com/android/server/BootReceiver.java",
+      "services/core/java/com/android/server/SensitiveContentProtectionManagerService.java",
+      "services/core/java/com/android/server/StorageManagerService.java",
       "services/core/java/com/android/server/am/ActivityManagerService.java",
+      "services/core/java/com/android/server/am/ContentProviderHelper.java",
+      "services/core/java/com/android/server/am/CoreSettingsObserver.java",
       "services/core/java/com/android/server/am/ProcessList.java",
+      "services/core/java/com/android/server/audio/AudioService.java",
       "services/core/java/com/android/server/biometrics/sensors/face/FaceService.java",
+      "services/core/java/com/android/server/connectivity/NetdEventListenerService.java",
+      "services/core/java/com/android/server/devicestate/DeviceStateManagerService.java",
+      "services/core/java/com/android/server/display/DisplayManagerService.java",
+      "services/core/java/com/android/server/display/LocalDisplayAdapter.java",
       "services/core/java/com/android/server/display/brightness/strategy/AutomaticBrightnessStrategy.java",
+      "services/core/java/com/android/server/dreams/DreamController.java",
+      "services/core/java/com/android/server/infra/AbstractPerUserSystemService.java",
       "services/core/java/com/android/server/lineage/health/ChargingControlController.java",
       "services/core/java/com/android/server/lineage/health/ChargingControlNotification.java",
       "services/core/java/com/android/server/lineage/health/FastChargeController.java",
@@ -226,6 +255,10 @@
       "services/core/java/com/android/server/pm/PackageInstallerService.java",
       "services/core/java/com/android/server/pm/PackageInstallerSession.java",
       "services/core/java/com/android/server/pm/ShortcutParser.java",
+      "services/core/java/com/android/server/policy/PhoneWindowManager.java",
+      "services/core/java/com/android/server/power/Notifier.java",
+      "services/core/java/com/android/server/power/stats/processor/PowerComponentAggregatedPowerStats.java",
+      "services/core/java/com/android/server/storage/StorageSessionController.java",
       "services/core/java/com/android/server/vibrator/VibratorManagerService.java",
       "services/core/java/com/android/server/wm/ActivityCallerState.java",
       "services/core/java/com/android/server/wm/ActivityClientController.java",
@@ -235,12 +268,15 @@
       "services/core/java/com/android/server/wm/ActivityTaskManagerService.java",
       "services/core/java/com/android/server/wm/ActivityTaskSupervisor.java",
       "services/core/java/com/android/server/wm/Task.java",
+      "services/core/java/com/android/server/wm/WindowOrganizerController.java",
       "services/core/jni/Android.bp",
       "services/core/jni/com_android_server_activityTriggerService.cpp",
       "services/core/jni/com_android_server_am_CachedAppOptimizer.cpp",
       "services/core/jni/onload.cpp",
       "services/java/com/android/server/SystemServer.java",
-      "services/tests/displayservicetests/src/com/android/server/display/brightness/strategy/AutomaticBrightnessStrategyTest.java"
+      "services/tests/displayservicetests/src/com/android/server/display/brightness/strategy/AutomaticBrightnessStrategyTest.java",
+      "services/tests/servicestests/Android.bp",
+      "services/tests/servicestests/src/com/android/server/biometrics/sensors/fingerprint/aidl/SensorTest.java"
     ],
     "overlay": [
       "core/java/com/android/internal/aospa/health/HealthInterface.java",
@@ -260,6 +296,7 @@
       "services/core/java/com/android/server/uri/CallerUriPermissionSnapshot.java",
       "services/core/java/com/android/server/vibrator/SystemTickHapticPolicy.java",
       "services/core/java/com/android/server/wm/ActivityUriPermissions.java",
+      "services/tests/servicestests/src/com/android/server/am/CoreSettingsObserverLifecycleTest.java",
       "services/tests/servicestests/src/com/android/server/pm/PackageInstallerPersistenceTest.java",
       "services/tests/servicestests/src/com/android/server/uri/CallerUriPermissionSnapshotTest.java",
       "services/tests/servicestests/src/com/android/server/wm/ActivityUriPermissionsTest.java",
@@ -460,6 +497,7 @@
     "revision": "493979b3540c224cd60dddc8151596dafbd6a298",
     "patch": "patches/packages__apps__Settings.patch",
     "files": [
+      "src/com/android/settings/core/SettingsBaseActivity.java",
       "src/com/android/settings/fuelgauge/batteryusage/db/BatteryStateDatabase.java"
     ],
     "overlay": []
@@ -501,7 +539,8 @@
     "files": [
       "init/Android.bp",
       "init/property_service.cpp",
-      "libprocessgroup/processgroup.cpp"
+      "libprocessgroup/processgroup.cpp",
+      "rootdir/init.rc"
     ],
     "overlay": [
       "init/vendor_init.cpp",
@@ -548,11 +587,31 @@
     "overlay": []
   },
   {
+    "path": "system/memory/libmeminfo",
+    "revision": "6f48e61a8e3d2eda7eb4b37bbe7410108fc39aea",
+    "patch": "patches/system__memory__libmeminfo.patch",
+    "files": [
+      "libdmabufinfo/Android.bp",
+      "libdmabufinfo/dmabuf_per_buffer_stats.cpp"
+    ],
+    "overlay": []
+  },
+  {
     "path": "system/netd",
     "revision": "cbaf6468b4902fae76f997388a3f8ef9ebe6a4c3",
     "patch": "patches/system__netd.patch",
     "files": [
       "server/NetlinkHandler.cpp"
+    ],
+    "overlay": []
+  },
+  {
+    "path": "system/sepolicy",
+    "revision": "49155d80e5f5644f3c1bd0be1279edff698cc7b6",
+    "patch": "patches/system__sepolicy.patch",
+    "files": [
+      "private/shell.te",
+      "private/system_server.te"
     ],
     "overlay": []
   },

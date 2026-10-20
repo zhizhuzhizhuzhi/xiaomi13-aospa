@@ -1,0 +1,28 @@
+diff --git a/private/shell.te b/private/shell.te
+index 5d3cabc..7b31fb0 100644
+--- a/private/shell.te
++++ b/private/shell.te
+@@ -217,6 +217,9 @@ get_prop(shell, vendor_security_patch_level_prop)
+ # Read state of logging-related properties
+ get_prop(shell, device_logging_prop)
+ 
++# Framework display metrics are initialized by shell app_process tools too.
++get_prop(shell, qemu_sf_lcd_density_prop)
++
+ # Read state of boot reason properties
+ get_prop(shell, bootloader_boot_reason_prop)
+ get_prop(shell, last_boot_reason_prop)
+diff --git a/private/system_server.te b/private/system_server.te
+index 355e5b9..f4d1f06 100644
+--- a/private/system_server.te
++++ b/private/system_server.te
+@@ -1255,6 +1255,9 @@ allow system_server adbd_common:unix_stream_socket connectto;
+ allow system_server adbd_common:fd use;
+ allow system_server adbd_common:unix_stream_socket { getattr getopt ioctl read write shutdown };
+ 
++# Inspect options on ABB command descriptors received from the shell process.
++allow system_server shell:unix_stream_socket getopt;
++
+ # Read service.adb.tls.port, persist.adb.wifi. properties
+ get_prop(system_server, adbd_prop)
+ 

@@ -66,3 +66,19 @@ index 7648c21..2a8aef2 100644
  bool SetTaskProfiles(pid_t tid, std::initializer_list<std::string_view> profiles,
                       bool use_fd_cache) {
      return TaskProfiles::GetInstance().SetTaskProfiles(
+diff --git a/rootdir/init.rc b/rootdir/init.rc
+index d35afff..a713b13 100644
+--- a/rootdir/init.rc
++++ b/rootdir/init.rc
+@@ -656,9 +656,9 @@ on late-fs
+ 
+ # Don't enable the bootreceiver tracing instance to save 10MB of memory
+ on late-fs
+-    setprop bootreceiver.enable 0
++    setprop sys.bootreceiver.enable 0
+ 
+-on property:ro.product.cpu.abilist64=* && property:bootreceiver.enable=1
++on property:ro.product.cpu.abilist64=* && property:sys.bootreceiver.enable=1
+     # Set up a tracing instance for system_server to monitor error_report_end events.
+     # These are sent by kernel tools like KASAN and KFENCE when a memory corruption
+     # is detected. This is only needed for 64-bit systems.

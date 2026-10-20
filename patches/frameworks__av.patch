@@ -400,3 +400,76 @@ index a7e043bc5f..0e927f9553 100644
  
  } // namespace utils
  } // namespace V1_2
+diff --git a/media/libaudiopermission/AppOpsSession.cpp b/media/libaudiopermission/AppOpsSession.cpp
+index d83c9b88b4..1e7bc59c86 100644
+--- a/media/libaudiopermission/AppOpsSession.cpp
++++ b/media/libaudiopermission/AppOpsSession.cpp
+@@ -21,6 +21,8 @@
+ #include <binder/AppOpsManager.h>
+ #include <binder/PermissionController.h>
+ 
++#include <optional>
++
+ using ::android::content::AttributionSourceState;
+ 
+ namespace android::media::permission {
+@@ -60,9 +62,9 @@ bool DefaultAppOpsFacade::startAccess(const ValidatedAttributionSourceState& att
+         /*uid=*/ attr.uid,
+         /*callingPackage=*/ String16{attr.packageName.value_or("").c_str()},
+         /*startIfModeDefault=*/ false,
+-        /*attributionTag=*/ attr.attributionTag.has_value() ?
+-            String16{attr.attributionTag.value().c_str()}
+-                                            : String16{},
++        /*attributionTag=*/ attr.attributionTag.has_value()
++                ? std::make_optional(String16{attr.attributionTag.value().c_str()})
++                : std::nullopt,
+         /*message=*/ String16{"AppOpsSession start"})
+     == AppOpsManager::MODE_ALLOWED;
+ }
+@@ -75,9 +77,9 @@ void DefaultAppOpsFacade::stopAccess(const ValidatedAttributionSourceState& attr
+         /*op=*/ ops.attributedOp,
+         /*uid=*/ attr.uid,
+         /*callingPackage=*/ String16{attr.packageName.value_or("").c_str()},
+-        /*attributionTag=*/ attr.attributionTag.has_value() ?
+-                                            String16{attr.attributionTag.value().c_str()}
+-                                            : String16{});
++        /*attributionTag=*/ attr.attributionTag.has_value()
++                ? std::make_optional(String16{attr.attributionTag.value().c_str()})
++                : std::nullopt);
+ }
+ 
+ bool DefaultAppOpsFacade::checkAccess(const ValidatedAttributionSourceState& attr, Ops ops) {
+diff --git a/media/utils/ServiceUtilities.cpp b/media/utils/ServiceUtilities.cpp
+index 8966544108..812ffb907b 100644
+--- a/media/utils/ServiceUtilities.cpp
++++ b/media/utils/ServiceUtilities.cpp
+@@ -32,6 +32,7 @@
+ #include <algorithm>
+ #include <iterator>
+ #include <mutex>
++#include <optional>
+ #include <pwd.h>
+ #include <thread>
+ 
+@@ -212,8 +213,8 @@ static int checkRecordingInternal(const AttributionSourceState &attributionSourc
+                                       attributionSource.uid),
+                 false,
+                 attributionSource.attributionTag.has_value()
+-                        ? String16{attributionSource.attributionTag.value().c_str()}
+-                        : String16{},
++                        ? std::make_optional(String16{attributionSource.attributionTag.value().c_str()})
++                        : std::nullopt,
+                 msg);
+     }
+ }
+@@ -270,8 +271,8 @@ void finishRecording(const AttributionSourceState &attributionSource, uint32_t v
+                             pc, String16{attributionSource.packageName.value_or("").c_str()},
+                             attributionSource.uid),
+                     attributionSource.attributionTag.has_value()
+-                            ? String16{attributionSource.attributionTag.value().c_str()}
+-                            : String16{});
++                            ? std::make_optional(String16{attributionSource.attributionTag.value().c_str()})
++                            : std::nullopt);
+     }
+ }
+ 
