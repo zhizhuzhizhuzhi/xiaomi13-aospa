@@ -1039,6 +1039,68 @@ index fee2b4ffb4df..1d944f5998c8 100644
                          mock(CoroutineScope.class),
                          UserActivityNotifierKosmosKt.getUserActivityNotifier(mKosmos),
                          mWakefulnessLifecycle,
+diff --git a/packages/SystemUI/multivalentTests/src/com/android/systemui/keyguard/KeyguardUnlockAnimationControllerTest.kt b/packages/SystemUI/multivalentTests/src/com/android/systemui/keyguard/KeyguardUnlockAnimationControllerTest.kt
+index dbd5caaac09d..8f1a6b06acdf 100644
+--- a/packages/SystemUI/multivalentTests/src/com/android/systemui/keyguard/KeyguardUnlockAnimationControllerTest.kt
++++ b/packages/SystemUI/multivalentTests/src/com/android/systemui/keyguard/KeyguardUnlockAnimationControllerTest.kt
+@@ -139,42 +139,26 @@ class KeyguardUnlockAnimationControllerTest : SysuiTestCase() {
+         keyguardUnlockAnimationController.notifyFinishedKeyguardExitAnimation(true)
+     }
+ 
+-    /**
+-     * If we're wake and unlocking, we are animating from the black/AOD screen to the app/launcher
+-     * underneath. The LightRevealScrim will animate circularly from the fingerprint reader,
+-     * revealing the app/launcher below. In this case, we want to make sure we are not animating the
+-     * surface, or the user will see the wallpaper briefly as the app animates in.
+-     */
++    /** AOD unlock uses the same window entry animator and completes with it. */
+     @Test
+     @DisableFlags(Flags.FLAG_KEYGUARD_WM_STATE_REFACTOR)
+-    fun noSurfaceAnimation_ifWakeAndUnlocking() {
++    fun surfaceAnimation_ifWakeAndUnlocking() {
+         whenever(biometricUnlockController.isWakeAndUnlock).thenReturn(true)
+-
+         keyguardUnlockAnimationController.notifyStartSurfaceBehindRemoteAnimation(
+-            animatedSurfaces,
+-            arrayOf(),
+-            arrayOf(),
+-            0 /* startTime */,
+-            false, /* requestedShowSurfaceBehindKeyguard */
++            animatedSurfaces, arrayOf(), arrayOf(), 0, false,
+         )
+-
+-        val captorSb = ArgThatCaptor<SyncRtSurfaceTransactionApplier.SurfaceParams>()
+-        verify(surfaceTransactionApplier, times(1))
+-            .scheduleApply(captorSb.capture { sp -> sp.surface == surfaceControl1 })
+-
+-        val params = captorSb.getLastValue()
+-
+-        // We expect that we've instantly set the surface behind to alpha = 1f, and have no
+-        // transforms (translate, scale) on its matrix.
+-        assertEquals(1f, params.alpha)
+-        assertTrue(params.matrix.isIdentity)
+-
+-        // Also expect we've immediately asked the keyguard view mediator to finish the remote
+-        // animation.
+-        verify(keyguardViewMediator, times(1))
+-            .exitKeyguardAndFinishSurfaceBehindRemoteAnimation(false /* cancelled */)
+-
+-        verifyNoMoreInteractions(surfaceTransactionApplier)
++        val captor = ArgThatCaptor<SyncRtSurfaceTransactionApplier.SurfaceParams>()
++        verify(surfaceTransactionApplier).scheduleApply(
++            captor.capture { params -> params.surface == surfaceControl1 }
++        )
++        // Do not expose an unanimated desktop/app during the animator's start delay.
++        assertEquals(0f, captor.getLastValue().alpha)
++        assertFalse(captor.getLastValue().matrix.isIdentity)
++        assertTrue(keyguardUnlockAnimationController.surfaceBehindEntryAnimator.isStarted)
++        verify(keyguardViewMediator, never())
++            .exitKeyguardAndFinishSurfaceBehindRemoteAnimation(false)
++        keyguardUnlockAnimationController.surfaceBehindEntryAnimator.end()
++        verify(keyguardViewMediator).exitKeyguardAndFinishSurfaceBehindRemoteAnimation(false)
+     }
+ 
+     /** If we are not wake and unlocking, we expect the unlock animation to play normally. */
 diff --git a/packages/SystemUI/multivalentTests/src/com/android/systemui/keyguard/domain/interactor/FromGoneTransitionInteractorTest.kt b/packages/SystemUI/multivalentTests/src/com/android/systemui/keyguard/domain/interactor/FromGoneTransitionInteractorTest.kt
 index 1132d523e2e0..74bad2823dda 100644
 --- a/packages/SystemUI/multivalentTests/src/com/android/systemui/keyguard/domain/interactor/FromGoneTransitionInteractorTest.kt
@@ -1740,6 +1802,47 @@ index 8d1c39add7a2..0d6bdfabb115 100644
                      mLeashMap.clear();
                      finishCallback = mFinishCallbacks.remove(transition);
                  }
+diff --git a/packages/SystemUI/src/com/android/systemui/keyguard/KeyguardUnlockAnimationController.kt b/packages/SystemUI/src/com/android/systemui/keyguard/KeyguardUnlockAnimationController.kt
+index 2fa697fa812b..b63c73ed0763 100644
+--- a/packages/SystemUI/src/com/android/systemui/keyguard/KeyguardUnlockAnimationController.kt
++++ b/packages/SystemUI/src/com/android/systemui/keyguard/KeyguardUnlockAnimationController.kt
+@@ -456,8 +456,7 @@ constructor(
+             // If the launcher is underneath, but we're about to launch an activity, don't do
+             // the animations since they won't be visible.
+             !notificationShadeWindowController.isLaunchingActivity &&
+-            launcherUnlockController != null &&
+-            !biometricUnlockControllerLazy.get().isWakeAndUnlock
++            launcherUnlockController != null
+     }
+ 
+     /**
+@@ -700,22 +699,14 @@ constructor(
+                 unlockToLauncherWithInWindowAnimations()
+             }
+ 
+-            // If we're waking and unlocking to a non-Launcher app surface (or Launcher in-window
+-            // animations are not available), show it immediately and end the remote animation. The
+-            // circular light reveal will show the app surface, and it looks weird if it's moving
+-            // around behind that.
+-            biometricUnlockControllerLazy.get().isWakeAndUnlock -> {
+-                Log.d(TAG, "playCannedUnlockAnimation, isWakeAndUnlock")
+-                setSurfaceBehindAppearAmount(1f)
+-                keyguardViewMediator
+-                    .get()
+-                    .exitKeyguardAndFinishSurfaceBehindRemoteAnimation(false /* cancelled */)
+-            }
+-
+             // Otherwise, we're doing a normal full-window unlock. Start this animator, which will
+             // scale/translate the window underneath the lockscreen.
+             else -> {
+                 Log.d(TAG, "playCannedUnlockAnimation, surfaceBehindEntryAnimator#start")
++                // AOD unlock has no opaque lockscreen covering the first frame.
++                // Initialize before the existing entry-animation start delay.
++                surfaceBehindAlpha = 0f
++                setSurfaceBehindAppearAmount(0f)
+                 surfaceBehindEntryAnimator.start()
+             }
+         }
 diff --git a/packages/SystemUI/src/com/android/systemui/keyguard/domain/interactor/FromGoneTransitionInteractor.kt b/packages/SystemUI/src/com/android/systemui/keyguard/domain/interactor/FromGoneTransitionInteractor.kt
 index 8f4d009f3383..5e2321be8575 100644
 --- a/packages/SystemUI/src/com/android/systemui/keyguard/domain/interactor/FromGoneTransitionInteractor.kt
@@ -1753,6 +1856,52 @@ index 8f4d009f3383..5e2321be8575 100644
              startTransitionTo(KeyguardState.LOCKSCREEN, ownerReason = "showKeyguard()")
          }
      }
+diff --git a/packages/SystemUI/src/com/android/systemui/keyguard/domain/interactor/LightRevealScrimInteractor.kt b/packages/SystemUI/src/com/android/systemui/keyguard/domain/interactor/LightRevealScrimInteractor.kt
+index 1e70d0bd28f0..310c7888886b 100644
+--- a/packages/SystemUI/src/com/android/systemui/keyguard/domain/interactor/LightRevealScrimInteractor.kt
++++ b/packages/SystemUI/src/com/android/systemui/keyguard/domain/interactor/LightRevealScrimInteractor.kt
+@@ -22,7 +22,10 @@ import com.android.systemui.dagger.qualifiers.Application
+ import com.android.systemui.dagger.qualifiers.Background
+ import com.android.systemui.keyguard.data.repository.DEFAULT_REVEAL_DURATION
+ import com.android.systemui.keyguard.data.repository.MINMODE_REVEAL_DURATION
++import com.android.systemui.keyguard.data.repository.KeyguardRepository
+ import com.android.systemui.keyguard.data.repository.LightRevealScrimRepository
++import com.android.systemui.keyguard.shared.model.BiometricUnlockMode
++import com.android.systemui.keyguard.shared.model.BiometricUnlockSource
+ import com.android.systemui.keyguard.shared.model.Edge
+ import com.android.systemui.keyguard.shared.model.KeyguardState
+ import com.android.systemui.minmode.MinModeManager
+@@ -51,6 +54,7 @@ class LightRevealScrimInteractor
+ constructor(
+     private val transitionInteractor: KeyguardTransitionInteractor,
+     private val repository: LightRevealScrimRepository,
++    private val keyguardRepository: KeyguardRepository,
+     @Application private val scope: CoroutineScope,
+     private val scrimLogger: ScrimLogger,
+     private val powerInteractor: Lazy<PowerInteractor>,
+@@ -67,8 +71,21 @@ constructor(
+         scope.launch {
+             transitionInteractor.startedKeyguardTransitionStep.collect {
+                 scrimLogger.d(TAG, "listenForStartedKeyguardTransitionStep", it)
++                val biometricUnlockState = keyguardRepository.biometricUnlockState.value
++                val fingerprintWakeAndUnlock =
++                    it.to == KeyguardState.GONE &&
++                        biometricUnlockState.source == BiometricUnlockSource.FINGERPRINT_SENSOR &&
++                        biometricUnlockState.mode in setOf(
++                            BiometricUnlockMode.WAKE_AND_DISMISS,
++                            BiometricUnlockMode.WAKE_AND_DISMISS_PULSING,
++                            BiometricUnlockMode.WAKE_AND_DISMISS_FROM_DREAM,
++                        )
+                 val animationDuration =
+-                    if (it.to == KeyguardState.AOD && isLastSleepDueToFold) {
++                    if (fingerprintWakeAndUnlock) {
++                        // The window entry animator reveals the app; do not cover it with a
++                        // second, circular reveal from the fingerprint sensor.
++                        0L
++                    } else if (it.to == KeyguardState.AOD && isLastSleepDueToFold) {
+                         // Do not animate the scrim when folding as we want to cover the screen
+                         // with the scrim immediately while displays are switching.
+                         // This is needed to play the fold to AOD animation which starts with
 diff --git a/packages/SystemUI/src/com/android/systemui/statusbar/notification/stack/MagneticNotificationRowManagerImpl.kt b/packages/SystemUI/src/com/android/systemui/statusbar/notification/stack/MagneticNotificationRowManagerImpl.kt
 index b9d534949b00..966f386c271e 100644
 --- a/packages/SystemUI/src/com/android/systemui/statusbar/notification/stack/MagneticNotificationRowManagerImpl.kt
@@ -2523,6 +2672,26 @@ index bf70963161bd..f48c1c152001 100644
  
      fun setVendorExtension(userId: Int, extension: AuthenticateReason.Vendor) {
          userIdToExtension[userId] = extension
+diff --git a/packages/SystemUI/tests/utils/src/com/android/systemui/keyguard/domain/interactor/LightRevealScrimInteractorKosmos.kt b/packages/SystemUI/tests/utils/src/com/android/systemui/keyguard/domain/interactor/LightRevealScrimInteractorKosmos.kt
+index aa84031204ae..0bf573f45f37 100644
+--- a/packages/SystemUI/tests/utils/src/com/android/systemui/keyguard/domain/interactor/LightRevealScrimInteractorKosmos.kt
++++ b/packages/SystemUI/tests/utils/src/com/android/systemui/keyguard/domain/interactor/LightRevealScrimInteractorKosmos.kt
+@@ -18,6 +18,7 @@ package com.android.systemui.keyguard.domain.interactor
+ 
+ import com.android.keyguard.logging.scrimLogger
+ import com.android.systemui.keyguard.data.lightRevealScrimRepository
++import com.android.systemui.keyguard.data.repository.keyguardRepository
+ import com.android.systemui.kosmos.Kosmos
+ import com.android.systemui.kosmos.applicationCoroutineScope
+ import com.android.systemui.minmode.fakeMinModeManager
+@@ -30,6 +31,7 @@ val Kosmos.lightRevealScrimInteractor by
+         LightRevealScrimInteractor(
+             keyguardTransitionInteractor,
+             lightRevealScrimRepository,
++            keyguardRepository,
+             applicationCoroutineScope,
+             scrimLogger,
+             { powerInteractor },
 diff --git a/packages/SystemUI/tests/utils/src/com/android/systemui/statusbar/pipeline/mobile/data/repository/FakeMobileConnectionRepository.kt b/packages/SystemUI/tests/utils/src/com/android/systemui/statusbar/pipeline/mobile/data/repository/FakeMobileConnectionRepository.kt
 index 51e5abb2a776..847cee54efaf 100644
 --- a/packages/SystemUI/tests/utils/src/com/android/systemui/statusbar/pipeline/mobile/data/repository/FakeMobileConnectionRepository.kt
