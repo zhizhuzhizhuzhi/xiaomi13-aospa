@@ -1,17 +1,33 @@
 {
-  "sha256": "4843b8cf653bc93a4f288d3db83bab3ea976beb4d95abc3749318db26db6a0c3",
-  "url": "https://github.com/zhizhuzhizhuzhi/xiaomi13-aospa/releases/download/build-deps-20261016/fuxi-build-dependencies-20261016.zip",
-  "bytes": 131576310,
-  "file": "fuxi-build-dependencies-20261016.zip",
+  "file": "fuxi-build-dependencies-20261020.zip",
+  "url": "https://github.com/zhizhuzhizhuzhi/xiaomi13-aospa/releases/download/build-deps-20261020/fuxi-build-dependencies-20261020.zip",
+  "bytes": 128973895,
+  "sha256": "adf5ed948c60429a0dc890ae1fd6a8a3d31634d7f610671080bf1fdabe8151b4",
   "soter": {
     "file": "SoterService.apk",
-    "url": "https://raw.githubusercontent.com/TheMuppets/proprietary_vendor_xiaomi_sm8550-common/0c9140245d91660b96dfd80667e7b018d73c2850/proprietary/vendor/app/SoterService/SoterService.apk",
     "bytes": 33182,
     "sha256": "b1f5a2a692822aa9e75b67a5aab48c55e3082259641e9b0193e0fe70e81d1cfc",
-    "sha1": "5cef7d2bc300af3fc2d7e72c6b02c54e245eb637",
     "source": "diting OS2.0.3.0.VLFMIXM"
   },
   "extras": [
+    {
+      "path": "vendor/qcom/common/system/telephony/proprietary/system_ext/priv-app/QtiTelephony/QtiTelephony.apk",
+      "bytes": 2160689,
+      "sha256": "0056e7189679de2d4ee926f276db36ebffe7e55d7a2e70cf93acedd90785cad5",
+      "mode": 436
+    },
+    {
+      "path": "vendor/qcom/common/system/telephony/proprietary/system_ext/priv-app/ims/ims.apk",
+      "bytes": 927694,
+      "sha256": "201f292d6717029232676b2d7ba467bb4ca8eb4babd24d45c16818550aa580d5",
+      "mode": 436
+    },
+    {
+      "path": "vendor/qcom/common/system/wfd/proprietary/system_ext/priv-app/WfdService/WfdService.apk",
+      "bytes": 134383,
+      "sha256": "279173b2ad6aa765f1bebb9bc69fae4b6720cde0bf271388e1b28d0bb09ffdc8",
+      "mode": 436
+    },
     {
       "path": "vendor/qcom/common/vendor/perf/proprietary/vendor/bin/vendor.qti.qspmhal-service",
       "bytes": 52248,

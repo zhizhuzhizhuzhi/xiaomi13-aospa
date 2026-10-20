@@ -22,7 +22,7 @@ if not archive.exists():
 if archive.stat().st_size!=meta['bytes'] or digest(archive)!=meta['sha256']:
     raise SystemExit('Dependency archive differs from pinned release')
 inputs=cache/'inputs';inputs.mkdir(exist_ok=True)
-expected={'MiuiCamera.apk','libgui-xiaomi.so','FuxiSystemUI.apk','DEPENDENCIES.json'}
+expected={'MiuiCamera.apk','libgui-xiaomi.so','FuxiSystemUI.apk','SoterService.apk','DEPENDENCIES.json'}
 expected.update('extras/'+r['path'] for r in meta.get('extras',[]))
 with zipfile.ZipFile(archive) as z:
     if set(z.namelist())!=expected or len(z.namelist())!=len(expected) or z.testzip() is not None:
@@ -33,14 +33,8 @@ with zipfile.ZipFile(archive) as z:
         with z.open(name) as source,destination.open('wb') as output:
             shutil.copyfileobj(source,output,8*1024*1024)
 soter=meta['soter'];soter_file=inputs/soter['file']
-if not soter_file.exists() or digest(soter_file)!=soter['sha256']:
-    part=soter_file.with_suffix('.apk.part')
-    request=urllib.request.Request(soter['url'],headers={'User-Agent':'xiaomi13-aospa-build'})
-    with urllib.request.urlopen(request,timeout=60) as response,part.open('wb') as f:
-        shutil.copyfileobj(response,f)
-    if part.stat().st_size!=soter['bytes'] or digest(part)!=soter['sha256']:
-        raise SystemExit('SoterService dependency SHA256 mismatch')
-    part.replace(soter_file)
+if soter_file.stat().st_size!=soter['bytes'] or digest(soter_file)!=soter['sha256']:
+    raise SystemExit('SoterService dependency SHA256 mismatch')
 subprocess.run([sys.executable,str(kit/'scripts/prepare-private-blobs.py'),str(root),str(inputs)],check=True)
 for record in meta.get('extras',[]):
     source=inputs/'extras'/record['path'];destination=root/record['path']
