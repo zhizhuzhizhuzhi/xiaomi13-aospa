@@ -1,5 +1,25 @@
 [
   {
+    "path": "build/make",
+    "revision": "a4e069faf2b5c4ed21689acac0bc5cae79c1ba35",
+    "patch": "patches/build__make.patch",
+    "files": [
+      "core/packaging/flags.mk",
+      "tools/aconfig/aconfig/src/commands.rs"
+    ],
+    "overlay": []
+  },
+  {
+    "path": "build/soong",
+    "revision": "47d8cc49751c2a7cea4bb00765269c0bbd8ca129",
+    "patch": "patches/build__soong.patch",
+    "files": [
+      "filesystem/aconfig_files.go",
+      "java/java.go"
+    ],
+    "overlay": []
+  },
+  {
     "path": "device/qcom/common",
     "revision": "df812783f7f38702769c2b32f927c6ea1ea9d78a",
     "patch": "patches/device__qcom__common.patch",

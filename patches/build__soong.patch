@@ -1,0 +1,27 @@
+diff --git a/filesystem/aconfig_files.go b/filesystem/aconfig_files.go
+index 0f00290..5b8486e 100644
+--- a/filesystem/aconfig_files.go
++++ b/filesystem/aconfig_files.go
+@@ -78,7 +78,8 @@ func (f *filesystem) buildAconfigFlagsFiles(
+ 			Text(" dump-cache --dedup --format protobuf --out").
+ 			Output(aconfigFlagsPb).
+ 			Textf("--filter container:%s+state:ENABLED", container).
+-			Textf("--filter container:%s+permission:READ_WRITE", container)
++			Textf("--filter container:%s+permission:READ_WRITE", container).
++			Textf("--filter container:%s+is_exported:true", container)
+ 		for _, cache := range caches {
+ 			cmd.FlagWithInput("--cache ", cache)
+ 		}
+diff --git a/java/java.go b/java/java.go
+index f59fbb9..56d4184 100644
+--- a/java/java.go
++++ b/java/java.go
+@@ -4158,7 +4158,7 @@ func getCombinedAconfigProtoFile(ctx android.ModuleContext) android.Path {
+ 			Flag("--dedup").
+ 			Flag("--format").
+ 			Text("protobuf").
+-			FlagForEachArg("--filter ", []string{"state:ENABLED", "permission:READ_WRITE"}).
++			FlagForEachArg("--filter ", []string{"state:ENABLED", "permission:READ_WRITE", "is_exported:true"}).
+ 			FlagForEachInput("--cache ", aconfigProtoFiles).
+ 			FlagWithOutput("--out ", combinedAconfigProtoFile)
+ 
