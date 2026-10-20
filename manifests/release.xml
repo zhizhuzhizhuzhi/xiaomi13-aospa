@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <manifest>
   <remote name="aosp" fetch="https://mirrors.tuna.tsinghua.edu.cn/git/AOSP" review="https://android-review.googlesource.com/" revision="refs/tags/android-17.0.0_r1"/>
-  <remote name="aospa" fetch="https://github.com" review="gerrit-ssh.aospa.co" revision="calcite"/>
+  <remote name="aospa" fetch=".." review="gerrit-ssh.aospa.co" revision="calcite"/>
   <remote name="bitbucket" fetch="https://bitbucket.org" revision="calcite"/>
   <remote name="blobs" fetch="https://github.com/ThankYouMario" revision="calcite"/>
   <remote name="blobs-gitlab" fetch="https://gitlab.com/ThankYouMario" revision="calcite"/>
   <remote name="clo-la" fetch="https://git.codelinaro.org/clo/la"/>
   <remote name="github" fetch="https://github.com"/>
-  <remote name="github-ssh" fetch="https://github.com"/>
+  <remote name="github-ssh" fetch="ssh://git@github.com"/>
   <remote name="gitlab" fetch="https://gitlab.com"/>
   
   <default remote="clo-la"/>
