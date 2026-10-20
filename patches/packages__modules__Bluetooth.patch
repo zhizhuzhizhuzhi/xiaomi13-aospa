@@ -1,0 +1,405 @@
+diff --git a/android/app/aidl/Android.bp b/android/app/aidl/Android.bp
+index 6ed17b4..c2fc724 100644
+--- a/android/app/aidl/Android.bp
++++ b/android/app/aidl/Android.bp
+@@ -15,6 +15,10 @@ filegroup {
+         "android/bluetooth/IAdapter.aidl",
+         "android/bluetooth/IAudioInputCallback.aidl",
+         "android/bluetooth/IBluetooth.aidl",
++        "android/bluetooth/IBluetoothActiveDevicesCallback.aidl",
++        "android/bluetooth/IBluetoothLeAudioBroadcastSupportCallback.aidl",
++        "android/bluetooth/IBluetoothBondedDevicesCallback.aidl",
++        "android/bluetooth/BluetoothBondedDeviceInfo.aidl",
+         "android/bluetooth/IBluetoothA2dp.aidl",
+         "android/bluetooth/IBluetoothA2dpSink.aidl",
+         "android/bluetooth/IBluetoothActivityEnergyInfoListener.aidl",
+diff --git a/android/app/aidl/android/bluetooth/IBluetooth.aidl b/android/app/aidl/android/bluetooth/IBluetooth.aidl
+index d9eb63d..a6930ca 100644
+--- a/android/app/aidl/android/bluetooth/IBluetooth.aidl
++++ b/android/app/aidl/android/bluetooth/IBluetooth.aidl
+@@ -58,6 +58,9 @@ import android.bluetooth.IBluetoothPreferredAudioProfilesCallback;
+ import android.bluetooth.IBluetoothQualityReportReadyCallback;
+ import android.bluetooth.IBluetoothCallback;
+ import android.bluetooth.IBluetoothProfileCallback;
++import android.bluetooth.IBluetoothActiveDevicesCallback;
++import android.bluetooth.IBluetoothLeAudioBroadcastSupportCallback;
++import android.bluetooth.IBluetoothBondedDevicesCallback;
+ import android.bluetooth.IBluetoothConnectionCallback;
+ import android.bluetooth.IBluetoothMetadataListener;
+ import android.bluetooth.IBluetoothOobDataCallback;
+@@ -390,4 +393,16 @@ interface IBluetooth {
+ 
+     @JavaPassthrough(annotation="@android.annotation.RequiresPermission(android.Manifest.permission.BLUETOOTH_CONNECT)")
+     BondStatus.InnerParcel getBondStatus(in BluetoothDevice device, in AttributionSource source, in int transport);
++    // Appended to preserve transaction IDs of the existing synchronous API.
++    @JavaPassthrough(annotation="@android.annotation.RequiresPermission(allOf={android.Manifest.permission.BLUETOOTH_CONNECT,android.Manifest.permission.BLUETOOTH_PRIVILEGED})")
++    oneway void getActiveDevicesAsync(in int profile, in AttributionSource attributionSource,
++            in IBluetoothActiveDevicesCallback callback);
++
++    @JavaPassthrough(annotation="@android.annotation.RequiresNoPermission")
++    oneway void getLeAudioBroadcastSupportAsync(
++            in IBluetoothLeAudioBroadcastSupportCallback callback);
++
++    @JavaPassthrough(annotation="@android.annotation.RequiresPermission(allOf={android.Manifest.permission.BLUETOOTH_CONNECT, android.Manifest.permission.BLUETOOTH_PRIVILEGED})")
++    oneway void getBondedDeviceInfoAsync(in AttributionSource attributionSource,
++            in IBluetoothBondedDevicesCallback callback);
+ }
+diff --git a/android/app/src/com/android/bluetooth/btservice/AdapterServiceBinder.java b/android/app/src/com/android/bluetooth/btservice/AdapterServiceBinder.java
+index 7aa098a..a0fd2fa 100644
+--- a/android/app/src/com/android/bluetooth/btservice/AdapterServiceBinder.java
++++ b/android/app/src/com/android/bluetooth/btservice/AdapterServiceBinder.java
+@@ -47,6 +47,9 @@ import android.bluetooth.BluetoothAdapter;
+ import android.bluetooth.BluetoothAdapter.ActiveDeviceProfile;
+ import android.bluetooth.BluetoothAdapter.ActiveDeviceUse;
+ import android.bluetooth.BluetoothDevice;
++import android.bluetooth.BluetoothBondedDeviceInfo;
++import android.bluetooth.BluetoothHearingAid;
++import android.bluetooth.BluetoothLeAudio;
+ import android.bluetooth.BluetoothDevice.BluetoothAddress;
+ import android.bluetooth.BluetoothProfile;
+ import android.bluetooth.BluetoothProtoEnums;
+@@ -57,6 +60,9 @@ import android.bluetooth.EncryptionStatus;
+ import android.bluetooth.GattOffloadCapabilities;
+ import android.bluetooth.IBluetooth;
+ import android.bluetooth.IBluetoothActivityEnergyInfoListener;
++import android.bluetooth.IBluetoothActiveDevicesCallback;
++import android.bluetooth.IBluetoothLeAudioBroadcastSupportCallback;
++import android.bluetooth.IBluetoothBondedDevicesCallback;
+ import android.bluetooth.IBluetoothConnectionCallback;
+ import android.bluetooth.IBluetoothHciVendorSpecificCallback;
+ import android.bluetooth.IBluetoothMetadataListener;
+@@ -91,6 +97,7 @@ import java.io.FileDescriptor;
+ import java.io.FileOutputStream;
+ import java.io.PrintWriter;
+ import java.util.Arrays;
++import java.util.ArrayList;
+ import java.util.Collections;
+ import java.util.List;
+ import java.util.Optional;
+@@ -335,6 +342,50 @@ class AdapterServiceBinder extends IBluetooth.Stub {
+         return service.getMostRecentlyConnectedDevices();
+     }
+ 
++    @Override
++    public void getBondedDeviceInfoAsync(AttributionSource source,
++            IBluetoothBondedDevicesCallback callback) throws RemoteException {
++        requireNonNull(callback);
++        // Alias delivery requires the active-user check; profile group IDs are privileged.
++        var service = getServiceAndEnforceCallerUserAndConnectAllowPcc(
++                source, "getBondedDeviceInfoAsync");
++        if (service == null) {
++            callback.onResult(Collections.emptyList());
++            return;
++        }
++        service.enforceCallingOrSelfPermission(BLUETOOTH_PRIVILEGED, null);
++        var a2dp = service.getA2dpService();
++        var hearingAid = service.getHearingAidService();
++        var leAudio = service.getLeAudioService();
++        List<BluetoothDevice> a2dpDevices = a2dp.isPresent()
++                ? a2dp.get().getConnectedDevices() : Collections.emptyList();
++        List<BluetoothDevice> hearingAidDevices = hearingAid.isPresent()
++                ? hearingAid.get().getConnectedDevices() : Collections.emptyList();
++        List<BluetoothDevice> leAudioDevices = leAudio.isPresent()
++                ? leAudio.get().getConnectedDevices() : Collections.emptyList();
++        List<BluetoothBondedDeviceInfo> result = new ArrayList<>();
++        for (BluetoothDevice device : service.getBondedDevices()) {
++            List<Integer> profiles = new ArrayList<>();
++            if (a2dpDevices.contains(device)) profiles.add(BluetoothProfile.A2DP);
++            boolean hasHearingAid = hearingAidDevices.contains(device);
++            boolean hasLeAudio = leAudioDevices.contains(device);
++            if (hasHearingAid) profiles.add(BluetoothProfile.HEARING_AID);
++            if (hasLeAudio) profiles.add(BluetoothProfile.LE_AUDIO);
++            DeviceProperties properties = service.getRemoteDevices().getDeviceProperties(device);
++            String alias = properties == null ? null : properties.getAlias();
++            // Match BluetoothDevice.getAlias(): normalize control characters for display.
++            if (alias != null) alias = alias.replace('\t', ' ').replace('\n', ' ').replace('\r', ' ');
++            result.add(new BluetoothBondedDeviceInfo(device,
++                    alias, service.isConnected(device),
++                    profiles.stream().mapToInt(Integer::intValue).toArray(),
++                    hasHearingAid ? hearingAid.get().getHiSyncId(device)
++                            : BluetoothHearingAid.HI_SYNC_ID_INVALID,
++                    hasLeAudio ? leAudio.get().getGroupId(device)
++                            : BluetoothLeAudio.GROUP_ID_INVALID));
++        }
++        callback.onResult(List.copyOf(result));
++    }
++
+     @Override
+     public List<BluetoothDevice> getBondedDevices(AttributionSource source) {
+         // don't check caller, may be called from system UI
+@@ -639,6 +690,15 @@ class AdapterServiceBinder extends IBluetooth.Stub {
+         return service.setActiveDevice(device, profiles);
+     }
+ 
++    @Override
++    @RequiresPermission(allOf = {BLUETOOTH_CONNECT, BLUETOOTH_PRIVILEGED})
++    public void getActiveDevicesAsync(int profile, AttributionSource source,
++            IBluetoothActiveDevicesCallback callback) throws RemoteException {
++        requireNonNull(callback);
++        // Keep the original caller-user, CONNECT and PRIVILEGED permission checks.
++        callback.onResult(getActiveDevices(profile, source));
++    }
++
+     @Override
+     public List<BluetoothDevice> getActiveDevices(
+             @ActiveDeviceProfile int profile, AttributionSource source) {
+@@ -1340,6 +1400,17 @@ class AdapterServiceBinder extends IBluetooth.Stub {
+         return Config.isProfileSupported(BluetoothProfile.LE_AUDIO_BROADCAST);
+     }
+ 
++    @Override
++    public void getLeAudioBroadcastSupportAsync(
++            IBluetoothLeAudioBroadcastSupportCallback callback) throws RemoteException {
++        requireNonNull(callback);
++        // Use the same authoritative profile configuration as the existing capability APIs.
++        callback.onResult(isLeAudioBroadcastAssistantSupported()
++                && isLeAudioBroadcastSourceSupported()
++                ? BluetoothStatusCodes.FEATURE_SUPPORTED
++                : BluetoothStatusCodes.FEATURE_NOT_SUPPORTED);
++    }
++
+     @Override
+     public boolean isLeAudioBroadcastAssistantSupported() {
+         return Config.isProfileSupported(BluetoothProfile.LE_AUDIO_BROADCAST_ASSISTANT);
+diff --git a/flags/framework.aconfig b/flags/framework.aconfig
+index b16a132..4fa9de0 100644
+--- a/flags/framework.aconfig
++++ b/flags/framework.aconfig
+@@ -44,3 +44,36 @@ flag {
+     is_exported: true
+     bug: "470011145"
+ }
++
++flag {
++    name: "async_active_device_snapshot"
++    bug: "local:fuxi-bluetooth-active-device-query"
++    is_exported: true
++    namespace: "bluetooth"
++    description: "Query active Bluetooth audio devices using a one-way request and callback from system_server."
++    metadata {
++        purpose: PURPOSE_BUGFIX
++    }
++}
++
++flag {
++    name: "async_le_audio_broadcast_support"
++    bug: "local:fuxi-media-route-broadcast-capability-query"
++    is_exported: true
++    namespace: "bluetooth"
++    description: "Query LE Audio broadcast support using a one-way request and callback."
++    metadata {
++        purpose: PURPOSE_BUGFIX
++    }
++}
++
++flag {
++    name: "async_bonded_device_snapshot"
++    bug: "local:fuxi-media-route-bonded-device-query"
++    is_exported: true
++    namespace: "bluetooth"
++    description: "Query bonded Bluetooth devices using a one-way request and callback."
++    metadata {
++        purpose: PURPOSE_BUGFIX
++    }
++}
+diff --git a/framework/api/module-lib-current.txt b/framework/api/module-lib-current.txt
+index 33e34c6..4081cc6 100644
+--- a/framework/api/module-lib-current.txt
++++ b/framework/api/module-lib-current.txt
+@@ -2,6 +2,25 @@
+ // - style=java
+ package android.bluetooth {
+ 
++  public final class BluetoothAdapter {
++    method @FlaggedApi("com.android.bluetooth.flags.async_active_device_snapshot") @RequiresPermission(allOf={android.Manifest.permission.BLUETOOTH_CONNECT, android.Manifest.permission.BLUETOOTH_PRIVILEGED}) public void getActiveDevicesAsync(int, @NonNull java.util.concurrent.Executor, @NonNull java.util.function.Consumer<java.util.List<android.bluetooth.BluetoothDevice>>);
++    method @FlaggedApi("com.android.bluetooth.flags.async_bonded_device_snapshot") @RequiresPermission(allOf={android.Manifest.permission.BLUETOOTH_CONNECT, android.Manifest.permission.BLUETOOTH_PRIVILEGED}) public void getBondedDeviceInfoAsync(@NonNull java.util.concurrent.Executor, @NonNull java.util.function.Consumer<java.util.List<android.bluetooth.BluetoothBondedDeviceInfo>>);
++    method @FlaggedApi("com.android.bluetooth.flags.async_le_audio_broadcast_support") public void getLeAudioBroadcastSupportAsync(@NonNull java.util.concurrent.Executor, @NonNull java.util.function.Consumer<Integer>);
++  }
++
++  @FlaggedApi("com.android.bluetooth.flags.async_bonded_device_snapshot") public final class BluetoothBondedDeviceInfo implements android.os.Parcelable {
++    ctor public BluetoothBondedDeviceInfo(@NonNull android.bluetooth.BluetoothDevice, @Nullable String, boolean, @NonNull int[], long, int);
++    method public int describeContents();
++    method @Nullable public String getAlias();
++    method @NonNull public int[] getConnectedAudioProfiles();
++    method @NonNull public android.bluetooth.BluetoothDevice getDevice();
++    method public long getHearingAidSyncId();
++    method public int getLeAudioGroupId();
++    method public boolean isConnected();
++    method public void writeToParcel(@NonNull android.os.Parcel, int);
++    field @NonNull public static final android.os.Parcelable.Creator<android.bluetooth.BluetoothBondedDeviceInfo> CREATOR;
++  }
++
+   public class BluetoothFrameworkInitializer {
+     method public static void registerServiceWrappers();
+     method public static void setBinderCallsStatsInitializer(@NonNull java.util.function.Consumer<android.content.Context>);
+diff --git a/framework/java/android/bluetooth/BluetoothAdapter.java b/framework/java/android/bluetooth/BluetoothAdapter.java
+index a49f8f0..66bb589 100644
+--- a/framework/java/android/bluetooth/BluetoothAdapter.java
++++ b/framework/java/android/bluetooth/BluetoothAdapter.java
+@@ -2010,6 +2010,41 @@ public final class BluetoothAdapter {
+     @RequiresBluetoothConnectPermission
+     @RequiresPermission(allOf = {BLUETOOTH_CONNECT, BLUETOOTH_PRIVILEGED})
+     public @NonNull List<BluetoothDevice> getActiveDevices(@ActiveDeviceProfile int profile) {
++        checkActiveDeviceProfile(profile);
++        return callServiceIfEnabled(
++                s -> s.getActiveDevices(profile, mAttributionSource), Collections.emptyList());
++    }
++
++    /**
++     * Queries an active-device snapshot without a blocking Binder transaction.
++     *
++     * @param profile the audio profile to query
++     * @param executor the executor used to deliver the snapshot
++     * @param consumer receives the active-device snapshot
++     * @hide
++     */
++    @Hide
++    @SystemApi(client = SystemApi.Client.MODULE_LIBRARIES)
++    @FlaggedApi(Flags.FLAG_ASYNC_ACTIVE_DEVICE_SNAPSHOT)
++    @RequiresBluetoothConnectPermission
++    @RequiresPermission(allOf = {BLUETOOTH_CONNECT, BLUETOOTH_PRIVILEGED})
++    public void getActiveDevicesAsync(@ActiveDeviceProfile int profile,
++            @NonNull @CallbackExecutor Executor executor,
++            @NonNull Consumer<List<BluetoothDevice>> consumer) {
++        checkActiveDeviceProfile(profile);
++        requireNonNull(executor);
++        requireNonNull(consumer);
++        callServiceIfEnabled(service -> service.getActiveDevicesAsync(profile, mAttributionSource,
++                new IBluetoothActiveDevicesCallback.Stub() {
++                    @Override
++                    @RequiresNoPermission
++                    public void onResult(List<BluetoothDevice> devices) {
++                        executeFromBinder(executor, () -> consumer.accept(devices));
++                    }
++                }));
++    }
++
++    private static void checkActiveDeviceProfile(@ActiveDeviceProfile int profile) {
+         if (Flags.leaudioPeripheralFeature()) {
+             if (profile != BluetoothProfile.HEADSET
+                     && profile != BluetoothProfile.A2DP
+@@ -2039,8 +2074,6 @@ public final class BluetoothAdapter {
+                                 + "BluetoothProfile.LE_AUDIO");
+             }
+         }
+-        return callServiceIfEnabled(
+-                s -> s.getActiveDevices(profile, mAttributionSource), Collections.emptyList());
+     }
+ 
+     /**
+@@ -2218,6 +2251,41 @@ public final class BluetoothAdapter {
+             })
+     public @interface LeFeatureReturnValues {}
+ 
++    /**
++     * Queries whether LE Audio broadcast source and assistant are both supported.
++     *
++     * <p>The request and reply use one-way Binder transactions. A disabled adapter is reported as
++     * {@link BluetoothStatusCodes#ERROR_BLUETOOTH_NOT_ENABLED}, not as unsupported hardware.
++     * Callers must discard replies from an earlier adapter lifecycle.
++     *
++     * @param executor the executor used to deliver the result
++     * @param consumer receives the actual support status, or an adapter-disabled error
++     * @hide
++     */
++    @Hide
++    @SystemApi(client = SystemApi.Client.MODULE_LIBRARIES)
++    @FlaggedApi(Flags.FLAG_ASYNC_LE_AUDIO_BROADCAST_SUPPORT)
++    @RequiresNoPermission
++    public void getLeAudioBroadcastSupportAsync(
++            @NonNull @CallbackExecutor Executor executor, @NonNull Consumer<Integer> consumer) {
++        requireNonNull(executor);
++        requireNonNull(consumer);
++        if (!getLeAccess()) {
++            executor.execute(() -> consumer.accept(ERROR_BLUETOOTH_NOT_ENABLED));
++            return;
++        }
++        callServiceIfEnabled(service -> service.getLeAudioBroadcastSupportAsync(
++                new IBluetoothLeAudioBroadcastSupportCallback.Stub() {
++                    @Override
++                    @RequiresNoPermission
++                    public void onResult(int status) {
++                        executeFromBinder(executor, () -> consumer.accept(status));
++                    }
++                }));
++    }
++
++
++
+     /**
+      * Returns {@link BluetoothStatusCodes#FEATURE_SUPPORTED} if the LE audio feature is supported,
+      * {@link BluetoothStatusCodes#FEATURE_NOT_SUPPORTED} if the feature is not supported, or an
+@@ -2467,6 +2535,43 @@ public final class BluetoothAdapter {
+                         Collections.emptyList()));
+     }
+ 
++    /**
++     * Queries bonded devices with alias, ACL and connected audio-profile state in one callback.
++     *
++     * <p>An adapter that is not on reports an empty list. Callers must discard replies from an
++     * earlier consumer or adapter lifecycle. Alias and profile events require a new query.
++     *
++     * @param executor the executor used to deliver the snapshot
++     * @param consumer receives the non-null device information list
++     * @hide
++     */
++    @Hide
++    @SystemApi(client = SystemApi.Client.MODULE_LIBRARIES)
++    @FlaggedApi(Flags.FLAG_ASYNC_BONDED_DEVICE_SNAPSHOT)
++    @RequiresBluetoothConnectPermission
++    @RequiresPermission(allOf = {BLUETOOTH_CONNECT, BLUETOOTH_PRIVILEGED})
++    public void getBondedDeviceInfoAsync(@NonNull @CallbackExecutor Executor executor,
++            @NonNull Consumer<List<BluetoothBondedDeviceInfo>> consumer) {
++        requireNonNull(executor);
++        requireNonNull(consumer);
++        if (getState() != STATE_ON) {
++            executor.execute(() -> consumer.accept(Collections.emptyList()));
++            return;
++        }
++        callServiceIfEnabled(service -> service.getBondedDeviceInfoAsync(mAttributionSource,
++                new IBluetoothBondedDevicesCallback.Stub() {
++                    @Override
++                    @RequiresNoPermission
++                    public void onResult(List<BluetoothBondedDeviceInfo> devices) {
++                        List<BluetoothBondedDeviceInfo> snapshot = List.copyOf(devices);
++                        for (BluetoothBondedDeviceInfo info : snapshot) {
++                            Attributable.setAttributionSource(info.getDevice(), mAttributionSource);
++                        }
++                        executeFromBinder(executor, () -> consumer.accept(snapshot));
++                    }
++                }));
++    }
++
+     /**
+      * Gets the currently supported profiles by the adapter.
+      *
+diff --git a/service/src/ShellCommand.kt b/service/src/ShellCommand.kt
+index b2ceaeb..7689fe7 100644
+--- a/service/src/ShellCommand.kt
++++ b/service/src/ShellCommand.kt
+@@ -31,7 +31,7 @@ class ShellCommand(private val binder: ServerBinder, private val waitForState: (
+ 
+     private val source =
+         AttributionSource.Builder(AttributionSource.myAttributionSource())
+-            .setAttributionTag(TAG)
++            .setAttributionTag("BluetoothShellCommand")
+             .build()
+ 
+     data class Command(
+diff --git a/system/gd/os/linux_generic/files.cc b/system/gd/os/linux_generic/files.cc
+index 045c02c..4d7607b 100644
+--- a/system/gd/os/linux_generic/files.cc
++++ b/system/gd/os/linux_generic/files.cc
+@@ -220,7 +220,11 @@ std::optional<std::chrono::time_point<std::chrono::system_clock, std::chrono::na
+ FileCreatedTime(const std::string& path) {
+   struct stat file_info;
+   if (stat(path.c_str(), &file_info) != 0) {
+-    log::error("unable to read '{}' file metadata, error: {}", path, strerror(errno));
++    // The optional snooz snapshot is created on demand. Its cleanup timer can
++    // legitimately run before the first snapshot or after it was removed.
++    if (errno != ENOENT) {
++      log::error("unable to read '{}' file metadata, error: {}", path, strerror(errno));
++    }
+     return std::nullopt;
+   }
+   using namespace std::chrono;

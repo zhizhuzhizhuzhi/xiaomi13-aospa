@@ -1,7 +1,8 @@
 diff --git a/Android.bp b/Android.bp
+index fa80708..4c62de1 100644
 --- a/Android.bp
 +++ b/Android.bp
-@@ -6,3 +6,26 @@
+@@ -6,3 +6,40 @@
  
  soong_namespace {
  }
@@ -28,6 +29,20 @@ diff --git a/Android.bp b/Android.bp
 +    values: ["aconfig_values-fuxi_window_lifecycle"],
 +}
 +
++aconfig_values {
++    name: "aconfig_values-fuxi_bluetooth_async_snapshot",
++    package: "com.android.bluetooth.flags",
++    srcs: [
++        "build/release/aconfig/bluetooth_async_snapshot.textproto",
++        "build/release/aconfig/bluetooth_async_broadcast_support.textproto",
++        "build/release/aconfig/bluetooth_async_bonded_snapshot.textproto",
++    ],
++}
++
++aconfig_value_set {
++    name: "aconfig_value_set-fuxi_bluetooth_async_snapshot",
++    values: ["aconfig_values-fuxi_bluetooth_async_snapshot"],
++}
 diff --git a/BoardConfig.mk b/BoardConfig.mk
 index 400edfc..a803153 100644
 --- a/BoardConfig.mk

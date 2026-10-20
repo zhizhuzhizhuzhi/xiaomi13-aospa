@@ -880,6 +880,50 @@ index 77d45a1de146..6fdba5a622ea 100644
          }
          // Pre-load the instance.
          TransitionMetrics.getInstance();
+diff --git a/packages/SettingsLib/src/com/android/settingslib/bluetooth/BluetoothUtils.java b/packages/SettingsLib/src/com/android/settingslib/bluetooth/BluetoothUtils.java
+index 565919bf9dd8..ac82aaeca508 100644
+--- a/packages/SettingsLib/src/com/android/settingslib/bluetooth/BluetoothUtils.java
++++ b/packages/SettingsLib/src/com/android/settingslib/bluetooth/BluetoothUtils.java
+@@ -729,23 +729,26 @@ public class BluetoothUtils {
+     private static boolean isAudioSharingSupported() {
+         BluetoothAdapter adapter = BluetoothAdapter.getDefaultAdapter();
+         try {
+-            // b/381777424 The APIs have to return ERROR_BLUETOOTH_NOT_ENABLED when BT off based on
+-            // CDD definition.
+-            // However, app layer need to gate the feature based on whether the device has audio
+-            // sharing capability regardless of the BT state.
+-            // So here we check the BluetoothProperties when BT off.
+-            String mode = BluetoothProperties.le_audio_dynamic_switcher_mode().orElse("none");
+-            Set<String> disabledModes = ImmutableSet.of("disabled", "unicast");
+             int sourceSupportedCode = adapter.isLeAudioBroadcastSourceSupported();
+             int assistantSupportedCode = adapter.isLeAudioBroadcastAssistantSupported();
+-            return (sourceSupportedCode == BluetoothStatusCodes.FEATURE_SUPPORTED
++            boolean sourceSupported = sourceSupportedCode == BluetoothStatusCodes.FEATURE_SUPPORTED
+                     || (sourceSupportedCode == BluetoothStatusCodes.ERROR_BLUETOOTH_NOT_ENABLED
+-                    && BluetoothProperties.isProfileBapBroadcastSourceEnabled().orElse(false)
+-                    && !disabledModes.contains(mode)))
+-                    && (assistantSupportedCode == BluetoothStatusCodes.FEATURE_SUPPORTED
++                    && BluetoothProperties.isProfileBapBroadcastSourceEnabled().orElse(false));
++            boolean assistantSupported =
++                    assistantSupportedCode == BluetoothStatusCodes.FEATURE_SUPPORTED
+                     || (assistantSupportedCode == BluetoothStatusCodes.ERROR_BLUETOOTH_NOT_ENABLED
+-                    && BluetoothProperties.isProfileBapBroadcastAssistEnabled().orElse(false)
+-                    && !disabledModes.contains(mode)));
++                    && BluetoothProperties.isProfileBapBroadcastAssistEnabled().orElse(false));
++            if (!sourceSupported || !assistantSupported) {
++                return false;
++            }
++            if (sourceSupportedCode != BluetoothStatusCodes.ERROR_BLUETOOTH_NOT_ENABLED
++                    && assistantSupportedCode != BluetoothStatusCodes.ERROR_BLUETOOTH_NOT_ENABLED) {
++                return true;
++            }
++            // The capability APIs return ERROR_BLUETOOTH_NOT_ENABLED when BT is off.
++            // Only configured broadcast profiles need the persisted mode in that case.
++            String mode = BluetoothProperties.le_audio_dynamic_switcher_mode().orElse("none");
++            return !ImmutableSet.of("disabled", "unicast").contains(mode);
+         } catch (IllegalStateException e) {
+             Log.d(TAG, "Fail to check isAudioSharingSupported, e = ", e);
+             return false;
 diff --git a/packages/SettingsLib/src/com/android/settingslib/development/SystemPropPoker.java b/packages/SettingsLib/src/com/android/settingslib/development/SystemPropPoker.java
 index 3f16be184c41..96f1940fe939 100644
 --- a/packages/SettingsLib/src/com/android/settingslib/development/SystemPropPoker.java
@@ -2976,6 +3020,89 @@ index 82598942988e..a0bad97f04f6 100644
                  int[] permGids = null;
                  try {
                      checkSlow(startUptime, "startProcess: getting gids from package manager");
+diff --git a/services/core/java/com/android/server/audio/AudioDeviceBroker.java b/services/core/java/com/android/server/audio/AudioDeviceBroker.java
+index 88e3368c9335..f1f6c73c250e 100644
+--- a/services/core/java/com/android/server/audio/AudioDeviceBroker.java
++++ b/services/core/java/com/android/server/audio/AudioDeviceBroker.java
+@@ -871,6 +871,7 @@ public class AudioDeviceBroker {
+         final @NonNull BluetoothDevice mDevice;
+         final @AudioService.BtProfileConnectionState int mState;
+         final @AudioService.BtProfile int mProfile;
++        @Nullable BtHelper.ActiveDeviceRequest mProfileActiveDeviceRequest;
+         final boolean mSupprNoisy;
+         final int mVolume;
+         final boolean mIsLeOutput;
+@@ -1007,6 +1008,9 @@ public class AudioDeviceBroker {
+                     .record();
+             postBluetoothDeviceConfigChange(data);
+         } else {
++            synchronized (mDeviceStateLock) {
++                mBtHelper.invalidateProfileActiveDeviceRequest(data.mInfo.getProfile());
++            }
+             if (data.mPreviousDevice != null) {
+                 btMediaMetricRecord(data.mPreviousDevice, MediaMetrics.Value.DISCONNECTED, data);
+             }
+@@ -1628,6 +1632,10 @@ public class AudioDeviceBroker {
+         sendIMsgNoDelay(MSG_I_BT_SERVICE_DISCONNECTED_PROFILE, SENDMSG_QUEUE, profile);
+     }
+ 
++    /*package*/ void postBtProfileActiveDevices(BtHelper.ProfileActiveDevices result) {
++        sendLMsgNoDelay(MSG_L_BT_PROFILE_ACTIVE_DEVICES, SENDMSG_QUEUE, result);
++    }
++
+     /*package*/ void postBtProfileConnected(int profile, BluetoothProfile proxy) {
+         sendILMsgNoDelay(MSG_IL_BT_SERVICE_CONNECTED_PROFILE, SENDMSG_QUEUE, profile, proxy);
+     }
+@@ -1993,6 +2001,13 @@ public class AudioDeviceBroker {
+                     break;
+                 case MSG_L_SET_BT_ACTIVE_DEVICE: {
+                     final BtDeviceInfo btInfo = (BtDeviceInfo) msg.obj;
++                    synchronized (mDeviceStateLock) {
++                        if (btInfo.mProfileActiveDeviceRequest != null
++                                && !mBtHelper.isProfileActiveDeviceRequestCurrent(
++                                        btInfo.mProfile, btInfo.mProfileActiveDeviceRequest)) {
++                            break;
++                        }
++                    }
+                     if (btInfo.mState == BluetoothProfile.STATE_CONNECTED
+                             && !mBtHelper.isProfileProxyConnected(btInfo.mProfile)) {
+                         AudioService.sDeviceLogger.enqueue((new EventLogger.StringEvent(
+@@ -2006,6 +2021,12 @@ public class AudioDeviceBroker {
+                                         "MSG_L_SET_BT_ACTIVE_DEVICE");
+                         synchronized (mSetModeLock) {
+                             synchronized (mDeviceStateLock) {
++                                if (btInfo.mProfileActiveDeviceRequest != null
++                                        && !mBtHelper.isProfileActiveDeviceRequestCurrent(
++                                                btInfo.mProfile,
++                                                btInfo.mProfileActiveDeviceRequest)) {
++                                    break;
++                                }
+                                 mDeviceInventory.onSetBtActiveDevice(btInfo, codecAndChanged.first,
+                                         (btInfo.mProfile != BluetoothProfile.LE_AUDIO
+                                                 || btInfo.mIsLeOutput)
+@@ -2181,6 +2202,14 @@ public class AudioDeviceBroker {
+                         }
+                     }
+                     break;
++                case MSG_L_BT_PROFILE_ACTIVE_DEVICES:
++                    synchronized (mSetModeLock) {
++                        synchronized (mDeviceStateLock) {
++                            mBtHelper.onBtProfileActiveDevices(
++                                    (BtHelper.ProfileActiveDevices) msg.obj);
++                        }
++                    }
++                    break;
+                 case MSG_IL_BT_SERVICE_CONNECTED_PROFILE:
+                     synchronized (mSetModeLock) {
+                         synchronized (mDeviceStateLock) {
+@@ -2336,6 +2365,7 @@ public class AudioDeviceBroker {
+ 
+     private static final int MSG_I_MUTE_CALL = 62;
+     private static final int MSG_L_CONNECTED_DEVICES_CHANGED = 63;
++    private static final int MSG_L_BT_PROFILE_ACTIVE_DEVICES = 64;
+ 
+ 
+     private static boolean isMessageHandledUnderWakelock(int msgId) {
 diff --git a/services/core/java/com/android/server/audio/AudioService.java b/services/core/java/com/android/server/audio/AudioService.java
 index 1f745b0c1c0b..db07dc9091fd 100644
 --- a/services/core/java/com/android/server/audio/AudioService.java
@@ -2990,6 +3117,195 @@ index 1f745b0c1c0b..db07dc9091fd 100644
  
          mSfxHelper = new SoundEffectsHelper(mContext, playerBase -> ignorePlayerLogs(playerBase));
  
+diff --git a/services/core/java/com/android/server/audio/BtHelper.java b/services/core/java/com/android/server/audio/BtHelper.java
+index 43f4f7435690..0bbe1a87cf09 100644
+--- a/services/core/java/com/android/server/audio/BtHelper.java
++++ b/services/core/java/com/android/server/audio/BtHelper.java
+@@ -88,6 +88,27 @@ public class BtHelper {
+ 
+     private ScoHelper mScoHelper;
+ 
++    @GuardedBy("BtHelper.this")
++    private final Map<Integer, ActiveDeviceRequest> mActiveDeviceRequests = new HashMap<>();
++
++    static final class ActiveDeviceRequest {
++        // Accessed under BtHelper.this; a request can deliver its snapshot only once.
++        boolean received;
++    }
++
++    static final class ProfileActiveDevices {
++        final int profile;
++        final ActiveDeviceRequest request;
++        final List<BluetoothDevice> devices;
++
++        ProfileActiveDevices(int profile, ActiveDeviceRequest request, List<BluetoothDevice> devices) {
++            this.profile = profile;
++            this.request = request;
++            this.devices = new ArrayList<>(devices);
++        }
++    }
++
++
+     private final boolean mSupportsBleHearingAids;
+ 
+     // BluetoothHeadset API to control SCO connection
+@@ -1096,7 +1117,12 @@ public class BtHelper {
+             }
+             boolean deviceSwitch = optimizeBtDeviceSwitch()
+                     && btDevice != null && mBluetoothHeadsetDevice != null;
++            final ActiveDeviceRequest initialRequest =
++                    mActiveDeviceRequests.remove(BluetoothProfile.HEADSET);
+             mDeviceBroker.onSetBtScoActiveDevice(btDevice, deviceSwitch);
++            if (initialRequest != null) {
++                mScoHelper.onProfileConnected();
++            }
+         } else if (action.equals(BluetoothHeadset.ACTION_AUDIO_STATE_CHANGED)) {
+             int btState = intent.getIntExtra(BluetoothProfile.EXTRA_STATE, -1);
+             Log.i(TAG,"receiveBtEvent ACTION_AUDIO_STATE_CHANGED: "+btState);
+@@ -1180,6 +1206,7 @@ public class BtHelper {
+ 
+     @GuardedBy("mDeviceBroker.mDeviceStateLock")
+     /*package*/ synchronized void onBtProfileDisconnected(int profile) {
++        mActiveDeviceRequests.remove(profile);
+         AudioService.sDeviceLogger.enqueue(new EventLogger.StringEvent(
+                 "BT profile " + BluetoothProfile.getProfileName(profile)
+                 + " disconnected").printLog(TAG));
+@@ -1368,8 +1395,53 @@ public class BtHelper {
+                     + BluetoothProfile.getProfileName(profile));
+             return;
+         }
+-        List<BluetoothDevice> activeDevices = adapter.getActiveDevices(profile);
++        requestProfileActiveDevices(adapter, profile);
++    }
++
++    @GuardedBy("mDeviceBroker.mDeviceStateLock")
++    private synchronized void requestProfileActiveDevices(BluetoothAdapter adapter, int profile) {
++        final ActiveDeviceRequest request = new ActiveDeviceRequest();
++        mActiveDeviceRequests.put(profile, request);
++        // The callback only queues work; routing stays on the broker thread under its locks.
++        adapter.getActiveDevicesAsync(profile, Runnable::run,
++                devices -> mDeviceBroker.postBtProfileActiveDevices(
++                        new ProfileActiveDevices(profile, request, devices)));
++    }
++
++    @GuardedBy("mDeviceBroker.mDeviceStateLock")
++    /*package*/ synchronized void invalidateProfileActiveDeviceRequest(int profile) {
++        if (profile != BluetoothProfile.HEADSET) {
++            mActiveDeviceRequests.remove(profile);
++        }
++    }
++
++    @GuardedBy("mDeviceBroker.mDeviceStateLock")
++    /*package*/ synchronized boolean isProfileActiveDeviceRequestCurrent(
++            int profile, ActiveDeviceRequest request) {
++        return mActiveDeviceRequests.get(profile) == request;
++    }
++
++    @GuardedBy("mDeviceBroker.mDeviceStateLock")
++    /*package*/ synchronized void onBtProfileActiveDevices(ProfileActiveDevices result) {
++        if (mActiveDeviceRequests.get(result.profile) != result.request
++                || result.request.received) {
++            return;
++        }
++        result.request.received = true;
++        final int profile = result.profile;
++        final List<BluetoothDevice> activeDevices = result.devices;
++        if (profile == BluetoothProfile.HEADSET) {
++            mActiveDeviceRequests.remove(profile);
++            for (BluetoothDevice device : activeDevices) {
++                if (device != null) {
++                    onSetBtScoActiveDevice(device, false /* deviceSwitch */);
++                }
++            }
++            mScoHelper.onProfileConnected();
++            return;
++        }
+         if (activeDevices.isEmpty() || activeDevices.get(0) == null) {
++            mActiveDeviceRequests.remove(profile);
+             return;
+         }
+         BluetoothDevice device = activeDevices.get(0);
+@@ -1377,12 +1449,12 @@ public class BtHelper {
+             case BluetoothProfile.A2DP: {
+                 BluetoothProfileConnectionInfo bpci =
+                         BluetoothProfileConnectionInfo.createA2dpInfo(false, -1);
+-                postBluetoothActiveDevice(device, bpci);
++                postBluetoothActiveDevice(device, bpci, result.request);
+             } break;
+             case BluetoothProfile.HEARING_AID: {
+                 BluetoothProfileConnectionInfo bpci =
+                         BluetoothProfileConnectionInfo.createHearingAidInfo(false);
+-                postBluetoothActiveDevice(device, bpci);
++                postBluetoothActiveDevice(device, bpci, result.request);
+             } break;
+             case BluetoothProfile.LE_AUDIO: {
+                 int groupId = mLeAudio.getGroupId(device);
+@@ -1403,7 +1475,7 @@ public class BtHelper {
+                     BluetoothProfileConnectionInfo bpci =
+                             BluetoothProfileConnectionInfo.createLeAudioInfo(
+                                     false /*suppressNoisyIntent*/, true /*isLeOutput*/);
+-                    postBluetoothActiveDevice(device, bpci);
++                    postBluetoothActiveDevice(device, bpci, result.request);
+                 }
+                 List<BluetoothLeAudioCodecConfig> inputCodecConfigs =
+                         btLeCodecStatus.getInputCodecSelectableCapabilities();
+@@ -1411,7 +1483,7 @@ public class BtHelper {
+                     BluetoothProfileConnectionInfo bpci =
+                             BluetoothProfileConnectionInfo.createLeAudioInfo(
+                                     false /*suppressNoisyIntent*/, false /*isLeOutput*/);
+-                    postBluetoothActiveDevice(device, bpci);
++                    postBluetoothActiveDevice(device, bpci, result.request);
+                 }
+             } break;
+             default:
+@@ -1424,13 +1496,13 @@ public class BtHelper {
+                         BluetoothProfileConnectionInfo bpci =
+                                 BluetoothProfileConnectionInfo.createLeAudioPeripheralInfo(
+                                         true /*isLeOutput*/);
+-                        postBluetoothActiveDevice(device, bpci);
++                        postBluetoothActiveDevice(device, bpci, result.request);
+                     }
+                     if ((mLeAudioPeripheralStreamTypes & LE_PERIPHERAL_INPUT_STREAM_TYPES) != 0) {
+                         BluetoothProfileConnectionInfo bpci =
+                                 BluetoothProfileConnectionInfo.createLeAudioPeripheralInfo(
+                                         false /*isLeOutput*/);
+-                        postBluetoothActiveDevice(device, bpci);
++                        postBluetoothActiveDevice(device, bpci, result.request);
+                     }
+                     break;
+                 }
+@@ -1441,11 +1513,13 @@ public class BtHelper {
+     }
+ 
+     private void postBluetoothActiveDevice(
+-            BluetoothDevice device, BluetoothProfileConnectionInfo bpci) {
++            BluetoothDevice device, BluetoothProfileConnectionInfo bpci,
++            ActiveDeviceRequest request) {
+         AudioDeviceBroker.BtDeviceChangedData data = new AudioDeviceBroker.BtDeviceChangedData(
+                 device, null, bpci, "mBluetoothProfileServiceListener");
+         AudioDeviceBroker.BtDeviceInfo info = mDeviceBroker.createBtDeviceInfo(
+                 data, device, BluetoothProfile.STATE_CONNECTED);
++        info.mProfileActiveDeviceRequest = request;
+         mDeviceBroker.postBluetoothActiveDevice(info, 0 /* delay */);
+     }
+ 
+@@ -1494,14 +1568,8 @@ public class BtHelper {
+         mBluetoothHeadset = headset;
+         BluetoothAdapter adapter = BluetoothAdapter.getDefaultAdapter();
+         if (adapter != null) {
+-            List<BluetoothDevice> activeDevices =
+-                    adapter.getActiveDevices(BluetoothProfile.HEADSET);
+-            for (BluetoothDevice device : activeDevices) {
+-                if (device == null) {
+-                    continue;
+-                }
+-                onSetBtScoActiveDevice(device, false /*deviceSwitch*/);
+-            }
++            requestProfileActiveDevices(adapter, BluetoothProfile.HEADSET);
++            return;
+         } else {
+             Log.e(TAG, "onHeadsetProfileConnected: Null BluetoothAdapter");
+         }
 diff --git a/services/core/java/com/android/server/biometrics/sensors/face/FaceService.java b/services/core/java/com/android/server/biometrics/sensors/face/FaceService.java
 index a34791f70533..58c996310ea1 100644
 --- a/services/core/java/com/android/server/biometrics/sensors/face/FaceService.java
@@ -5047,6 +5363,371 @@ index a1bd36be93f8..000000000000
 -        return currentPct >= targetPct;
 -    }
 -}
+diff --git a/services/core/java/com/android/server/media/BluetoothDeviceRoutesManager.java b/services/core/java/com/android/server/media/BluetoothDeviceRoutesManager.java
+index 303600bb1168..84c2857f2cfc 100644
+--- a/services/core/java/com/android/server/media/BluetoothDeviceRoutesManager.java
++++ b/services/core/java/com/android/server/media/BluetoothDeviceRoutesManager.java
+@@ -24,6 +24,7 @@ import android.annotation.SuppressLint;
+ import android.bluetooth.BluetoothA2dp;
+ import android.bluetooth.BluetoothAdapter;
+ import android.bluetooth.BluetoothDevice;
++import android.bluetooth.BluetoothBondedDeviceInfo;
+ import android.bluetooth.BluetoothHearingAid;
+ import android.bluetooth.BluetoothLeAudio;
+ import android.bluetooth.BluetoothProfile;
+@@ -54,7 +55,6 @@ import java.util.Map;
+ import java.util.Objects;
+ import java.util.Optional;
+ import java.util.Set;
+-import java.util.stream.Collectors;
+ 
+ /**
+  * Maintains a list of connected {@link BluetoothDevice bluetooth devices} and allows their
+@@ -126,6 +126,12 @@ import java.util.stream.Collectors;
+ 
+     @NonNull
+     private final Context mContext;
++    // Guarded by mLock: pending capability results belong to one started adapter lifecycle.
++    private boolean mStarted;
++    private int mBroadcastSupportRequest;
++    private int mBondedDevicesRequest;
++    private int mBroadcastSupportStatus = BluetoothStatusCodes.ERROR_UNKNOWN;
++
+     @NonNull private final Handler mHandler;
+     @NonNull private final BluetoothAdapter mBluetoothAdapter;
+     @NonNull private BluetoothRoutesUpdatedListener mListener;
+@@ -159,7 +165,10 @@ import java.util.stream.Collectors;
+ 
+     public void start(UserHandle user, @NonNull BluetoothRoutesUpdatedListener listener) {
+         mListener = listener;
+-        mBluetoothProfileMonitor.start(() -> listener.onBluetoothRoutesUpdated());
++        synchronized (mLock) {
++            mStarted = true;
++        }
++        mBluetoothProfileMonitor.start(this::updateBluetoothRoutes);
+ 
+         IntentFilter adapterStateChangedIntentFilter = new IntentFilter();
+ 
+@@ -176,13 +185,21 @@ import java.util.stream.Collectors;
+         deviceStateChangedIntentFilter.addAction(
+                 BluetoothLeAudio.ACTION_LE_AUDIO_CONNECTION_STATE_CHANGED);
+         deviceStateChangedIntentFilter.addAction(BluetoothDevice.ACTION_ALIAS_CHANGED);
++        deviceStateChangedIntentFilter.addAction(BluetoothDevice.ACTION_BOND_STATE_CHANGED);
+ 
+         mContext.registerReceiverAsUser(mDeviceStateChangedReceiver, user,
+                 deviceStateChangedIntentFilter, null, null);
++        requestLeAudioBroadcastSupport();
+         updateBluetoothRoutes();
+     }
+ 
+     public void stop() {
++        synchronized (mLock) {
++            mStarted = false;
++            ++mBroadcastSupportRequest;
++            ++mBondedDevicesRequest;
++            mBroadcastSupportStatus = BluetoothStatusCodes.ERROR_UNKNOWN;
++        }
+         mContext.unregisterReceiver(mAdapterStateChangedReceiver);
+         mContext.unregisterReceiver(mDeviceStateChangedReceiver);
+     }
+@@ -196,40 +213,17 @@ import java.util.stream.Collectors;
+ 
+     @Nullable
+     public String getRouteIdForBluetoothAddress(@Nullable String address) {
+-        if (Flags.enableFixMr2DeadlockOnBtGetAlias()) {
+-            BluetoothDevice bluetoothDevice;
+-            synchronized (mLock) {
+-                var bluetoothDeviceHolder = mAddressToBondedDevice.get(address);
+-                if (bluetoothDeviceHolder == null) {
+-                    return null;
+-                }
+-                bluetoothDevice = bluetoothDeviceHolder.mBluetoothDevice;
+-            }
+-            return getRouteIdForType(bluetoothDevice, getDeviceType(bluetoothDevice));
+-        } else {
+-            synchronized (mLock) {
+-                var bluetoothDeviceHolder = mAddressToBondedDevice.get(address);
+-                if (bluetoothDeviceHolder == null) {
+-                    return null;
+-                }
+-                var bluetoothDevice = bluetoothDeviceHolder.mBluetoothDevice;
+-                return getRouteIdForType(bluetoothDevice, getDeviceType(bluetoothDevice));
+-            }
++        synchronized (mLock) {
++            BluetoothDeviceHolder device = mAddressToBondedDevice.get(address);
++            return device != null ? device.routeId : null;
+         }
+     }
+ 
+     @Nullable
+     public String getNameForBluetoothAddress(@NonNull String address) {
+-        if (Flags.enableFixMr2DeadlockOnBtGetAlias()) {
+-            synchronized (mLock) {
+-                BluetoothDeviceHolder deviceHolder = mAddressToBondedDevice.get(address);
+-                return deviceHolder != null ? deviceHolder.name : null;
+-            }
+-        } else {
+-            synchronized (mLock) {
+-                BluetoothDeviceHolder deviceHolder = mAddressToBondedDevice.get(address);
+-                return deviceHolder != null ? getDeviceName(deviceHolder.mBluetoothDevice) : null;
+-            }
++        synchronized (mLock) {
++            BluetoothDeviceHolder device = mAddressToBondedDevice.get(address);
++            return device != null ? device.name : null;
+         }
+     }
+ 
+@@ -323,84 +317,57 @@ import java.util.stream.Collectors;
+     }
+ 
+     private void updateBluetoothRoutes() {
+-        if (Flags.enableFixMr2DeadlockOnBtGetAlias()) {
+-            updateBluetoothRoutesLockingOnlyInternalState();
+-        } else {
+-            updateBluetoothRoutesWithFullLock();
+-        }
+-    }
+-
+-    /**
+-     * Updates {@link #mAddressToConnectedBluetoothRoutes} and {@link #mAddressToBondedDevice},
+-     * holding a lock only while updating internal state but not during BT stack calls.
+-     *
+-     * <p>This method is the new version of {@link #updateBluetoothRoutesWithFullLock}, and the
+-     * method choice is guided by {@link Flags#enableFixMr2DeadlockOnBtGetAlias}.
+-     */
+-    private void updateBluetoothRoutesLockingOnlyInternalState() {
+-        Set<BluetoothDevice> bondedDevices = mBluetoothAdapter.getBondedDevices();
+-        Map<String, BluetoothRouteInfo> newConnectedRoutes = new ArrayMap<>();
+-        Map<String, BluetoothDeviceHolder> newBondedDevices = new ArrayMap<>();
+-        for (BluetoothDevice device : Optional.ofNullable(bondedDevices).orElse(Set.of())) {
+-            newBondedDevices.put(device.getAddress(), createHolderFor(device));
+-            if (device.isConnected()) {
+-                BluetoothRouteInfo newBtRoute =
+-                        createBluetoothRoute(device, /* setVolume= */ false);
+-                if (newBtRoute.mConnectedProfiles.size() > 0) {
+-                    newConnectedRoutes.put(device.getAddress(), newBtRoute);
+-                }
+-            }
+-        }
+-
++        final int request;
+         synchronized (mLock) {
+-            mAddressToConnectedBluetoothRoutes.clear();
+-            if (bondedDevices == null) {
+-                // Bonded devices is null upon running into a BluetoothAdapter error.
+-                Log.w(TAG, "BluetoothAdapter.getBondedDevices returned null.");
++            if (!mStarted) {
+                 return;
+             }
+-            // We don't clear bonded devices if we receive a null getBondedDevices result, because
+-            // that probably means that the bluetooth stack ran into an issue. Not that all devices
+-            // have been unpaired.
+-            mAddressToBondedDevice = newBondedDevices;
+-            mAddressToConnectedBluetoothRoutes.putAll(newConnectedRoutes);
++            request = ++mBondedDevicesRequest;
+         }
++        mBluetoothAdapter.getBondedDeviceInfoAsync(mHandler::post,
++                devices -> applyBondedDeviceSnapshot(devices, request));
+     }
+ 
+-    /**
+-     * Updates {@link #mAddressToConnectedBluetoothRoutes} and {@link #mAddressToBondedDevice},
+-     * holding a lock even while making some calls into the bluetooth stack.
+-     *
+-     * <p>This method is the old version of {@link #updateBluetoothRoutesLockingOnlyInternalState},
+-     * and the method choice is guided by {@link Flags#enableFixMr2DeadlockOnBtGetAlias}.
+-     */
+-    private void updateBluetoothRoutesWithFullLock() {
+-        Set<BluetoothDevice> bondedDevices = mBluetoothAdapter.getBondedDevices();
++    /** No remote queries while building or committing the returned Bluetooth-process data. */
++    private void applyBondedDeviceSnapshot(List<BluetoothBondedDeviceInfo> devices, int request) {
+         synchronized (mLock) {
+-            mAddressToConnectedBluetoothRoutes.clear();
+-            if (bondedDevices == null) {
+-                // Bonded devices is null upon running into a BluetoothAdapter error.
+-                Log.w(TAG, "BluetoothAdapter.getBondedDevices returned null.");
++            if (!mStarted || request != mBondedDevicesRequest) {
+                 return;
+             }
+-            // We don't clear bonded devices if we receive a null getBondedDevices result, because
+-            // that probably means that the bluetooth stack ran into an issue. Not that all devices
+-            // have been unpaired.
+-            mAddressToBondedDevice =
+-                    bondedDevices.stream()
+-                            .collect(
+-                                    Collectors.toMap(
+-                                            BluetoothDevice::getAddress, this::createHolderFor));
+-            for (BluetoothDevice device : bondedDevices) {
+-                if (device.isConnected()) {
+-                    BluetoothRouteInfo newBtRoute =
+-                            createBluetoothRoute(device, /* setVolume= */ false);
+-                    if (newBtRoute.mConnectedProfiles.size() > 0) {
+-                        mAddressToConnectedBluetoothRoutes.put(device.getAddress(), newBtRoute);
+-                    }
+-                }
++        }
++        Map<String, BluetoothRouteInfo> connectedRoutes = new ArrayMap<>();
++        Map<String, BluetoothDeviceHolder> bondedDevices = new ArrayMap<>();
++        for (BluetoothBondedDeviceInfo info : devices) {
++            BluetoothDevice device = info.getDevice();
++            String name = getDeviceName(info.getAlias());
++            SparseBooleanArray profiles = new SparseBooleanArray();
++            for (int profile : info.getConnectedAudioProfiles()) profiles.put(profile, true);
++            int type = profiles.get(BluetoothProfile.LE_AUDIO) ? MediaRoute2Info.TYPE_BLE_HEADSET
++                    : profiles.get(BluetoothProfile.HEARING_AID) ? MediaRoute2Info.TYPE_HEARING_AID
++                    : MediaRoute2Info.TYPE_BLUETOOTH_A2DP;
++            String routeId = switch (type) {
++                case MediaRoute2Info.TYPE_BLE_HEADSET ->
++                        LE_AUDIO_ROUTE_ID_PREFIX + info.getLeAudioGroupId();
++                case MediaRoute2Info.TYPE_HEARING_AID ->
++                        HEARING_AID_ROUTE_ID_PREFIX + info.getHearingAidSyncId();
++                default -> device.getAddress();
++            };
++            bondedDevices.put(device.getAddress(), new BluetoothDeviceHolder(name, routeId));
++            if (info.isConnected() && profiles.size() > 0) {
++                connectedRoutes.put(device.getAddress(), createBluetoothRoute(
++                        device, name, type, routeId, profiles, /* setVolume= */ false));
++            }
++        }
++        synchronized (mLock) {
++            if (!mStarted || request != mBondedDevicesRequest) {
++                return;
+             }
++            ++mBondedDevicesRequest;
++            mAddressToBondedDevice = bondedDevices;
++            mAddressToConnectedBluetoothRoutes.clear();
++            mAddressToConnectedBluetoothRoutes.putAll(connectedRoutes);
+         }
++        notifyBluetoothRoutesUpdated();
+     }
+ 
+     @NonNull
+@@ -508,12 +475,32 @@ import java.util.stream.Collectors;
+                 .toList();
+     }
+ 
+-    /** Returns whether LE Audio broadcast is supported. */
++    /** Broadcast selection is ready only after the current adapter has reported support. */
+     public boolean isLEAudioBroadcastSupported() {
+-        return mBluetoothAdapter.isLeAudioBroadcastAssistantSupported()
+-                == BluetoothStatusCodes.FEATURE_SUPPORTED
+-                && mBluetoothAdapter.isLeAudioBroadcastSourceSupported()
+-                == BluetoothStatusCodes.FEATURE_SUPPORTED;
++        synchronized (mLock) {
++            return mBroadcastSupportStatus == BluetoothStatusCodes.FEATURE_SUPPORTED;
++        }
++    }
++
++    private void requestLeAudioBroadcastSupport() {
++        final int request;
++        synchronized (mLock) {
++            if (!mStarted) {
++                return;
++            }
++            request = ++mBroadcastSupportRequest;
++            mBroadcastSupportStatus = BluetoothStatusCodes.ERROR_UNKNOWN;
++        }
++        mBluetoothAdapter.getLeAudioBroadcastSupportAsync(mHandler::post, status -> {
++            synchronized (mLock) {
++                if (!mStarted || request != mBroadcastSupportRequest) {
++                    return;
++                }
++                ++mBroadcastSupportRequest;
++                mBroadcastSupportStatus = status;
++            }
++            notifyBluetoothRoutesUpdated();
++        });
+     }
+ 
+     private void notifyBluetoothRoutesUpdated() {
+@@ -536,14 +523,16 @@ import java.util.stream.Collectors;
+      * any of its member devices.
+      */
+     private BluetoothRouteInfo createBluetoothRoute(BluetoothDevice device, boolean setVolume) {
+-        BluetoothRouteInfo newBtRoute = new BluetoothRouteInfo();
+-        newBtRoute.mBtDevice = device;
+-        String deviceName = getDeviceName(device);
+-
+         int type = getDeviceType(device);
+-        String routeId = getRouteIdForType(device, type);
++        return createBluetoothRoute(device, getDeviceName(device), type,
++                getRouteIdForType(device, type), getConnectedProfiles(device), setVolume);
++    }
+ 
+-        newBtRoute.mConnectedProfiles = getConnectedProfiles(device);
++    private BluetoothRouteInfo createBluetoothRoute(BluetoothDevice device, String deviceName,
++            int type, String routeId, SparseBooleanArray connectedProfiles, boolean setVolume) {
++        BluetoothRouteInfo newBtRoute = new BluetoothRouteInfo();
++        newBtRoute.mBtDevice = device;
++        newBtRoute.mConnectedProfiles = connectedProfiles;
+         MediaRoute2Info.Builder routeInfoBuilder =
+                 new MediaRoute2Info.Builder(routeId, deviceName)
+                         .addFeature(MediaRoute2Info.FEATURE_LIVE_AUDIO)
+@@ -569,7 +558,10 @@ import java.util.stream.Collectors;
+     }
+ 
+     private String getDeviceName(BluetoothDevice device) {
+-        String deviceName = device.getAlias();
++        return getDeviceName(device.getAlias());
++    }
++
++    private String getDeviceName(String deviceName) {
+         if (TextUtils.isEmpty(deviceName)) {
+             deviceName = mContext.getResources().getText(R.string.unknownName).toString();
+         }
+@@ -621,20 +613,15 @@ import java.util.stream.Collectors;
+     private void handleBluetoothAdapterStateChange(int state) {
+         if (state == BluetoothAdapter.STATE_OFF || state == BluetoothAdapter.STATE_TURNING_OFF) {
+             synchronized (mLock) {
++                ++mBroadcastSupportRequest;
++                ++mBondedDevicesRequest;
++                mBroadcastSupportStatus = BluetoothStatusCodes.ERROR_BLUETOOTH_NOT_ENABLED;
+                 mAddressToConnectedBluetoothRoutes.clear();
+             }
+             notifyBluetoothRoutesUpdated();
+         } else if (state == BluetoothAdapter.STATE_ON) {
++            requestLeAudioBroadcastSupport();
+             updateBluetoothRoutes();
+-
+-            boolean shouldCallListener;
+-            synchronized (mLock) {
+-                shouldCallListener = !mAddressToConnectedBluetoothRoutes.isEmpty();
+-            }
+-
+-            if (shouldCallListener) {
+-                notifyBluetoothRoutesUpdated();
+-            }
+         }
+     }
+ 
+@@ -660,24 +647,11 @@ import java.util.stream.Collectors;
+                 case BluetoothHearingAid.ACTION_CONNECTION_STATE_CHANGED:
+                 case BluetoothLeAudio.ACTION_LE_AUDIO_CONNECTION_STATE_CHANGED:
+                 case BluetoothDevice.ACTION_ALIAS_CHANGED:
+-                    mHandler.post(
+-                            () -> {
+-                                updateBluetoothRoutes();
+-                                notifyBluetoothRoutesUpdated();
+-                            });
++                case BluetoothDevice.ACTION_BOND_STATE_CHANGED:
++                    mHandler.post(() -> updateBluetoothRoutes());
+             }
+         }
+     }
+ 
+-    private BluetoothDeviceHolder createHolderFor(BluetoothDevice bluetoothDevice) {
+-        if (Flags.enableFixMr2DeadlockOnBtGetAlias()) {
+-            return new BluetoothDeviceHolder(
+-                    bluetoothDevice, getDeviceName(bluetoothDevice), bluetoothDevice.getAddress());
+-        } else {
+-            return new BluetoothDeviceHolder(bluetoothDevice, /* name= */ "", /* address= */ "");
+-        }
+-    }
+-
+-    private record BluetoothDeviceHolder(
+-            BluetoothDevice mBluetoothDevice, String name, String address) {}
++    private record BluetoothDeviceHolder(String name, String routeId) {}
+ }
 diff --git a/services/core/java/com/android/server/pm/KillAppBlocker.java b/services/core/java/com/android/server/pm/KillAppBlocker.java
 index 265b6f60f28c..38735291ad57 100644
 --- a/services/core/java/com/android/server/pm/KillAppBlocker.java
@@ -21256,6 +21937,373 @@ index d630c0f81956..96e5b909570d 100644
          assertFalse(mAutomaticBrightnessStrategy.getAutoBrightnessAdjustmentChanged());
          assertEquals(Float.NaN, mAutomaticBrightnessStrategy.getPendingAutoBrightnessAdjustment(),
                  0.0f);
+diff --git a/services/tests/media/mediarouterservicetest/src/com/android/server/media/BluetoothDeviceRoutesManagerTest.java b/services/tests/media/mediarouterservicetest/src/com/android/server/media/BluetoothDeviceRoutesManagerTest.java
+index 0153c3c68d6c..575b1cfa7526 100644
+--- a/services/tests/media/mediarouterservicetest/src/com/android/server/media/BluetoothDeviceRoutesManagerTest.java
++++ b/services/tests/media/mediarouterservicetest/src/com/android/server/media/BluetoothDeviceRoutesManagerTest.java
+@@ -30,7 +30,13 @@ import static org.mockito.Mockito.when;
+ 
+ import android.bluetooth.BluetoothAdapter;
+ import android.bluetooth.BluetoothDevice;
++import android.bluetooth.BluetoothBondedDeviceInfo;
++import android.bluetooth.BluetoothHearingAid;
++import android.bluetooth.BluetoothLeAudio;
++import android.media.MediaRoute2Info;
++import android.os.Parcel;
+ import android.bluetooth.BluetoothProfile;
++import android.bluetooth.BluetoothStatusCodes;
+ import android.content.Context;
+ import android.content.res.Resources;
+ import android.os.Looper;
+@@ -38,6 +44,8 @@ import android.os.UserHandle;
+ import android.platform.test.annotations.EnableFlags;
+ import android.platform.test.flag.junit.SetFlagsRule;
+ 
++import androidx.test.platform.app.InstrumentationRegistry;
++
+ import com.android.internal.R;
+ import com.android.media.flags.Flags;
+ 
+@@ -49,8 +57,11 @@ import org.junit.runners.JUnit4;
+ import org.mockito.Mock;
+ import org.mockito.MockitoAnnotations;
+ 
+-import java.util.Set;
++import java.util.List;
++import java.util.concurrent.Executor;
+ import java.util.concurrent.atomic.AtomicBoolean;
++import java.util.concurrent.atomic.AtomicReference;
++import java.util.function.Consumer;
+ 
+ @RunWith(JUnit4.class)
+ public class BluetoothDeviceRoutesManagerTest {
+@@ -80,15 +91,18 @@ public class BluetoothDeviceRoutesManagerTest {
+                 .thenReturn("Bluetooth route");
+ 
+         when(mMockBluetoothDevice.getAddress()).thenReturn(FAKE_ADDRESS);
+-        when(mMockBluetoothDevice.getAlias()).thenReturn(FAKE_ALIAS);
+-        when(mMockBluetoothDevice.isConnected()).thenReturn(true);
+-
+-        // Ensure the device is recognized as a connected A2DP device.
+-        when(mMockBluetoothProfileMonitor.isProfileSupported(anyInt(), any())).thenReturn(false);
+-        when(mMockBluetoothProfileMonitor.isProfileSupported(eq(BluetoothProfile.A2DP), any()))
+-                .thenReturn(true);
+-
+-        when(mMockBluetoothAdapter.getBondedDevices()).thenReturn(Set.of(mMockBluetoothDevice));
++        doAnswer(invocation -> {
++            Executor executor = invocation.getArgument(0);
++            Consumer<List<BluetoothBondedDeviceInfo>> consumer = invocation.getArgument(1);
++            executor.execute(() -> consumer.accept(List.of(snapshot())));
++            return null;
++        }).when(mMockBluetoothAdapter).getBondedDeviceInfoAsync(any(), any());
++        doAnswer(invocation -> {
++            Executor executor = invocation.getArgument(0);
++            Consumer<Integer> consumer = invocation.getArgument(1);
++            executor.execute(() -> consumer.accept(BluetoothStatusCodes.FEATURE_SUPPORTED));
++            return null;
++        }).when(mMockBluetoothAdapter).getLeAudioBroadcastSupportAsync(any(), any());
+ 
+         mManager =
+                 new BluetoothDeviceRoutesManager(
+@@ -105,10 +119,13 @@ public class BluetoothDeviceRoutesManagerTest {
+         doAnswer(
+                         invocation -> {
+                             getBondedDevicesLockHeld.set(Thread.holdsLock(mManager.mLock));
+-                            return Set.of(mMockBluetoothDevice);
++                            Executor executor = invocation.getArgument(0);
++                            Consumer<List<BluetoothBondedDeviceInfo>> consumer = invocation.getArgument(1);
++                            executor.execute(() -> consumer.accept(List.of(snapshot())));
++                            return null;
+                         })
+                 .when(mMockBluetoothAdapter)
+-                .getBondedDevices();
++                .getBondedDeviceInfoAsync(any(), any());
+         AtomicBoolean getAddressLockHeld = new AtomicBoolean(false);
+         doAnswer(
+                         invocation -> {
+@@ -117,49 +134,23 @@ public class BluetoothDeviceRoutesManagerTest {
+                         })
+                 .when(mMockBluetoothDevice)
+                 .getAddress();
+-        AtomicBoolean isConnectedLockHeld = new AtomicBoolean(false);
+-        doAnswer(
+-                        invocation -> {
+-                            isConnectedLockHeld.set(Thread.holdsLock(mManager.mLock));
+-                            return true;
+-                        })
+-                .when(mMockBluetoothDevice)
+-                .isConnected();
+-        AtomicBoolean getAliasLockHeld = new AtomicBoolean(false);
+-        doAnswer(
+-                        invocation -> {
+-                            getAliasLockHeld.set(Thread.holdsLock(mManager.mLock));
+-                            return FAKE_ALIAS;
+-                        })
+-                .when(mMockBluetoothDevice)
+-                .getAlias();
+-        AtomicBoolean isProfileSupportedLockHeld = new AtomicBoolean(false);
+-        doAnswer(
+-                        invocation -> {
+-                            isProfileSupportedLockHeld.set(Thread.holdsLock(mManager.mLock));
+-                            return invocation.getArgument(0).equals(BluetoothProfile.A2DP);
+-                        })
+-                .when(mMockBluetoothProfileMonitor)
+-                .isProfileSupported(anyInt(), any());
++        startManagerAndWaitForSnapshot();
+ 
+-        mManager.start(UserHandle.ALL, mMockListener);
+-
+-        verify(mMockBluetoothAdapter).getBondedDevices();
++        verify(mMockBluetoothAdapter).getBondedDeviceInfoAsync(any(), any());
+         assertThat(getBondedDevicesLockHeld.get()).isFalse();
+         verify(mMockBluetoothDevice, org.mockito.Mockito.atLeastOnce()).getAddress();
+         assertThat(getAddressLockHeld.get()).isFalse();
+-        verify(mMockBluetoothDevice).isConnected();
+-        assertThat(isConnectedLockHeld.get()).isFalse();
+-        verify(mMockBluetoothDevice, org.mockito.Mockito.atLeastOnce()).getAlias();
+-        assertThat(getAliasLockHeld.get()).isFalse();
+-        verify(mMockBluetoothProfileMonitor).isProfileSupported(eq(BluetoothProfile.A2DP), any());
+-        assertThat(isProfileSupportedLockHeld.get()).isFalse();
++        verify(mMockBluetoothDevice, never()).isConnected();
++        verify(mMockBluetoothDevice, never()).getAlias();
++        verify(mMockBluetoothProfileMonitor, never()).isProfileSupported(anyInt(), any());
++        verify(mMockBluetoothProfileMonitor, never()).getGroupId(anyInt(), any());
++        assertThat(mManager.getAvailableBluetoothRoutes()).hasSize(1);
+     }
+ 
+     @Test
+     @EnableFlags(Flags.FLAG_ENABLE_FIX_MR2_DEADLOCK_ON_BT_GET_ALIAS)
+     public void getNameForBluetoothAddress_doesNotCallBluetoothStack() {
+-        mManager.start(UserHandle.ALL, mMockListener);
++        startManagerAndWaitForSnapshot();
+         clearInvocations(mMockBluetoothDevice);
+ 
+         String name = mManager.getNameForBluetoothAddress(FAKE_ADDRESS);
+@@ -171,7 +162,7 @@ public class BluetoothDeviceRoutesManagerTest {
+     @Test
+     @EnableFlags(Flags.FLAG_ENABLE_FIX_MR2_DEADLOCK_ON_BT_GET_ALIAS)
+     public void activateBluetoothDeviceWithAddress_doesNotHoldLockWhileCallingBluetoothStack() {
+-        mManager.start(UserHandle.ALL, mMockListener);
++        startManagerAndWaitForSnapshot();
+         clearInvocations(mMockBluetoothAdapter);
+         AtomicBoolean setActiveDeviceLockHeld = new AtomicBoolean(false);
+         doAnswer(
+@@ -191,7 +182,7 @@ public class BluetoothDeviceRoutesManagerTest {
+     @Test
+     @EnableFlags(Flags.FLAG_ENABLE_FIX_MR2_DEADLOCK_ON_BT_GET_ALIAS)
+     public void isMediaOnlyRouteInBroadcast_doesNotHoldLockWhileCallingBluetoothStack() {
+-        mManager.start(UserHandle.ALL, mMockListener);
++        startManagerAndWaitForSnapshot();
+         clearInvocations(mMockBluetoothProfileMonitor);
+         AtomicBoolean isMediaOnlyLockHeld = new AtomicBoolean(false);
+         doAnswer(
+@@ -211,7 +202,7 @@ public class BluetoothDeviceRoutesManagerTest {
+     @Test
+     @EnableFlags(Flags.FLAG_ENABLE_FIX_MR2_DEADLOCK_ON_BT_GET_ALIAS)
+     public void setRouteVolume_doesNotHoldLockWhileCallingBluetoothStack() {
+-        mManager.start(UserHandle.ALL, mMockListener);
++        startManagerAndWaitForSnapshot();
+         clearInvocations(mMockBluetoothProfileMonitor);
+         AtomicBoolean setDeviceVolumeLockHeld = new AtomicBoolean(false);
+         doAnswer(
+@@ -232,35 +223,25 @@ public class BluetoothDeviceRoutesManagerTest {
+     @Test
+     @EnableFlags(Flags.FLAG_ENABLE_FIX_MR2_DEADLOCK_ON_BT_GET_ALIAS)
+     public void getRouteIdForBluetoothAddress_doesNotHoldLockWhileCallingBluetoothStack() {
+-        mManager.start(UserHandle.ALL, mMockListener);
+-        clearInvocations(mMockBluetoothProfileMonitor);
+-        AtomicBoolean isProfileSupportedLockHeld = new AtomicBoolean(false);
+-        doAnswer(
+-                        invocation -> {
+-                            isProfileSupportedLockHeld.set(Thread.holdsLock(mManager.mLock));
+-                            return invocation.getArgument(0).equals(BluetoothProfile.A2DP);
+-                        })
+-                .when(mMockBluetoothProfileMonitor)
+-                .isProfileSupported(anyInt(), any());
++        startManagerAndWaitForSnapshot();
++        clearInvocations(mMockBluetoothProfileMonitor, mMockBluetoothDevice);
+ 
+-        mManager.getRouteIdForBluetoothAddress(FAKE_ADDRESS);
++        assertThat(mManager.getRouteIdForBluetoothAddress(FAKE_ADDRESS)).isEqualTo(FAKE_ADDRESS);
+ 
+-        verify(mMockBluetoothProfileMonitor, org.mockito.Mockito.atLeastOnce())
+-                .isProfileSupported(anyInt(), any());
+-        assertThat(isProfileSupportedLockHeld.get()).isFalse();
++        org.mockito.Mockito.verifyNoInteractions(mMockBluetoothProfileMonitor, mMockBluetoothDevice);
+     }
+ 
+     @Test
+     @EnableFlags(Flags.FLAG_ENABLE_FIX_MR2_DEADLOCK_ON_BT_GET_ALIAS)
+     public void getAvailableBluetoothRoutes_doesNotCallBluetoothStack() {
+-        mManager.start(UserHandle.ALL, mMockListener);
++        startManagerAndWaitForSnapshot();
+         clearInvocations(mMockBluetoothAdapter);
+         clearInvocations(mMockBluetoothDevice);
+         clearInvocations(mMockBluetoothProfileMonitor);
+ 
+         mManager.getAvailableBluetoothRoutes();
+ 
+-        verify(mMockBluetoothAdapter, never()).getBondedDevices();
++        verify(mMockBluetoothAdapter, never()).getBondedDeviceInfoAsync(any(), any());
+         verify(mMockBluetoothDevice, never()).isConnected();
+         verify(mMockBluetoothProfileMonitor, never()).isProfileSupported(anyInt(), any());
+     }
+@@ -268,7 +249,7 @@ public class BluetoothDeviceRoutesManagerTest {
+     @Test
+     @EnableFlags(Flags.FLAG_ENABLE_FIX_MR2_DEADLOCK_ON_BT_GET_ALIAS)
+     public void getBroadcastingDeviceRoutes_doesNotHoldLockWhileCallingBluetoothStack() {
+-        mManager.start(UserHandle.ALL, mMockListener);
++        startManagerAndWaitForSnapshot();
+         clearInvocations(mMockBluetoothProfileMonitor);
+         AtomicBoolean getDevicesWithBroadcastSourceLockHeld = new AtomicBoolean(false);
+         doAnswer(
+@@ -298,22 +279,132 @@ public class BluetoothDeviceRoutesManagerTest {
+ 
+     @Test
+     @EnableFlags(Flags.FLAG_ENABLE_FIX_MR2_DEADLOCK_ON_BT_GET_ALIAS)
+-    public void isLEAudioBroadcastSupported_doesNotHoldLockWhileCallingBluetoothStack() {
+-        mManager.start(UserHandle.ALL, mMockListener);
++    public void isLEAudioBroadcastSupported_usesActualAsyncReplyWithoutNewQuery() {
++        AtomicBoolean requestLockHeld = new AtomicBoolean(false);
++        doAnswer(invocation -> {
++            requestLockHeld.set(Thread.holdsLock(mManager.mLock));
++            Executor executor = invocation.getArgument(0);
++            Consumer<Integer> consumer = invocation.getArgument(1);
++            executor.execute(() -> consumer.accept(BluetoothStatusCodes.FEATURE_SUPPORTED));
++            return null;
++        }).when(mMockBluetoothAdapter).getLeAudioBroadcastSupportAsync(any(), any());
++        startManagerAndWaitForSnapshot();
++        verify(mMockBluetoothAdapter).getLeAudioBroadcastSupportAsync(any(), any());
++        assertThat(requestLockHeld.get()).isFalse();
+         clearInvocations(mMockBluetoothAdapter);
+-        AtomicBoolean isLeAudioBroadcastAssistantSupportedLockHeld = new AtomicBoolean(false);
+-        doAnswer(
+-                        invocation -> {
+-                            isLeAudioBroadcastAssistantSupportedLockHeld.set(
+-                                    Thread.holdsLock(mManager.mLock));
+-                            return android.bluetooth.BluetoothStatusCodes.FEATURE_SUPPORTED;
+-                        })
+-                .when(mMockBluetoothAdapter)
+-                .isLeAudioBroadcastAssistantSupported();
+ 
+-        mManager.isLEAudioBroadcastSupported();
++        assertThat(mManager.isLEAudioBroadcastSupported()).isTrue();
++
++        org.mockito.Mockito.verifyNoInteractions(mMockBluetoothAdapter);
++    }
++
++    @Test
++    @EnableFlags(Flags.FLAG_ENABLE_FIX_MR2_DEADLOCK_ON_BT_GET_ALIAS)
++    public void stop_lateBondedReplyDoesNotRestoreRoutes() {
++        AtomicReference<Executor> executor = new AtomicReference<>();
++        AtomicReference<Consumer<List<BluetoothBondedDeviceInfo>>> reply = new AtomicReference<>();
++        doAnswer(invocation -> {
++            executor.set(invocation.getArgument(0));
++            reply.set(invocation.getArgument(1));
++            return null;
++        }).when(mMockBluetoothAdapter).getBondedDeviceInfoAsync(any(), any());
++        mManager.start(UserHandle.ALL, mMockListener);
++        InstrumentationRegistry.getInstrumentation().waitForIdleSync();
++        mManager.stop();
++        clearInvocations(mMockListener);
++
++        executor.get().execute(() -> reply.get().accept(List.of(snapshot())));
++        InstrumentationRegistry.getInstrumentation().waitForIdleSync();
++
++        assertThat(mManager.getAvailableBluetoothRoutes()).isEmpty();
++        org.mockito.Mockito.verifyNoInteractions(mMockListener);
++    }
++
++    @Test
++    @EnableFlags(Flags.FLAG_ENABLE_FIX_MR2_DEADLOCK_ON_BT_GET_ALIAS)
++    public void snapshot_leGroupTakesPriorityAndCacheDoesNotQueryStack() {
++        doAnswer(invocation -> {
++            Executor executor = invocation.getArgument(0);
++            Consumer<List<BluetoothBondedDeviceInfo>> reply = invocation.getArgument(1);
++            executor.execute(() -> reply.accept(List.of(new BluetoothBondedDeviceInfo(
++                    mMockBluetoothDevice, FAKE_ALIAS, true,
++                    new int[] {BluetoothProfile.A2DP, BluetoothProfile.HEARING_AID,
++                            BluetoothProfile.LE_AUDIO}, 17L, 42))));
++            return null;
++        }).when(mMockBluetoothAdapter).getBondedDeviceInfoAsync(any(), any());
++        startManagerAndWaitForSnapshot();
++        clearInvocations(mMockBluetoothDevice, mMockBluetoothProfileMonitor);
++
++        assertThat(mManager.getRouteIdForBluetoothAddress(FAKE_ADDRESS)).isEqualTo("LE_AUDIO_42");
++        assertThat(mManager.getNameForBluetoothAddress(FAKE_ADDRESS)).isEqualTo(FAKE_ALIAS);
++        assertThat(mManager.getAvailableBluetoothRoutes().get(0).getType())
++                .isEqualTo(MediaRoute2Info.TYPE_BLE_HEADSET);
++        org.mockito.Mockito.verifyNoInteractions(mMockBluetoothDevice, mMockBluetoothProfileMonitor);
++    }
++
++    @Test
++    @EnableFlags(Flags.FLAG_ENABLE_FIX_MR2_DEADLOCK_ON_BT_GET_ALIAS)
++    public void snapshot_disconnectedBondStillHasNameButNoAvailableRoute() {
++        doAnswer(invocation -> {
++            Executor executor = invocation.getArgument(0);
++            Consumer<List<BluetoothBondedDeviceInfo>> reply = invocation.getArgument(1);
++            executor.execute(() -> reply.accept(List.of(new BluetoothBondedDeviceInfo(
++                    mMockBluetoothDevice, null, false, new int[0],
++                    BluetoothHearingAid.HI_SYNC_ID_INVALID, BluetoothLeAudio.GROUP_ID_INVALID))));
++            return null;
++        }).when(mMockBluetoothAdapter).getBondedDeviceInfoAsync(any(), any());
++        startManagerAndWaitForSnapshot();
++
++        assertThat(mManager.getNameForBluetoothAddress(FAKE_ADDRESS)).isEqualTo(UNKNOWN_NAME);
++        assertThat(mManager.getRouteIdForBluetoothAddress(FAKE_ADDRESS)).isEqualTo(FAKE_ADDRESS);
++        assertThat(mManager.getAvailableBluetoothRoutes()).isEmpty();
++        verify(mMockBluetoothDevice, never()).getAlias();
++        verify(mMockBluetoothDevice, never()).isConnected();
++    }
++
++    @Test
++    public void snapshot_parcelRoundTripPreservesDataAndProfileArrayIsCopied() {
++        BluetoothDevice realDevice = BluetoothAdapter.getDefaultAdapter().getRemoteDevice(FAKE_ADDRESS);
++        int[] profiles = {BluetoothProfile.HEARING_AID, BluetoothProfile.LE_AUDIO};
++        BluetoothBondedDeviceInfo info = new BluetoothBondedDeviceInfo(
++                realDevice, FAKE_ALIAS, true, profiles, 17L, 42);
++        profiles[0] = BluetoothProfile.A2DP;
++        int[] returned = info.getConnectedAudioProfiles();
++        returned[1] = BluetoothProfile.A2DP;
++        Parcel parcel = Parcel.obtain();
++        try {
++            info.writeToParcel(parcel, 0);
++            parcel.setDataPosition(0);
++            BluetoothBondedDeviceInfo copy = BluetoothBondedDeviceInfo.CREATOR.createFromParcel(parcel);
++            assertThat(copy.getDevice()).isEqualTo(realDevice);
++            assertThat(copy.getAlias()).isEqualTo(FAKE_ALIAS);
++            assertThat(copy.isConnected()).isTrue();
++            assertThat(copy.getConnectedAudioProfiles())
++                    .asList().containsExactly(BluetoothProfile.HEARING_AID, BluetoothProfile.LE_AUDIO);
++            assertThat(copy.getHearingAidSyncId()).isEqualTo(17L);
++            assertThat(copy.getLeAudioGroupId()).isEqualTo(42);
++            parcel.setDataPosition(0);
++            new BluetoothBondedDeviceInfo(realDevice, null, false, new int[0],
++                    BluetoothHearingAid.HI_SYNC_ID_INVALID, BluetoothLeAudio.GROUP_ID_INVALID)
++                    .writeToParcel(parcel, 0);
++            parcel.setDataPosition(0);
++            BluetoothBondedDeviceInfo empty = BluetoothBondedDeviceInfo.CREATOR.createFromParcel(parcel);
++            assertThat(empty.getAlias()).isNull();
++            assertThat(empty.isConnected()).isFalse();
++            assertThat(empty.getConnectedAudioProfiles()).isEmpty();
++        } finally {
++            parcel.recycle();
++        }
++    }
++
++    private BluetoothBondedDeviceInfo snapshot() {
++        return new BluetoothBondedDeviceInfo(mMockBluetoothDevice, FAKE_ALIAS, true,
++                new int[] {BluetoothProfile.A2DP}, BluetoothHearingAid.HI_SYNC_ID_INVALID,
++                BluetoothLeAudio.GROUP_ID_INVALID);
++    }
+ 
+-        verify(mMockBluetoothAdapter).isLeAudioBroadcastAssistantSupported();
+-        assertThat(isLeAudioBroadcastAssistantSupportedLockHeld.get()).isFalse();
++    private void startManagerAndWaitForSnapshot() {
++        mManager.start(UserHandle.ALL, mMockListener);
++        InstrumentationRegistry.getInstrumentation().waitForIdleSync();
+     }
+ }
 diff --git a/services/tests/servicestests/Android.bp b/services/tests/servicestests/Android.bp
 index 6bd823b53e8a..e7b18ec22664 100644
 --- a/services/tests/servicestests/Android.bp

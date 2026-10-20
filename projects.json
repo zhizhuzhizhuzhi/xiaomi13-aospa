@@ -64,6 +64,9 @@
       "overlays/Frameworks/res/values/dimens.xml"
     ],
     "overlay": [
+      "build/release/aconfig/bluetooth_async_bonded_snapshot.textproto",
+      "build/release/aconfig/bluetooth_async_broadcast_support.textproto",
+      "build/release/aconfig/bluetooth_async_snapshot.textproto",
       "build/release/aconfig/dmabuf_iterator.textproto",
       "build/release/aconfig/transition_surface_cleanup.textproto",
       "build/release/release_config_map.textproto",
@@ -212,6 +215,7 @@
       "data/etc/privapp-permissions-platform.xml",
       "libs/WindowManager/Shell/src/com/android/wm/shell/ShellTaskOrganizer.java",
       "libs/WindowManager/Shell/src/com/android/wm/shell/transition/Transitions.java",
+      "packages/SettingsLib/src/com/android/settingslib/bluetooth/BluetoothUtils.java",
       "packages/SettingsLib/src/com/android/settingslib/development/SystemPropPoker.java",
       "packages/SettingsLib/tests/robotests/src/com/android/settingslib/development/SystemPropPokerTest.java",
       "packages/SystemUI/multivalentTests/src/com/android/systemui/biometrics/UdfpsControllerTest.java",
@@ -281,7 +285,9 @@
       "services/core/java/com/android/server/am/ContentProviderHelper.java",
       "services/core/java/com/android/server/am/CoreSettingsObserver.java",
       "services/core/java/com/android/server/am/ProcessList.java",
+      "services/core/java/com/android/server/audio/AudioDeviceBroker.java",
       "services/core/java/com/android/server/audio/AudioService.java",
+      "services/core/java/com/android/server/audio/BtHelper.java",
       "services/core/java/com/android/server/biometrics/sensors/face/FaceService.java",
       "services/core/java/com/android/server/connectivity/NetdEventListenerService.java",
       "services/core/java/com/android/server/devicestate/DeviceStateManagerService.java",
@@ -300,6 +306,7 @@
       "services/core/java/com/android/server/lineage/health/ccprovider/Deadline.java",
       "services/core/java/com/android/server/lineage/health/ccprovider/Limit.java",
       "services/core/java/com/android/server/lineage/health/ccprovider/Toggle.java",
+      "services/core/java/com/android/server/media/BluetoothDeviceRoutesManager.java",
       "services/core/java/com/android/server/pm/KillAppBlocker.java",
       "services/core/java/com/android/server/pm/PackageInstallerService.java",
       "services/core/java/com/android/server/pm/PackageInstallerSession.java",
@@ -324,6 +331,7 @@
       "services/core/jni/onload.cpp",
       "services/java/com/android/server/SystemServer.java",
       "services/tests/displayservicetests/src/com/android/server/display/brightness/strategy/AutomaticBrightnessStrategyTest.java",
+      "services/tests/media/mediarouterservicetest/src/com/android/server/media/BluetoothDeviceRoutesManagerTest.java",
       "services/tests/servicestests/Android.bp",
       "services/tests/servicestests/src/com/android/server/biometrics/sensors/fingerprint/aidl/SensorTest.java"
     ],
@@ -550,6 +558,28 @@
       "src/com/android/settings/fuelgauge/batteryusage/db/BatteryStateDatabase.java"
     ],
     "overlay": []
+  },
+  {
+    "path": "packages/modules/Bluetooth",
+    "revision": "9c594d1eb40657ca6d1bc392d085b88807fed29d",
+    "patch": "patches/packages__modules__Bluetooth.patch",
+    "files": [
+      "android/app/aidl/Android.bp",
+      "android/app/aidl/android/bluetooth/IBluetooth.aidl",
+      "android/app/src/com/android/bluetooth/btservice/AdapterServiceBinder.java",
+      "flags/framework.aconfig",
+      "framework/api/module-lib-current.txt",
+      "framework/java/android/bluetooth/BluetoothAdapter.java",
+      "service/src/ShellCommand.kt",
+      "system/gd/os/linux_generic/files.cc"
+    ],
+    "overlay": [
+      "android/app/aidl/android/bluetooth/BluetoothBondedDeviceInfo.aidl",
+      "android/app/aidl/android/bluetooth/IBluetoothActiveDevicesCallback.aidl",
+      "android/app/aidl/android/bluetooth/IBluetoothBondedDevicesCallback.aidl",
+      "android/app/aidl/android/bluetooth/IBluetoothLeAudioBroadcastSupportCallback.aidl",
+      "framework/java/android/bluetooth/BluetoothBondedDeviceInfo.java"
+    ]
   },
   {
     "path": "packages/modules/Connectivity",

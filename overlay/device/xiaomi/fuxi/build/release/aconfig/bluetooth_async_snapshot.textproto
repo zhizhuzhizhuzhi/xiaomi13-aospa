@@ -1,0 +1,8 @@
+# SPDX-License-Identifier: Apache-2.0
+# Enable the module API used by this product's asynchronous Bluetooth audio snapshot path.
+flag_value {
+    package: "com.android.bluetooth.flags"
+    name: "async_active_device_snapshot"
+    state: ENABLED
+    permission: READ_ONLY
+}
