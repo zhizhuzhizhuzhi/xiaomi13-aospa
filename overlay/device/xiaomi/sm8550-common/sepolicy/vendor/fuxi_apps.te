@@ -1,11 +1,16 @@
 # Only the stock platform-signed camera may call Xiaomi MIVI directly.
 hal_client_domain(fuxi_camera_app, vendor_hal_camerapostproc_xiaomi)
+hal_client_domain(fuxi_camera_app, vendor_hal_perf)
+hal_client_domain(fuxi_camera_app, vendor_hal_dspmanager)
 binder_call(fuxi_camera_app, hal_camera_default)
 allow fuxi_camera_app hal_camera_default:fd use;
 get_prop(fuxi_camera_app, vendor_camera_prop)
 get_prop(fuxi_camera_app, vendor_fp_prop)
 get_prop(fuxi_camera_app, vendor_display_prop)
+get_prop(fuxi_camera_app, vendor_displayfeature_prop)
 get_prop(fuxi_camera_app, vendor_panel_info_prop)
+# SNPE probes DSP search directories; firmware file reads stay in the DSP service.
+allow fuxi_camera_app adsprpcd_file:dir r_dir_perms;
 # Only the platform-signed Soter frontend receives these Soter/UDFPS grants.
 hal_client_domain(fuxi_soter_app, vendor_hal_soter)
 get_prop(fuxi_soter_app, vendor_fp_prop)

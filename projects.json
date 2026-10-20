@@ -27,10 +27,15 @@
       "sepolicy/generic/vendor/common/vndservice_contexts",
       "sepolicy/qva/vendor/common/hwservice_contexts",
       "sepolicy/qva/vendor/common/ssgtzd.te",
+      "vendor/init/init.qcom.early_boot.legacy.sh",
+      "vendor/init/init.qcom.rc",
       "vendor/init/init.qti.kernel.rc",
       "vendor/init/kalama/bin/init.kernel.post_boot-kalama_default_3_4_1.sh",
+      "vendor/init/kalama/bin/init.kernel.post_boot.sh",
+      "vendor/init/kalama/etc/init/init.aospa.perf.soc.rc",
       "vendor/init/qti-init.mk",
       "vendor/init/system_dlkm_modprobe.sh",
+      "vendor/perf/configs/kalama/perf/perfconfigstore.xml",
       "vendor/perf/qti-perf.mk"
     ],
     "overlay": []
@@ -40,6 +45,7 @@
     "revision": "e4732e532ed97ed8220b1e19f8933c0c68e00949",
     "patch": "patches/device__qcom__sepolicy.patch",
     "files": [
+      "generic/private/system_server.te",
       "generic/product/private/isolated_compute_app.te"
     ],
     "overlay": []
@@ -49,6 +55,7 @@
     "revision": "f4b3ea7a50431d0868f1948ea93ec17884434a5e",
     "patch": "patches/device__xiaomi__fuxi.patch",
     "files": [
+      "Android.bp",
       "BoardConfig.mk",
       "configs/properties/odm.prop",
       "configs/properties/vendor.prop",
@@ -56,7 +63,24 @@
       "overlays/Frameworks/res/values/config.xml",
       "overlays/Frameworks/res/values/dimens.xml"
     ],
-    "overlay": []
+    "overlay": [
+      "build/release/aconfig/dmabuf_iterator.textproto",
+      "build/release/aconfig/transition_surface_cleanup.textproto",
+      "build/release/release_config_map.textproto",
+      "build/release/release_configs/cp2a.textproto",
+      "configs/sysconfig/workloadclassifier.xml",
+      "overlays/GoogleServices/Android.bp",
+      "overlays/GoogleServices/AndroidManifest.xml",
+      "overlays/GoogleServices/res/values/config.xml",
+      "powerstats/Android.bp",
+      "powerstats/PowerStats.cpp",
+      "powerstats/Stats.h",
+      "powerstats/StatsTest.cpp",
+      "powerstats/powerstats.rc",
+      "powerstats/powerstats.xml",
+      "sepolicy/vendor/file_contexts",
+      "sepolicy/vendor/hal_power_stats_default.te"
+    ]
   },
   {
     "path": "device/xiaomi/sepolicy",
@@ -66,6 +90,7 @@
       "vendor/hal_citsensorservice_xiaomi.te",
       "vendor/hal_display_config.te",
       "vendor/hal_displayfeature_xiaomi.te",
+      "vendor/property_contexts",
       "vendor/radio.te"
     ],
     "overlay": []
@@ -77,24 +102,52 @@
     "files": [
       "BoardConfigCommon.mk",
       "common.mk",
+      "configs/properties/vendor.prop",
       "configs/vintf/framework_matrix_xiaomi.xml",
       "configs/vintf/manifest_kalama.xml",
+      "init/Android.bp",
       "init/init_xiaomi8550.cpp",
       "overlays/CarrierConfigRes/res/xml/vendor.xml",
       "proprietary-files.txt",
+      "sensors/AodNotifier.cpp",
+      "sensors/NonUiNotifier.cpp",
+      "sensors/SensorNotifierUtils.cpp",
+      "sensors/SensorNotifierUtils.h",
+      "sepolicy/private/parts_app.te",
       "sepolicy/private/seapp_contexts",
+      "sepolicy/vendor/file.te",
+      "sepolicy/vendor/file_contexts",
+      "sepolicy/vendor/genfs_contexts",
+      "sepolicy/vendor/hal_camera_default.te",
       "sepolicy/vendor/hal_fingerprint.te",
       "sepolicy/vendor/hal_lineage_health.te",
-      "sepolicy/vendor/hal_usb.te"
+      "sepolicy/vendor/hal_usb.te",
+      "sepolicy/vendor/hwservice_contexts",
+      "sepolicy/vendor/vendor_init.te",
+      "sepolicy/vendor/wcnss_service.te"
     ],
     "overlay": [
+      "configs/permissions/qti-uce-shared-libraries.xml",
+      "init/ueventd.fuxi.stats.rc",
       "qesdk-compat/Android.mk",
+      "qspm-v2/provenance.json",
+      "qspm-v2/snapdragon_services.rc",
+      "qspm-v2/snapdragon_services.xml",
+      "sepolicy/private/cameraserver.te",
       "sepolicy/private/device_as_webcam.te",
       "sepolicy/private/fuxi_apps.te",
+      "sepolicy/private/property_contexts",
       "sepolicy/public/fuxi_apps.te",
       "sepolicy/vendor/fuxi_apps.te",
       "sepolicy/vendor/hal_aospa_health.te",
+      "sepolicy/vendor/hal_audio_default.te",
+      "sepolicy/vendor/hal_fingerprint_default.te",
+      "sepolicy/vendor/hal_gnss_qti.te",
+      "sepolicy/vendor/hal_mtdservice.te",
+      "sepolicy/vendor/hal_poweroptservice.te",
+      "sepolicy/vendor/hal_qesdhal_hwservice.te",
       "sepolicy/vendor/system_app.te",
+      "sepolicy/vendor/ueventd.te",
       "sepolicy/vendor/vendor_modem_manager.te",
       "sepolicy/vendor/vendor_qms.te",
       "sepolicy/vendor/vndservice.te",
@@ -219,6 +272,7 @@
     "patch": "patches/hardware__qcom__display.patch",
     "files": [
       "composer/Android.bp",
+      "init/init.qti.display_boot.sh",
       "qmaa/Android.bp"
     ],
     "overlay": []
@@ -356,6 +410,7 @@
     "revision": "fde67cc7164e896cf93ecde221dc03f0f3aba81a",
     "patch": "patches/packages__apps__ParanoidSettings.patch",
     "files": [
+      "src/co/aospa/settings/lineage/health/ChargingControlPreferenceController.java",
       "src/co/aospa/settings/lineage/health/ChargingControlSettings.java",
       "src/co/aospa/settings/lineage/health/ChargingLimitPreference.java",
       "src/co/aospa/settings/lineage/health/ChargingSpeedPreferenceController.java",
@@ -465,6 +520,7 @@
       "interfaces/health/vendor/lineage/health/FastChargeMode.aidl",
       "interfaces/health/vendor/lineage/health/IChargingControl.aidl",
       "interfaces/health/vendor/lineage/health/IFastCharge.aidl",
+      "overlay/AOSPAFrameworksOverlay/res/values/config.xml",
       "products/fuxi/aospa_fuxi.mk",
       "sepolicy/private/platform_app.te",
       "sepolicy/private/service.te",
@@ -508,6 +564,24 @@
     ]
   },
   {
+    "path": "vendor/google/gms",
+    "revision": "0d74a542fa1c1bb2e269cbaf8f565031c0c12056",
+    "patch": "patches/vendor__google__gms.patch",
+    "files": [
+      "proprietary/product/etc/permissions/privapp-permissions-google-product.xml"
+    ],
+    "overlay": []
+  },
+  {
+    "path": "vendor/google/pixel",
+    "revision": "d56538f76100412db88881a430723b5ea1804d55",
+    "patch": "patches/vendor__google__pixel.patch",
+    "files": [
+      "proprietary/product/etc/permissions/privapp-permissions-google-p.xml"
+    ],
+    "overlay": []
+  },
+  {
     "path": "vendor/milahaina/facehal",
     "revision": "70a026654b2d739631b47579dbad12ba4f229c1e",
     "patch": "patches/vendor__milahaina__facehal.patch",
@@ -536,7 +610,6 @@
       "vendor/display/5.15/Android.bp",
       "vendor/perf/Android.bp",
       "vendor/perf/perf-vendor.mk",
-      "vendor/perf/proprietary/vendor/bin/vendor.qti.qspmhal-service",
       "vendor/wlan/Android.bp"
     ],
     "overlay": []
@@ -574,7 +647,11 @@
     "revision": "e6606b4637b49ca0d993661015689bcad2d9f46c",
     "patch": "patches/vendor__qcom__opensource__thermal-hal.patch",
     "files": [
-      "android.hardware.thermal-service.qti.rc"
+      "android.hardware.thermal-service.qti.rc",
+      "thermalCommon.cpp",
+      "thermalConfig.cpp",
+      "thermalUtils.cpp",
+      "thermalUtilsNetlink.cpp"
     ],
     "overlay": []
   },
@@ -585,6 +662,15 @@
     "files": [
       "Kbuild",
       "Makefile"
+    ],
+    "overlay": []
+  },
+  {
+    "path": "vendor/qcom/proprietary/devicetree",
+    "revision": "ef494eb308f2136fef81f8957777492c3aed149d",
+    "patch": "patches/vendor__qcom__proprietary__devicetree.patch",
+    "files": [
+      "qcom/fuxi-sm8550.dtsi"
     ],
     "overlay": []
   },

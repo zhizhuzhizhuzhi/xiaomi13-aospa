@@ -1,0 +1,21 @@
+// Copyright (C) 2026 Paranoid Android
+// SPDX-License-Identifier: Apache-2.0
+cc_binary {
+    name: "android.hardware.power.stats-service.fuxi",
+    vendor: true,
+    compile_multilib: "64",
+    relative_install_path: "hw",
+    srcs: ["PowerStats.cpp"],
+    shared_libs: ["libbase", "libbinder_ndk", "android.hardware.power.stats-V2-ndk"],
+    init_rc: ["powerstats.rc"],
+    vintf_fragments: ["powerstats.xml"],
+    cflags: ["-Wall", "-Wextra", "-Werror"],
+}
+cc_test {
+    name: "FuxiSleepStatsTest",
+    srcs: ["StatsTest.cpp"],
+    vendor: true,
+    compile_multilib: "64",
+    cflags: ["-Wall", "-Wextra", "-Werror"],
+    test_suites: ["device-tests"],
+}

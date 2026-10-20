@@ -1,0 +1,5 @@
+# Copyright (C) 2026 Paranoid Android
+# SPDX-License-Identifier: Apache-2.0
+
+# Native camera clients query the shared graphics/post-processing capability.
+get_prop(cameraserver, vendor_sys_gpp_prop)

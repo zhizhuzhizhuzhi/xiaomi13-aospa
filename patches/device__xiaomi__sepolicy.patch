@@ -37,6 +37,29 @@ index c492bd7..ff22bbe 100644
  allow vendor_hal_displayfeature_xiaomi_default vendor_display_vendor_data_file:dir create_dir_perms;
  allow vendor_hal_displayfeature_xiaomi_default vendor_display_vendor_data_file:file create_file_perms;
  allow vendor_hal_displayfeature_xiaomi_default vendor_displayfeature_device:chr_file { ioctl open read write };
+diff --git a/vendor/property_contexts b/vendor/property_contexts
+index cbd4e0f..9ecab62 100644
+--- a/vendor/property_contexts
++++ b/vendor/property_contexts
+@@ -95,7 +95,7 @@ ro.vendor.video.style.by.layer.support          u:object_r:vendor_displayfeature
+ ro.vendor.video_box.version                     u:object_r:vendor_displayfeature_prop:s0
+ ro.vendor.whitepoint_calibration_enable         u:object_r:vendor_displayfeature_prop:s0
+ ro.vendor.xiaomi.bl.poll                        u:object_r:vendor_displayfeature_prop:s0
+-vendor.display.enable_fb_scaling                u:object_r:vendor_displayfeature_prop:s0
++vendor.display.enable_fb_scaling                u:object_r:vendor_display_prop:s0 exact bool
+ vendor.display.resolution_aosp                  u:object_r:vendor_displayfeature_prop:s0
+ vendor.displayfeature.entry.enable              u:object_r:vendor_displayfeature_prop:s0
+ vendor.hbm.enable                               u:object_r:vendor_displayfeature_prop:s0
+@@ -141,3 +141,9 @@ persist.vendor.touchfeature.                    u:object_r:vendor_touchfeature_p
+ ro.vendor.touchfeature.type                     u:object_r:vendor_touchfeature_prop:s0
+ vendor.panel.                                   u:object_r:vendor_panel_info_prop:s0
+ vendor.touchfeature.                            u:object_r:vendor_touchfeature_prop:s0
++
++# Real MTD security/provisioning results use its existing payment-security property policy.
++vendor.sys.rpmb_state u:object_r:vendor_payment_security_prop:s0 exact string
++vendor.sys.feature_state u:object_r:vendor_payment_security_prop:s0 exact string
++persist.vendor.sys.provision.status u:object_r:vendor_payment_security_prop:s0 exact string
++persist.vendor.sys.attestation.status u:object_r:vendor_payment_security_prop:s0 exact string
 diff --git a/vendor/radio.te b/vendor/radio.te
 index ea40149..e92d293 100644
 --- a/vendor/radio.te

@@ -1,0 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
+name: "cp2a"
+aconfig_value_sets: "//device/xiaomi/fuxi:aconfig_value_set-fuxi_kernel_capabilities"
+aconfig_value_sets: "//device/xiaomi/fuxi:aconfig_value_set-fuxi_window_lifecycle"

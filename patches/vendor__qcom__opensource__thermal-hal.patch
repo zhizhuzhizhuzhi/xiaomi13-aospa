@@ -8,3 +8,216 @@ index 1311e23..888f276 100644
      wait /sys/kernel/boot_adsp/boot
 -    restart android.thermal-hal
 +    restart vendor.thermal-hal
+diff --git a/thermalCommon.cpp b/thermalCommon.cpp
+index eeaafaa..9a95fd2 100644
+--- a/thermalCommon.cpp
++++ b/thermalCommon.cpp
+@@ -34,6 +34,10 @@ Copyright (c) 2023-2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ SPDX-License-Identifier: BSD-3-Clause-Clear */
+ 
+ #include <cstdio>
++#include <cerrno>
++#include <climits>
++#include <cstdlib>
++#include <cctype>
+ #include <cinttypes>
+ #include <string>
+ #include <dirent.h>
+@@ -164,12 +168,14 @@ static int readLineFromFile(std::string_view path, std::string& out)
+ 		return -errno;
+ 	}
+ 
++	errno = 0;
+ 	fgets_ret = fgets(buf, MAX_LENGTH, fd);
+ 	if (NULL != fgets_ret) {
+ 		rv = (int)strlen(buf);
+ 		out.append(buf, rv);
+ 	} else {
+-		rv = ferror(fd);
++		// ferror is a flag, not a byte count or an errno.
++		rv = ferror(fd) ? -(errno ? errno : EIO) : 0;
+ 	}
+ 
+ 	fclose(fd);
+@@ -249,6 +255,7 @@ static int get_tzn(std::string sensor_name)
+ int ThermalCommon::initialize_sensor(struct target_therm_cfg& cfg, int sens_idx)
+ {
+ 	struct therm_sensor sensor;
++	sensor.t.value = UNKNOWN_TEMPERATURE;
+ 	int idx = 0;
+ 
+ 	sensor.tzn = get_tzn(cfg.sensor_list[sens_idx]);
+@@ -437,6 +444,9 @@ int ThermalCommon::estimateSeverity(struct therm_sensor& sensor)
+ 	int idx = 0;
+ 	ThrottlingSeverity severity = ThrottlingSeverity::NONE;
+ 	float temp = sensor.t.value;
++	// An unavailable sample must not clear an existing thermal restriction.
++	if (!std::isfinite(temp))
++		return -1;
+ 	int hysteresis = (sensor.thresh.type == TemperatureType::SKIN) ?
+ 				DEFAULT_SKIN_HYSTERESIS : DEFAULT_HYSTERESIS;
+ 
+@@ -507,37 +517,32 @@ int ThermalCommon::estimateSeverity(struct therm_sensor& sensor)
+ int ThermalCommon::read_temperature(struct therm_sensor& sensor)
+ {
+ 	char file_name[MAX_PATH];
+-	float temp;
+ 	std::string buf;
+-	int ret = 0, ct = 0;
+-	bool read_ok = false;
+ 
+-	do {
+-		snprintf(file_name, sizeof(file_name), TEMPERATURE_FILE_FORMAT,
+-			sensor.tzn);
+-		ret = readLineFromFile(std::string(file_name), buf);
+-		if (ret <= 0) {
+-			LOG(ERROR) << "Temperature read error:"<< ret <<
+-				" for sensor " << sensor.t.name;
+-			return -1;
+-		}
+-		try {
+-			sensor.t.value = (float)std::stoi(buf, nullptr, 0) /
+-				 (float)sensor.mulFactor;
+-			read_ok = true;
+-		}
+-		catch (std::exception &err) {
+-			LOG(ERROR) << "Temperature buf stoi error: "
+-				<< err.what()
+-				<< " buf:" << buf << " sensor:"
+-				<< sensor.t.name << " TZ:" <<
+-				sensor.tzn << std::endl;
+-		}
+-		ct++;
+-	} while (!read_ok && ct < RETRY_CT);
+-	LOG(DEBUG) << "Sensor Name:" << sensor.t.name << ". Temperature:" <<
+-		(float)sensor.t.value << std::endl;
++	// AIDL Temperature specifies NaN for unavailable readings, never cached zero.
++	sensor.t.value = UNKNOWN_TEMPERATURE;
++	snprintf(file_name, sizeof(file_name), TEMPERATURE_FILE_FORMAT, sensor.tzn);
++	const int ret = readLineFromFile(std::string(file_name), buf);
++	if (ret <= 0) {
++		LOG(ERROR) << "Temperature read error:" << ret << " for sensor " << sensor.t.name;
++		return ret < 0 ? ret : -ENODATA;
++	}
+ 
++	errno = 0;
++	char* end = nullptr;
++	const long value = std::strtol(buf.c_str(), &end, 10);
++	if (errno == ERANGE || end == buf.c_str() || value < INT_MIN || value > INT_MAX) {
++		LOG(ERROR) << "Invalid temperature: " << buf << " for sensor " << sensor.t.name;
++		return -EINVAL;
++	}
++	while (*end && std::isspace(static_cast<unsigned char>(*end)))
++		++end;
++	if (*end || sensor.mulFactor <= 0) {
++		LOG(ERROR) << "Invalid temperature or scale for sensor " << sensor.t.name;
++		return -EINVAL;
++	}
++	sensor.t.value = static_cast<float>(value) / static_cast<float>(sensor.mulFactor);
++	LOG(DEBUG) << "Sensor Name:" << sensor.t.name << ". Temperature:" << sensor.t.value;
+ 	return ret;
+ }
+ 
+diff --git a/thermalConfig.cpp b/thermalConfig.cpp
+index 62a2959..4ed46c3 100644
+--- a/thermalConfig.cpp
++++ b/thermalConfig.cpp
+@@ -34,6 +34,7 @@
+ 
+ #include <unordered_map>
+ #include <android-base/logging.h>
++#include <android-base/properties.h>
+ #include <aidl/android/hardware/thermal/BnThermal.h>
+ 
+ #include "thermalData.h"
+@@ -3756,6 +3757,21 @@ namespace thermal {
+ 		{568, std::make_pair("IDP", ravelin_specific_idp)},
+ 	};
+ 
++        // Fuxi's board thermistor is named quiet_therm in its device tree.
++        // Keep this correction device-specific; other Kalama boards retain
++        // their own sensor mapping, thresholds and event-driven monitoring.
++        void configureFuxiSensors(std::string_view device, int socId,
++                        std::vector<struct target_therm_cfg>& conf)
++        {
++                if (device != "fuxi" || socId != 519)
++                        return;
++                for (auto& sensor : conf) {
++                        if (sensor.type == TemperatureType::SKIN &&
++                            sensor.sensor_list == std::vector<std::string>{"skin-msm-therm"})
++                                sensor.sensor_list = {"quiet_therm"};
++                }
++        }
++
+ 	std::vector<struct target_therm_cfg> add_target_config(
+ 			int socID, std::string hwPlatform, int lp,
+ 			std::vector<struct target_therm_cfg> conf)
+@@ -3856,6 +3872,8 @@ namespace thermal {
+ 			return;
+ 		}
+ 		thermalConfig = add_target_config(soc_id, hwPlatform, limitp, it->second);
++                configureFuxiSensors(::android::base::GetProperty(
++                        "ro.product.vendor.device", ""), soc_id, thermalConfig);
+ 
+ 		for (it_vec = thermalConfig.begin();
+ 				it_vec != thermalConfig.end(); it_vec++) {
+diff --git a/thermalUtils.cpp b/thermalUtils.cpp
+index c861645..5cf1804 100644
+--- a/thermalUtils.cpp
++++ b/thermalUtils.cpp
+@@ -160,9 +160,9 @@ int ThermalUtils::readTemperatures(std::vector<Temperature>& temp)
+ 		struct therm_sensor& sens = it->second;
+ 
+ 		ret = cmnInst.read_temperature(sens);
+-		if (ret < 0)
+-			return ret;
+-		Notify(sens);
++		if (ret > 0)
++			Notify(sens);
++		// Failed sensors carry NaN; valid sensors and previous severity survive.
+ 		_temp.push_back(sens.t);
+ 	}
+ 
+@@ -184,9 +184,9 @@ int ThermalUtils::readTemperatures(TemperatureType type,
+ 		if (sens.t.type != type)
+ 			continue;
+ 		ret = cmnInst.read_temperature(sens);
+-		if (ret < 0)
+-			return ret;
+-		Notify(sens);
++		if (ret > 0)
++			Notify(sens);
++		// Failed sensors carry NaN; valid sensors and previous severity survive.
+ 		_temp.push_back(sens.t);
+ 	}
+ 
+diff --git a/thermalUtilsNetlink.cpp b/thermalUtilsNetlink.cpp
+index af0c06c..0243439 100644
+--- a/thermalUtilsNetlink.cpp
++++ b/thermalUtilsNetlink.cpp
+@@ -258,9 +258,9 @@ int ThermalUtils::readTemperatures(std::vector<Temperature>& temp)
+ 		struct therm_sensor& sens = it->second;
+ 
+ 		ret = cmnInst.read_temperature(sens);
+-		if (ret < 0)
+-			return ret;
+-		Notify(sens);
++		if (ret > 0)
++			Notify(sens);
++		// Failed sensors carry NaN; valid sensors and previous severity survive.
+ 		_temp.push_back(sens.t);
+ 	}
+ 
+@@ -282,9 +282,9 @@ int ThermalUtils::readTemperatures(TemperatureType type,
+ 		if (sens.t.type != type)
+ 			continue;
+ 		ret = cmnInst.read_temperature(sens);
+-		if (ret < 0)
+-			return ret;
+-		Notify(sens);
++		if (ret > 0)
++			Notify(sens);
++		// Failed sensors carry NaN; valid sensors and previous severity survive.
+ 		_temp.push_back(sens.t);
+ 	}
+ 

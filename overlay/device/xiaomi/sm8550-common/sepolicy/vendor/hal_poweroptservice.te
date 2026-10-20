@@ -1,0 +1,2 @@
+# AIDL service registration requires the standard service-manager Binder handshake.
+binder_use(vendor_hal_poweroptservice_qti)

@@ -59,10 +59,21 @@ index 2f22600..2c839fc 100644
 +# Use the Skia Vulkan backend for HWUI.
 +TARGET_USES_VULKAN := true
 diff --git a/common.mk b/common.mk
-index 361ae3b..328efce 100644
+index 361ae3b..705526a 100644
 --- a/common.mk
 +++ b/common.mk
-@@ -185,7 +185,7 @@ PRODUCT_COPY_FILES += \
+@@ -159,6 +159,10 @@ PRODUCT_PACKAGES += \
+     android.hardware.health-service.qti \
+     android.hardware.health-service.qti_recovery
+ 
++# Qualcomm UCE interfaces used by the installed RCS shim
++PRODUCT_COPY_FILES += \
++    $(LOCAL_PATH)/configs/permissions/qti-uce-shared-libraries.xml:$(TARGET_COPY_OUT_SYSTEM_EXT)/etc/permissions/qti-uce-shared-libraries.xml
++
+ # Hotword Enrollement
+ PRODUCT_COPY_FILES += \
+     $(LOCAL_PATH)/configs/permissions/privapp-permissions-hotword.xml:$(TARGET_COPY_OUT_PRODUCT)/etc/permissions/privapp-permissions-hotword.xml
+@@ -185,7 +189,7 @@ PRODUCT_COPY_FILES += \
  
  # Lineage Health
  PRODUCT_PACKAGES += \
@@ -71,7 +82,7 @@ index 361ae3b..328efce 100644
  
  # Logging
  SPAMMY_LOG_TAGS := \
-@@ -223,8 +223,8 @@ PRODUCT_PACKAGES += \
+@@ -223,8 +227,8 @@ PRODUCT_PACKAGES += \
      IFAAService
  
  # NFC
@@ -82,7 +93,7 @@ index 361ae3b..328efce 100644
  
  PRODUCT_COPY_FILES += \
      frameworks/native/data/etc/android.hardware.nfc.ese.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/android.hardware.nfc.ese.xml \
-@@ -289,7 +289,7 @@ PRODUCT_COPY_FILES += \
+@@ -289,7 +293,7 @@ PRODUCT_COPY_FILES += \
  
  # Thermal
  PRODUCT_PACKAGES += \
@@ -91,13 +102,25 @@ index 361ae3b..328efce 100644
  
  # Touchscreen
  PRODUCT_COPY_FILES += \
-@@ -333,3 +333,6 @@ PRODUCT_COPY_FILES += \
+@@ -333,3 +337,6 @@ PRODUCT_COPY_FILES += \
      frameworks/native/data/etc/android.hardware.wifi.rtt.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/android.hardware.wifi.rtt.xml \
      frameworks/native/data/etc/android.hardware.wifi.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/android.hardware.wifi.xml \
      frameworks/native/data/etc/android.software.ipsec_tunnels.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/android.software.ipsec_tunnels.xml
 +
 +# Stock QESDK environment checks require both original ABI files.
 +PRODUCT_PACKAGES += fuxi_qesdk_env_lib32 fuxi_qesdk_env_manager32
+diff --git a/configs/properties/vendor.prop b/configs/properties/vendor.prop
+index fd0c3a6..de97d17 100644
+--- a/configs/properties/vendor.prop
++++ b/configs/properties/vendor.prop
+@@ -67,7 +67,6 @@ ro.vendor.se.type=HCE,UICC
+ 
+ # Telephony
+ persist.vendor.radio.redir_party_num=0
+-ro.vendor.radio.build_profile=u-stable
+ 
+ # USB
+ ro.usb.uvc.enabled=true
 diff --git a/configs/vintf/framework_matrix_xiaomi.xml b/configs/vintf/framework_matrix_xiaomi.xml
 index b3662bd..dfa170d 100644
 --- a/configs/vintf/framework_matrix_xiaomi.xml
@@ -155,6 +178,34 @@ index 5cf8848..fce3aef 100644
      -->
      <!-- Trusted UI HAL Service -->
      <hal format="hidl">
+diff --git a/init/Android.bp b/init/Android.bp
+index e87d28f..b2d2a91 100644
+--- a/init/Android.bp
++++ b/init/Android.bp
+@@ -41,7 +41,10 @@ prebuilt_etc {
+ prebuilt_etc {
+     name: "ueventd.xiaomi.rc",
+     filename: "ueventd.rc",
+-    src: "ueventd.xiaomi.rc",
++    src: select(soong_config_variable("xiaomi_fuxi", "power_stats"), {
++        true: ":ueventd_xiaomi_fuxi",
++        default: "ueventd.xiaomi.rc",
++    }),
+     device_specific: true,
+ }
+ 
+@@ -55,3 +58,11 @@ cc_library_static {
+         "system/core/init"
+     ]
+ }
++
++// Keep one install provider for both target-files and the generated ODM image.
++genrule {
++    name: "ueventd_xiaomi_fuxi",
++    srcs: ["ueventd.xiaomi.rc", "ueventd.fuxi.stats.rc"],
++    out: ["ueventd.fuxi.generated.rc"],
++    cmd: "cat $(in) > $(out)",
++}
 diff --git a/init/init_xiaomi8550.cpp b/init/init_xiaomi8550.cpp
 index 07036e6..57b1368 100644
 --- a/init/init_xiaomi8550.cpp
@@ -176,7 +227,7 @@ index 07036e6..57b1368 100644
      // Override device specific props
      set_build_prop("ro.build.product", sku);
 diff --git a/overlays/CarrierConfigRes/res/xml/vendor.xml b/overlays/CarrierConfigRes/res/xml/vendor.xml
-index da45bf8..de454db 100644
+index da45bf8..00ddcee 100644
 --- a/overlays/CarrierConfigRes/res/xml/vendor.xml
 +++ b/overlays/CarrierConfigRes/res/xml/vendor.xml
 @@ -1453,6 +1453,13 @@
@@ -193,7 +244,21 @@ index da45bf8..de454db 100644
          <boolean name="carrier_volte_available_bool" value="true" />
          <boolean name="carrier_vt_available_bool" value="true" />
          <boolean name="carrier_wfc_ims_available_bool" value="true" />
-@@ -1560,6 +1567,13 @@
+@@ -1521,6 +1528,13 @@
+         <boolean name="vonr_setting_visibility_bool" value="false" />
+     </carrier_config>
+     <carrier_config mcc="460" mnc="01">
++        <!-- Match the NR signal-bar scale used by the China Mobile profiles. -->
++        <int-array name="5g_nr_ssrsrp_thresholds_int_array" num="4">
++            <item value="-115" />
++            <item value="-105" />
++            <item value="-95" />
++            <item value="-85" />
++        </int-array>
+         <boolean name="notify_video_call_failed" value="true" />
+         <boolean name="carrier_volte_available_bool" value="true" />
+         <boolean name="carrier_vt_available_bool" value="true" />
+@@ -1560,6 +1574,13 @@
          <boolean name="vonr_enabled_bool" value="true" />
      </carrier_config>
      <carrier_config mcc="460" mnc="02">
@@ -207,7 +272,7 @@ index da45bf8..de454db 100644
          <boolean name="carrier_volte_available_bool" value="true" />
          <boolean name="carrier_vt_available_bool" value="true" />
          <boolean name="carrier_wfc_ims_available_bool" value="true" />
-@@ -1681,6 +1695,13 @@
+@@ -1681,6 +1702,13 @@
          <boolean name="vonr_setting_visibility_bool" value="false" />
      </carrier_config>
      <carrier_config mcc="460" mnc="04">
@@ -221,7 +286,21 @@ index da45bf8..de454db 100644
          <boolean name="carrier_volte_available_bool" value="true" />
          <boolean name="carrier_vt_available_bool" value="true" />
          <boolean name="carrier_wfc_ims_available_bool" value="true" />
-@@ -1811,6 +1832,13 @@
+@@ -1779,6 +1807,13 @@
+         <boolean name="vonr_setting_visibility_bool" value="false" />
+     </carrier_config>
+     <carrier_config mcc="460" mnc="06">
++        <!-- Match the NR signal-bar scale used by the China Mobile profiles. -->
++        <int-array name="5g_nr_ssrsrp_thresholds_int_array" num="4">
++            <item value="-115" />
++            <item value="-105" />
++            <item value="-95" />
++            <item value="-85" />
++        </int-array>
+         <boolean name="notify_video_call_failed" value="true" />
+         <boolean name="carrier_volte_available_bool" value="true" />
+         <boolean name="carrier_vt_available_bool" value="true" />
+@@ -1811,6 +1846,13 @@
          <boolean name="vonr_enabled_bool" value="true" />
      </carrier_config>
      <carrier_config mcc="460" mnc="07">
@@ -235,7 +314,7 @@ index da45bf8..de454db 100644
          <boolean name="carrier_volte_available_bool" value="true" />
          <boolean name="carrier_vt_available_bool" value="true" />
          <boolean name="carrier_wfc_ims_available_bool" value="true" />
-@@ -1878,6 +1906,13 @@
+@@ -1878,6 +1920,13 @@
          <boolean name="vonr_setting_visibility_bool" value="false" />
      </carrier_config>
      <carrier_config mcc="460" mnc="08">
@@ -249,7 +328,21 @@ index da45bf8..de454db 100644
          <boolean name="carrier_volte_available_bool" value="true" />
          <boolean name="carrier_vt_available_bool" value="true" />
          <boolean name="carrier_wfc_ims_available_bool" value="true" />
-@@ -2081,6 +2116,13 @@
+@@ -1944,6 +1993,13 @@
+         <boolean name="vonr_setting_visibility_bool" value="false" />
+     </carrier_config>
+     <carrier_config mcc="460" mnc="09">
++        <!-- Match the NR signal-bar scale used by the China Mobile profiles. -->
++        <int-array name="5g_nr_ssrsrp_thresholds_int_array" num="4">
++            <item value="-115" />
++            <item value="-105" />
++            <item value="-95" />
++            <item value="-85" />
++        </int-array>
+         <boolean name="notify_video_call_failed" value="true" />
+         <boolean name="carrier_volte_available_bool" value="true" />
+         <boolean name="carrier_vt_available_bool" value="true" />
+@@ -2081,6 +2137,13 @@
          <boolean name="vonr_setting_visibility_bool" value="false" />
      </carrier_config>
      <carrier_config mcc="460" mnc="13">
@@ -276,6 +369,228 @@ index bae26a9..5e5198b 100644
  vendor/bin/hw/vendor.qti.hardware.soter@1.0-service
  vendor/etc/init/vendor.qti.hardware.soter@1.0-service.rc
  vendor/lib64/hw/vendor.qti.hardware.soter@1.0-impl.so
+diff --git a/sensors/AodNotifier.cpp b/sensors/AodNotifier.cpp
+index 85eceeb..ceacf02 100644
+--- a/sensors/AodNotifier.cpp
++++ b/sensors/AodNotifier.cpp
+@@ -63,6 +63,7 @@ AodNotifier::~AodNotifier() {
+ 
+ void AodNotifier::pollingFunction() {
+     Result res;
++    bool sensorEnabled = false;
+ 
+     android::base::unique_fd disp_fd_ = android::base::unique_fd(open(DISP_FEATURE_PATH, O_RDWR));
+     if (disp_fd_.get() == -1) {
+@@ -102,29 +103,20 @@ void AodNotifier::pollingFunction() {
+         int value = response->data[0];
+         LOG(VERBOSE) << "received data: " << std::bitset<8>(value);
+ 
+-        switch (response->data[0]) {
+-            case MI_DISP_POWER_LP1:
+-                FALLTHROUGH_INTENDED;
+-            case MI_DISP_POWER_LP2:
+-                res = mQueue->enableSensor(mSensorHandle, 20000 /* sample period */,
+-                                           0 /* latency */);
+-                if (res != Result::OK) {
+-                    LOG(ERROR) << "failed to enable sensor";
+-                }
+-                break;
+-            case MI_DISP_POWER_ON:
+-                res = mQueue->disableSensor(mSensorHandle);
+-                if (res != Result::OK) {
+-                    LOG(ERROR) << "failed to disable sensor";
+-                }
+-                requestDozeBrightness(disp_fd_.get(), DOZE_TO_NORMAL);
+-                break;
+-            default:
+-                res = mQueue->disableSensor(mSensorHandle);
+-                if (res != Result::OK) {
+-                    LOG(ERROR) << "failed to disable sensor";
+-                }
+-                break;
++        const bool enable = value == MI_DISP_POWER_LP1 || value == MI_DISP_POWER_LP2;
++        if (enable != sensorEnabled) {
++            res = enable ? mQueue->enableSensor(mSensorHandle, 20000 /* sample period */,
++                                               0 /* latency */)
++                         : mQueue->disableSensor(mSensorHandle);
++            if (res == Result::OK) {
++                sensorEnabled = enable;
++            } else {
++                LOG(ERROR) << "failed to " << (enable ? "enable" : "disable")
++                           << " sensor, result: " << static_cast<int>(res);
++            }
++        }
++        if (value == MI_DISP_POWER_ON) {
++            requestDozeBrightness(disp_fd_.get(), DOZE_TO_NORMAL);
+         }
+     }
+ }
+diff --git a/sensors/NonUiNotifier.cpp b/sensors/NonUiNotifier.cpp
+index 03a4c01..11c2f5f 100644
+--- a/sensors/NonUiNotifier.cpp
++++ b/sensors/NonUiNotifier.cpp
+@@ -9,7 +9,11 @@
+ #include <android-base/logging.h>
+ #include <android-base/unique_fd.h>
+ #include <linux/xiaomi_touch.h>
++#include <fcntl.h>
+ #include <poll.h>
++#include <unistd.h>
++#include <utility>
++#include <vector>
+ #include <sys/ioctl.h>
+ 
+ #include "NonUiNotifier.h"
+@@ -57,48 +61,47 @@ NonUiNotifier::~NonUiNotifier() {
+ }
+ 
+ void NonUiNotifier::pollingFunction() {
+-    Result res;
+-
+-    // Enable states of touchscreen sensors
+     const std::vector<const char*> paths = {
+             "/sys/class/touch/touch_dev/fod_longpress_gesture_enabled",
+             "/sys/class/touch/touch_dev/gesture_single_tap_enabled",
+             "/sys/class/touch/touch_dev/gesture_double_tap_enabled"};
+-
+-    pollfd* pollfds = new pollfd[paths.size()];
+-    for (size_t i = 0; i < paths.size(); ++i) {
+-        int fd = open(paths[i], O_RDONLY);
+-        if (fd < 0) {
+-            LOG(ERROR) << "failed to open " << paths[i] << " , err: " << fd;
+-            mActive = false;
+-            return;
+-        }
+-
+-        pollfds[i].fd = fd;
+-        pollfds[i].events = POLLPRI;
++    std::vector<android::base::unique_fd> fds;
++    std::vector<pollfd> pollfds;
++    for (const auto* path : paths) {
++        android::base::unique_fd fd(TEMP_FAILURE_RETRY(open(path, O_RDONLY | O_CLOEXEC)));
++        if (fd.get() < 0) PLOG(FATAL) << "failed to open " << path;
++        pollfds.push_back({.fd = fd.get(), .events = POLLPRI, .revents = 0});
++        fds.push_back(std::move(fd));
+     }
+ 
+-    while (mActive) {
+-        int rc = poll(pollfds, paths.size(), -1);
+-        if (rc < 0) {
+-            LOG(ERROR) << "failed to poll, err: " << rc;
+-            continue;
+-        }
+-
++    bool sensorEnabled = false;
++    const auto updateState = [&]() {
+         bool enabled = false;
+         for (size_t i = 0; i < paths.size(); ++i) {
+-            enabled = enabled || readBool(pollfds[i].fd);
++            // Read every node to acknowledge all pending sysfs notifications.
++            const auto state = readBool(pollfds[i].fd);
++            CHECK(state.has_value()) << "failed to read " << paths[i];
++            enabled |= *state;
+         }
+-        if (enabled) {
+-            res = mQueue->enableSensor(mSensorHandle, 20000 /* sample period */, 0 /* latency */);
+-            if (res != Result::OK) {
+-                LOG(ERROR) << "failed to enable sensor";
+-            }
++        if (enabled == sensorEnabled) return;
++        const Result res = enabled
++                ? mQueue->enableSensor(mSensorHandle, 20000 /* sample period */, 0 /* latency */)
++                : mQueue->disableSensor(mSensorHandle);
++        if (res == Result::OK) {
++            sensorEnabled = enabled;
+         } else {
+-            res = mQueue->disableSensor(mSensorHandle);
+-            if (res != Result::OK) {
+-                LOG(ERROR) << "failed to disable sensor";
+-            }
++            LOG(ERROR) << "failed to " << (enabled ? "enable" : "disable")
++                       << " sensor, result: " << static_cast<int>(res);
++        }
++    };
++
++    updateState();
++    while (mActive) {
++        const int rc = TEMP_FAILURE_RETRY(poll(pollfds.data(), pollfds.size(), -1));
++        if (rc < 0) PLOG(FATAL) << "failed to poll touchscreen gesture state";
++        for (const auto& fd : pollfds) {
++            CHECK((fd.revents & (POLLNVAL | POLLHUP)) == 0) << "gesture state node closed";
+         }
++        updateState();
+     }
+ }
+diff --git a/sensors/SensorNotifierUtils.cpp b/sensors/SensorNotifierUtils.cpp
+index 7a183ee..f316697 100644
+--- a/sensors/SensorNotifierUtils.cpp
++++ b/sensors/SensorNotifierUtils.cpp
+@@ -7,25 +7,25 @@
+ #define LOG_TAG "SensorNotifierUtils"
+ 
+ #include <android-base/logging.h>
++#include <unistd.h>
+ 
+ #include "SensorNotifierUtils.h"
+ 
+-bool readBool(int fd) {
++std::optional<bool> readBool(int fd) {
++    if (TEMP_FAILURE_RETRY(lseek(fd, 0, SEEK_SET)) < 0) {
++        PLOG(ERROR) << "failed to seek bool fd";
++        return std::nullopt;
++    }
+     char c;
+-    int rc;
+-
+-    rc = lseek(fd, 0, SEEK_SET);
+-    if (rc) {
+-        LOG(ERROR) << "failed to seek fd, err: " << rc;
+-        return false;
++    const ssize_t rc = TEMP_FAILURE_RETRY(read(fd, &c, sizeof(c)));
++    if (rc < 0) {
++        PLOG(ERROR) << "failed to read bool fd";
++        return std::nullopt;
+     }
+-
+-    rc = read(fd, &c, sizeof(char));
+-    if (rc != 1) {
+-        LOG(ERROR) << "failed to read bool from fd, err: " << rc;
+-        return false;
++    if (rc == 0) {
++        LOG(ERROR) << "unexpected EOF reading bool fd";
++        return std::nullopt;
+     }
+-
+     return c != '0';
+ }
+ 
+diff --git a/sensors/SensorNotifierUtils.h b/sensors/SensorNotifierUtils.h
+index 580435b..df3d918 100644
+--- a/sensors/SensorNotifierUtils.h
++++ b/sensors/SensorNotifierUtils.h
+@@ -7,8 +7,9 @@
+ #pragma once
+ 
+ #include <memory>
++#include <optional>
+ 
+ #include <display/drm/mi_disp.h>
+ 
+-bool readBool(int fd);
++std::optional<bool> readBool(int fd);
+ std::shared_ptr<disp_event_resp> parseDispEvent(int fd);
+diff --git a/sepolicy/private/parts_app.te b/sepolicy/private/parts_app.te
+index b813c6c..3d60e38 100644
+--- a/sepolicy/private/parts_app.te
++++ b/sepolicy/private/parts_app.te
+@@ -6,6 +6,7 @@ app_domain(parts_app)
+ binder_use(parts_app)
+ 
+ hal_client_domain(parts_app, vendor_hal_displayfeature_xiaomi)
++hal_client_domain(parts_app, vendor_hal_perf)
+ 
+ binder_call(parts_app, vendor_hal_displayfeature_xiaomi)
+ 
 diff --git a/sepolicy/private/seapp_contexts b/sepolicy/private/seapp_contexts
 index de57375..d61ba4a 100644
 --- a/sepolicy/private/seapp_contexts
@@ -287,6 +602,68 @@ index de57375..d61ba4a 100644
 +# Package selectors retain platform-certificate verification through seinfo.
 +user=_app seinfo=platform name=com.android.camera domain=fuxi_camera_app type=app_data_file levelFrom=user
 +user=_app seinfo=platform name=com.tencent.soter.soterserver domain=fuxi_soter_app type=app_data_file levelFrom=user
+diff --git a/sepolicy/vendor/file.te b/sepolicy/vendor/file.te
+index 6835112..e5cf493 100644
+--- a/sepolicy/vendor/file.te
++++ b/sepolicy/vendor/file.te
+@@ -4,3 +4,6 @@ type vendor_fingerprint_data_file_fpdump, data_file_type, file_type;
+ 
+ # Wifi
+ type vendor_mac_vendor_data_file, data_file_type, file_type, mlstrustedobject;
++
++# Factory Wi-Fi address input on persist; readers do not need to modify it.
++type vendor_fuxi_wifi_factory_file, file_type;
+diff --git a/sepolicy/vendor/file_contexts b/sepolicy/vendor/file_contexts
+index c30ee5c..461e230 100644
+--- a/sepolicy/vendor/file_contexts
++++ b/sepolicy/vendor/file_contexts
+@@ -26,3 +26,13 @@
+ # Wifi
+ /data/vendor/mac_addr(/.*)? u:object_r:vendor_mac_vendor_data_file:s0
+ /vendor/bin/nv_mac u:object_r:vendor_wcnss_service_exec:s0
++# SNPE's CPU-side FastRPC stub is loaded by the stock system camera process.
++/vendor/lib64/libSnpeHtpV73Stub\.so                u:object_r:vendor_public_lib_file:s0
++
++# Normal UFS LUN BSG interfaces used by qseecomd. LUN4/RPMB retain their
++# existing dedicated Qualcomm labels; raw block-device permissions are unchanged.
++/dev/0:0:0:[0-35] u:object_r:vendor_bsg_device:s0
++
++# Read-only factory Wi-Fi MAC input, distinct from generated /data/vendor/mac_addr.
++/mnt/vendor/persist/kiwi_v2 u:object_r:vendor_fuxi_wifi_factory_file:s0
++/mnt/vendor/persist/kiwi_v2/wlan_mac\.bin u:object_r:vendor_fuxi_wifi_factory_file:s0
+diff --git a/sepolicy/vendor/genfs_contexts b/sepolicy/vendor/genfs_contexts
+index 6152011..2185dfe 100644
+--- a/sepolicy/vendor/genfs_contexts
++++ b/sepolicy/vendor/genfs_contexts
+@@ -23,8 +23,18 @@ genfscon sysfs "/devices/virtual/touch/touch_dev/gesture_single_tap_state" u:obj
+ genfscon sysfs "/devices/virtual/touch/touch_dev/panel_orientation" u:object_r:sysfs_tp_touchfeature:s0
+ 
+ # Wakeup
++
++# Preserve the platform block-device labels below the vendor UFS controller label.
++# vold needs the normal coldboot uevents; it does not need UFS tuning access.
++genfscon sysfs /devices/platform/soc/1d84000.ufshc/host0/target0:0:0/0:0:0:0/block u:object_r:sysfs_devices_block:s0
++genfscon sysfs /devices/platform/soc/1d84000.ufshc/host0/target0:0:0/0:0:0:0/uevent u:object_r:sysfs_devices_block:s0
++genfscon sysfs /devices/platform/soc/4804000.ufshc/host0/target0:0:0/0:0:0:0/block u:object_r:sysfs_devices_block:s0
++genfscon sysfs /devices/platform/soc/4804000.ufshc/host0/target0:0:0/0:0:0:0/uevent u:object_r:sysfs_devices_block:s0
+ genfscon sysfs "/devices/platform/soc/1c00000.qcom,pcie/pci0000:00/0000:00:00.0/0000:01:00.0/mhi_1107_00.01.00/wakeup" u:object_r:sysfs_wakeup:s0
+ genfscon sysfs "/devices/platform/soc/ac0000.qcom,qupv3_1_geni_se/a90000.spi/spi_master/spi0/spi0.0/wakeup" u:object_r:sysfs_wakeup:s0
+ genfscon sysfs "/devices/platform/soc/ac0000.qcom,qupv3_1_geni_se/a90000.spi/spi_master/spi1/spi1.0/wakeup" u:object_r:sysfs_wakeup:s0
+ genfscon sysfs "/devices/platform/soc/c42d000.qcom,spmi/spmi-0/0-00/c42d000.qcom,spmi:qcom,pmk8550@0:pon_hlos@1300/c42d000.qcom,spmi:qcom,pmk8550@0:pon_hlos@1300:pwrkey-bark/wakeup" u:object_r:sysfs_wakeup:s0
+ genfscon sysfs "/devices/platform/soc/c42d000.qcom,spmi/spmi-0/0-00/c42d000.qcom,spmi:qcom,pmk8550@0:pon_hlos@1300/c42d000.qcom,spmi:qcom,pmk8550@0:pon_hlos@1300:pwrkey-resin-bark/wakeup" u:object_r:sysfs_wakeup:s0
++
++# Audio jack cable capabilities use the standard platform extcon interface.
++genfscon sysfs /devices/platform/soc/soc:spf_core_platform/soc:spf_core_platform:lpass-cdc/wcd938x-codec/extcon u:object_r:sysfs_extcon:s0
+diff --git a/sepolicy/vendor/hal_camera_default.te b/sepolicy/vendor/hal_camera_default.te
+index 02fd26b..fab5a83 100644
+--- a/sepolicy/vendor/hal_camera_default.te
++++ b/sepolicy/vendor/hal_camera_default.te
+@@ -1,2 +1,5 @@
+ allow hal_camera_client hal_camera_aon_service:service_manager find;
+ add_service(hal_camera_server, hal_camera_aon_service)
++
++# Camera algorithms follow the existing KGSL devfreq link to read GPU state.
++allow hal_camera_default vendor_sysfs_kgsl:lnk_file read;
 diff --git a/sepolicy/vendor/hal_fingerprint.te b/sepolicy/vendor/hal_fingerprint.te
 index 37f9c12..d1503e1 100644
 --- a/sepolicy/vendor/hal_fingerprint.te
@@ -316,3 +693,62 @@ index a30c257..e74273b 100644
 +
 +# Read USB device-controller connection state.
 +r_dir_file(vendor_hal_usb_qti, sysfs_udc)
+diff --git a/sepolicy/vendor/hwservice_contexts b/sepolicy/vendor/hwservice_contexts
+index 2053ff3..625c6a4 100644
+--- a/sepolicy/vendor/hwservice_contexts
++++ b/sepolicy/vendor/hwservice_contexts
+@@ -7,3 +7,6 @@ vendor.xiaomi.hardware.fx.tunnel::IMiFxTunnel                               u:ob
+ 
+ # SLA
+ vendor.qti.sla.service::ISlaService                                         u:object_r:hal_slaservice_hwservice:s0
++
++# QESD HIDL 1.4 is supplied by the installed qesdk-manager and VINTF manifest.
++vendor.qti.qesdhal::IQesdhal    u:object_r:vendor_hal_qesdhal_hwservice:s0
+diff --git a/sepolicy/vendor/vendor_init.te b/sepolicy/vendor/vendor_init.te
+index 83b70ff..f6639a2 100644
+--- a/sepolicy/vendor/vendor_init.te
++++ b/sepolicy/vendor/vendor_init.te
+@@ -1,2 +1,8 @@
+ # Allow vendor init to set fingerprint property
+ set_prop(vendor_init, vendor_fp_prop)
++
++# Kalama init applies its existing swappiness policy after post-boot setup.
++allow vendor_init vendor_proc_swappiness:file { open write };
++
++# The existing vendor init.target.rc applies the QCC operating mode.
++set_prop(vendor_init, vendor_qcc_prop)
+diff --git a/sepolicy/vendor/wcnss_service.te b/sepolicy/vendor/wcnss_service.te
+index df7e654..03d8022 100644
+--- a/sepolicy/vendor/wcnss_service.te
++++ b/sepolicy/vendor/wcnss_service.te
+@@ -1,22 +1,11 @@
+-#allow vendor_wcnss_service self:netlink_generic_socket ioctl;
++# nv_mac derives factory addresses from two vendor inputs and writes only its
++# dedicated /data/vendor/mac_addr output. Generic persist, modem and user-media
++# write access is not needed for this shipped binary's path inventory.
+ allow vendor_wcnss_service self:capability { net_raw setgid setuid };
+-#allow vendor_wcnss_service self:packet_socket { bind create getopt ioctl map read setopt };
+ allow vendor_wcnss_service self:packet_socket write;
+ allow vendor_wcnss_service sysfs_net:file read;
+-allow vendor_wcnss_service vendor_mac_vendor_data_file:dir { add_name open read search setattr write };
+-allow vendor_wcnss_service vendor_mac_vendor_data_file:dir rw_dir_perms;
+-allow vendor_wcnss_service vendor_mac_vendor_data_file:file { create getattr open read setattr write };
+-allow vendor_wcnss_service mnt_vendor_file:dir { add_name create read search write };
+-allow vendor_wcnss_service mnt_vendor_file:file { create open read setattr write };
+-#allow vendor_wcnss_service vendor_diag_device:chr_file { create ioctl open read write };
+-allow vendor_wcnss_service vendor_sysfs_diag:dir search;
+-allow vendor_wcnss_service vendor_sysfs_diag:file { open read };
+-allow vendor_wcnss_service vendor_wifi_vendor_log_data_file:dir { add_name getattr open read remove_name search setattr write };
+-allow vendor_wcnss_service vendor_wifi_vendor_log_data_file:file { append create getattr open read rename setattr unlink write };
+-allow vendor_wcnss_service vendor_proc_wifi_dbg:file { create getattr open read setattr write };
+-allow vendor_wcnss_service vendor_data_file:dir { add_name getattr open read remove_name search setattr write };
+-allow vendor_wcnss_service vendor_data_file:file { append create getattr open read rename setattr unlink write };
+-allow vendor_wcnss_service vendor_modem_data_file:dir { add_name getattr open read remove_name search setattr write };
+-allow vendor_wcnss_service vendor_modem_data_file:file { append create getattr open read rename setattr unlink write };
+-allow vendor_wcnss_service fuse:dir { add_name getattr open read remove_name search setattr write };
+-allow vendor_wcnss_service fuse:file { append create getattr open read rename setattr unlink write };
++allow vendor_wcnss_service vendor_mac_vendor_data_file:dir create_dir_perms;
++allow vendor_wcnss_service vendor_mac_vendor_data_file:file create_file_perms;
++r_dir_file(vendor_wcnss_service, vendor_fuxi_wifi_factory_file)
++allow vendor_wcnss_service vendor_persist_bluetooth_file:dir search;
++allow vendor_wcnss_service vendor_persist_bluetooth_file:file r_file_perms;

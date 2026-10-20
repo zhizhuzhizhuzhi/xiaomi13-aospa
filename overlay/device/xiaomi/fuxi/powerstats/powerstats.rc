@@ -1,0 +1,7 @@
+# Copyright (C) 2026 Paranoid Android
+# SPDX-License-Identifier: Apache-2.0
+service vendor.power.stats-fuxi /vendor/bin/hw/android.hardware.power.stats-service.fuxi
+    class hal
+    user system
+    group system
+    interface aidl android.hardware.power.stats.IPowerStats/default

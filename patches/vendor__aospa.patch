@@ -934,6 +934,19 @@ index 6629231..0000000
 -     */
 -    FastChargeMode setFastChargeMode(FastChargeMode mode);
 -}
+diff --git a/overlay/AOSPAFrameworksOverlay/res/values/config.xml b/overlay/AOSPAFrameworksOverlay/res/values/config.xml
+index b4d745b..f4d0a3f 100644
+--- a/overlay/AOSPAFrameworksOverlay/res/values/config.xml
++++ b/overlay/AOSPAFrameworksOverlay/res/values/config.xml
+@@ -18,8 +18,6 @@
+         <item>"/system/lib64/libhwui.so"</item>
+         <item>"/system/system_ext/priv-app/ParanoidSystemUI/ParanoidSystemUI.apk"</item>
+         <item>"/vendor/lib64/libcamxexternalformatutils.so"</item>
+-        <item>"/vendor/lib64/libipebpsstriping170.so"</item>
+-        <item>"/vendor/lib64/libipebpsstriping.so"</item>
+         <item>"/vendor/lib64/egl/libEGL_adreno.so"</item>
+         <item>"/vendor/lib64/egl/libGLESv2_adreno.so"</item>
+         <item>"/vendor/lib64/libCB.so"</item>
 diff --git a/products/fuxi/aospa_fuxi.mk b/products/fuxi/aospa_fuxi.mk
 index 29f7e67..6b2190e 100644
 --- a/products/fuxi/aospa_fuxi.mk

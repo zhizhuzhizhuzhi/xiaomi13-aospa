@@ -1,0 +1,2 @@
+# The existing product audio configuration is consumed by AudioDeviceInventory.
+audio.sys.noisy.broadcast.delay u:object_r:audio_config_prop:s0 exact int

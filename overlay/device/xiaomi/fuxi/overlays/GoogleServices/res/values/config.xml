@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Copyright (C) 2026 Paranoid Android
+     SPDX-License-Identifier: Apache-2.0 -->
+<resources>
+    <!-- The bundled providers do not declare these optional service components. -->
+    <string name="config_defaultTranslationService" translatable="false"></string>
+    <string name="config_defaultWallpaperEffectsGenerationService" translatable="false"></string>
+    <string name="config_defaultMusicRecognitionService" translatable="false"></string>
+</resources>

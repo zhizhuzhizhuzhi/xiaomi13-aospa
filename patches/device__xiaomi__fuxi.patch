@@ -1,14 +1,48 @@
+diff --git a/Android.bp b/Android.bp
+--- a/Android.bp
++++ b/Android.bp
+@@ -6,3 +6,26 @@
+ 
+ soong_namespace {
+ }
++
++aconfig_values {
++    name: "aconfig_values-fuxi_kernel_capabilities",
++    package: "android.bpfprogs.flags",
++    srcs: ["build/release/aconfig/dmabuf_iterator.textproto"],
++}
++
++aconfig_value_set {
++    name: "aconfig_value_set-fuxi_kernel_capabilities",
++    values: ["aconfig_values-fuxi_kernel_capabilities"],
++}
++
++aconfig_values {
++    name: "aconfig_values-fuxi_window_lifecycle",
++    package: "com.android.window.flags",
++    srcs: ["build/release/aconfig/transition_surface_cleanup.textproto"],
++}
++
++aconfig_value_set {
++    name: "aconfig_value_set-fuxi_window_lifecycle",
++    values: ["aconfig_values-fuxi_window_lifecycle"],
++}
++
 diff --git a/BoardConfig.mk b/BoardConfig.mk
-index 400edfc..84427eb 100644
+index 400edfc..a803153 100644
 --- a/BoardConfig.mk
 +++ b/BoardConfig.mk
-@@ -22,3 +22,6 @@ TARGET_OTA_ASSERT_DEVICE := fuxi
+@@ -22,3 +22,10 @@ TARGET_OTA_ASSERT_DEVICE := fuxi
  # Properties
  TARGET_ODM_PROP += $(DEVICE_PATH)/configs/properties/odm.prop
  TARGET_VENDOR_PROP += $(DEVICE_PATH)/configs/properties/vendor.prop
 +
 +# Only fuxi selects the stock SM8550 GNSS implementation.
 +$(call soong_config_set_bool,qcom_gnss,use_sm8550_prebuilt,true)
++
++# Fuxi-only PowerStats device node access and canonical ueventd input.
++BOARD_VENDOR_SEPOLICY_DIRS += $(DEVICE_PATH)/sepolicy/vendor
++$(call soong_config_set_bool,xiaomi_fuxi,power_stats,true)
 diff --git a/configs/properties/odm.prop b/configs/properties/odm.prop
 index b7f3ab7..3d3f7dd 100644
 --- a/configs/properties/odm.prop
@@ -36,16 +70,38 @@ index 683dcfa..432d62e 100644
 +persist.vendor.sys.fp.fod.location.X_Y=442,2052
 +persist.vendor.sys.fp.fod.size.width_height=196,196
 diff --git a/device.mk b/device.mk
-index 07cf625..1d61f6b 100644
+index 07cf625..50bef36 100644
 --- a/device.mk
 +++ b/device.mk
-@@ -24,3 +24,6 @@ PRODUCT_PACKAGES += \
+@@ -14,13 +14,28 @@ $(call inherit-product, vendor/xiaomi/fuxi/fuxi-vendor.mk)
+ PRODUCT_SOONG_NAMESPACES += \
+     $(LOCAL_PATH)
+ 
++# Kernel-backed platform features for this device.
++PRODUCT_RELEASE_CONFIG_MAPS += $(LOCAL_PATH)/build/release/release_config_map.textproto
++
+ # Overlays
+ PRODUCT_PACKAGES += \
+     FuxiDolby \
+     FuxiFrameworks \
++    FuxiGoogleServices \
+     FuxiSettings2211133C \
+     FuxiSettings2211133G \
+     FuxiSettingsProvider \
      FuxiSystemUI \
      FuxiWifiRes \
      FuxiWifiResMainline \
 +
 +# Standard AIDL face unlock (RGB convenience class).
 +$(call inherit-product, vendor/milahaina/facehal/facehal.mk)
++
++# OEM workload classification is dispatched by background package/app events.
++PRODUCT_COPY_FILES += \
++    $(LOCAL_PATH)/configs/sysconfig/workloadclassifier.xml:$(TARGET_COPY_OUT_SYSTEM_EXT)/etc/sysconfig/workloadclassifier.xml
++
++# Device-specific sleep statistics and ueventd rules (preserves shared rules).
++PRODUCT_PACKAGES += \
++    android.hardware.power.stats-service.fuxi
 diff --git a/overlays/Frameworks/res/values/config.xml b/overlays/Frameworks/res/values/config.xml
 index 0fff697..207fe61 100644
 --- a/overlays/Frameworks/res/values/config.xml

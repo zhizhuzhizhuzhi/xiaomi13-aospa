@@ -1,0 +1,3 @@
+
+# Fuxi read-only Qualcomm sleep-statistics ioctl provider.
+/dev/stats    0440    system    system

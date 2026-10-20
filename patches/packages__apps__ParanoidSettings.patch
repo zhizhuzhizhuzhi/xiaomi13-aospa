@@ -1,3 +1,94 @@
+diff --git a/src/co/aospa/settings/lineage/health/ChargingControlPreferenceController.java b/src/co/aospa/settings/lineage/health/ChargingControlPreferenceController.java
+index 201df94..2087dad 100644
+--- a/src/co/aospa/settings/lineage/health/ChargingControlPreferenceController.java
++++ b/src/co/aospa/settings/lineage/health/ChargingControlPreferenceController.java
+@@ -1,53 +1,33 @@
+-/*
+- * SPDX-FileCopyrightText: 2022 The PixelExperience Project
+- * SPDX-FileCopyrightText: 2023 The LineageOS Project
+- * SPDX-License-Identifier: Apache-2.0
+- */
+-
+-package co.aospa.settings.lineage.health;
+-
+-import android.content.Context;
+-import android.os.IBinder;
+-import android.os.ServiceManager;
+-
+-import com.android.settings.core.BasePreferenceController;
+-import com.android.settings.R;
+-
+-public class ChargingControlPreferenceController extends BasePreferenceController {
+-
+-    public static final String KEY = "charging_control";
+-
+-    private Context mContext;
+-
+-    public ChargingControlPreferenceController(Context context, String key) {
+-        super(context, key);
+-
+-        mContext = context;
+-    }
+-
+-    public ChargingControlPreferenceController(Context context) {
+-        this(context, KEY);
+-
+-        mContext = context;
+-    }
+-
+-    private boolean isNegated(String key) {
+-        return key != null && key.startsWith("!");
+-    }
+-
+-    @Override
+-    public int getAvailabilityStatus() {
+-        String rService =  "lineagehealth";
+-        boolean negated = isNegated(rService);
+-        if (negated) {
+-           rService = rService.substring(1);
+-        }
+-        IBinder value = ServiceManager.getService(rService);
+-        boolean available = value != null;
+-        if (available == negated) {
+-            return UNSUPPORTED_ON_DEVICE;
+-        }
+-        return AVAILABLE;
+-    }
+-
+-}
++/*
++ * SPDX-FileCopyrightText: 2022 The PixelExperience Project
++ * SPDX-FileCopyrightText: 2023 The LineageOS Project
++ * SPDX-License-Identifier: Apache-2.0
++ */
++
++package co.aospa.settings.lineage.health;
++
++import static com.android.internal.lineage.app.LineageContextConstants.AOSPA_HEALTH_INTERFACE;
++
++import android.content.Context;
++import android.os.ServiceManager;
++
++import com.android.settings.core.BasePreferenceController;
++
++public class ChargingControlPreferenceController extends BasePreferenceController {
++
++    public static final String KEY = "charging_control";
++
++    public ChargingControlPreferenceController(Context context, String key) {
++        super(context, key);
++    }
++
++    public ChargingControlPreferenceController(Context context) {
++        this(context, KEY);
++    }
++
++    @Override
++    public int getAvailabilityStatus() {
++        return ServiceManager.checkService(AOSPA_HEALTH_INTERFACE) != null
++                ? AVAILABLE : UNSUPPORTED_ON_DEVICE;
++    }
++}
 diff --git a/src/co/aospa/settings/lineage/health/ChargingControlSettings.java b/src/co/aospa/settings/lineage/health/ChargingControlSettings.java
 index 0be0b5b..f83692c 100644
 --- a/src/co/aospa/settings/lineage/health/ChargingControlSettings.java

@@ -1,0 +1,3 @@
+# Register the installed HIDL provider without extending the AIDL client set.
+type vendor_hal_qesdhal_hwservice, hwservice_manager_type, protected_hwservice;
+add_hwservice(vendor_hal_qesdhal_default, vendor_hal_qesdhal_hwservice)

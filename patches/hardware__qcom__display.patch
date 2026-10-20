@@ -10,6 +10,28 @@ index 4dfa42d..830c20c 100644
      defaults: ["qtidisplay_defaults"],
      sanitize: {
          integer_overflow: true,
+diff --git a/init/init.qti.display_boot.sh b/init/init.qti.display_boot.sh
+index e29ba42..8d31a9e 100644
+--- a/init/init.qti.display_boot.sh
++++ b/init/init.qti.display_boot.sh
+@@ -88,7 +88,7 @@ case "$target" in
+         setprop vendor.display.enable_latch_media_content 1
+         setprop vendor.display.enable_inline_writeback 1
+         setprop vendor.display.timed_render_enable 1
+-        setprop debug.sf.disable_client_composition_cache 0
++        # Client composition caching uses the SurfaceFlinger-owned default.
+         # set property for HHG
+         if [ "$subtype_id" -eq 1 ]; then
+             setprop vendor.display.disable_system_load_check 1
+@@ -115,7 +115,7 @@ case "$target" in
+         setprop vendor.display.enable_latch_media_content 1
+         setprop vendor.display.enable_inline_writeback 0
+         setprop vendor.display.timed_render_enable 1
+-        setprop debug.sf.disable_client_composition_cache 0
++        # Client composition caching uses the SurfaceFlinger-owned default.
+         setprop vendor.display.enable_qsync_idle 1
+         ;;
+     esac
 diff --git a/qmaa/Android.bp b/qmaa/Android.bp
 index 96b5023..687976e 100644
 --- a/qmaa/Android.bp

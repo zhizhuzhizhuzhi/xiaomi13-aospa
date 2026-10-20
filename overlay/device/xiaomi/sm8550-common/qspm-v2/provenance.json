@@ -1,0 +1,60 @@
+{
+  "commit": "e0aecffec99ee0280107b833b71f189d7b1e4d69",
+  "repository": "https://github.com/TheMuppets/proprietary_vendor_oneplus_sm8850-common",
+  "files": [
+    {
+      "sha256": "a0b5d7f699e3ae2796f2697f90388ecb26fbbda1b9dd6ae14395b8f3ce49316e",
+      "source": "vendor/bin/snapdragon_services",
+      "git_blob": "ab42ef2c5e2cc07a6b6ec7abe82733e4571ce827",
+      "file": "snapdragon_services"
+    },
+    {
+      "sha256": "5bc634eb3923bb4f549f9d42a394954abca318034e153625fb0d92428c8a2d60",
+      "source": "vendor/lib64/vendor.qti.snapdragonServices-V2-ndk.so",
+      "git_blob": "0b9c630dd0c6c3c3586585f84f7357e2b0ed1f67",
+      "file": "vendor.qti.snapdragonServices-V2-ndk.so"
+    },
+    {
+      "sha256": "bb76182befc1603fdd6cf2a3a2eb6608fec714f51b2860e47c7161894464df0d",
+      "source": "vendor/etc/init/snapdragon_services.rc",
+      "git_blob": "212ff4c809509098b9b71ad2d1f2790c7b857ddd",
+      "file": "snapdragon_services.rc"
+    },
+    {
+      "sha256": "0c07a6e258401bd7d2713ddccd5f9d10a13ee87e0e23a979b7f09b67835bde36",
+      "source": "vendor/etc/vintf/manifest/snapdragon_services.xml",
+      "git_blob": "a6b2530dc02edf2ef6ad351419797d7a30b91508",
+      "file": "snapdragon_services.xml"
+    },
+    {
+      "sha256": "923753dab1aa392519dc3ebb614fc40c3554972b80f1324d367a89193ac887e8",
+      "source": "vendor/bin/vendor.qti.qspmhal-service",
+      "git_blob": "e6f9fc2cd62712c4d61a8324a953c35994b903e7",
+      "file": "vendor.qti.qspmhal-service"
+    },
+    {
+      "sha256": "51ebce9b307a621850204fe310b47810719870a32c22e29b414c0387daf25583",
+      "source": "vendor/lib64/vendor.qti.qspmhal-impl.so",
+      "git_blob": "725ea9588d6b4a8082cf7c534d8bad1a0022aed0",
+      "file": "vendor.qti.qspmhal-impl.so"
+    },
+    {
+      "sha256": "85830009aa52b62109595841d2da326076cb3a641fc1468d2b7cd885a8672ce0",
+      "source": "vendor/lib64/vendor.qti.qspmhal-V1-ndk.so",
+      "git_blob": "f42e22c2e611d8c6c50fd7fdd39075896b99520d",
+      "file": "vendor.qti.qspmhal-V1-ndk.so"
+    },
+    {
+      "sha256": "78f688ad7ca4945c520a910bc6c079762a974a5b55c11eb35c0af75b913378e4",
+      "source": "vendor/lib64/libqspm-mem-utils-vendor.so",
+      "git_blob": "26b3b871f06fba8fafff9b364d97dd0aa14ce36b",
+      "file": "libqspm-mem-utils-vendor.so"
+    },
+    {
+      "sha256": "67f78d434d7ffeaae7329f89657187ad10ebbe793ec75a1307a25108b10bbcc6",
+      "source": "vendor/lib64/vendor.qti.qesdsys-V4-ndk.so",
+      "git_blob": "78d6610a3ffc8e8997770185919269ed777f1090",
+      "file": "vendor.qti.qesdsys-V4-ndk.so"
+    }
+  ]
+}

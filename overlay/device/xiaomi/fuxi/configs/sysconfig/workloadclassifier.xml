@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Copyright (C) 2026 Paranoid Android
+    SPDX-License-Identifier: Apache-2.0
+-->
+<config>
+    <!-- Platform-signed OEM service: classify package changes and app launches.
+         Required by ActivityManager's background service start policy. -->
+    <allow-in-power-save package="com.qualcomm.qti.workloadclassifier" />
+</config>

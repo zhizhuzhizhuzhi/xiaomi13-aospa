@@ -1,0 +1,8 @@
+# SPDX-License-Identifier: Apache-2.0
+# Fuxi's 5.15 kernel supplies CONFIG_DMABUF_SYSFS_STATS, not iter/dmabuf.
+flag_value {
+    package: "android.bpfprogs.flags"
+    name: "load_dmabuf_iterator"
+    state: DISABLED
+    permission: READ_ONLY
+}

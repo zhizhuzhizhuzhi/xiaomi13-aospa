@@ -1,0 +1,3 @@
+# The firmware loader may read the same dedicated factory MAC input as nv_mac.
+# No write permission is granted to persist or to generated MAC output.
+r_dir_file(ueventd, vendor_fuxi_wifi_factory_file)
