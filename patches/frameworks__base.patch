@@ -49,6 +49,23 @@ index cc7ea0201d28..1e37971816f9 100644
  // QTI_BEGIN: 2018-02-20: Core: Performance: Activity Trigger frameworks support
      private native void native_at_resumeActivity(String activity);
      private native void native_at_pauseActivity(String activity);
+diff --git a/core/java/com/android/internal/content/NativeLibraryHelper.java b/core/java/com/android/internal/content/NativeLibraryHelper.java
+index d219a00a257c..c3fd0023e440 100644
+--- a/core/java/com/android/internal/content/NativeLibraryHelper.java
++++ b/core/java/com/android/internal/content/NativeLibraryHelper.java
+@@ -466,6 +466,12 @@ public class NativeLibraryHelper {
+             String abiOverride) {
+         // Keep the code below in sync with copyNativeBinariesForSupportedAbi
+         int abi = findSupportedAbi(handle, Build.SUPPORTED_64_BIT_ABIS);
++        if (abi == PackageManager.NO_NATIVE_LIBRARIES
++                || abi == PackageManager.INSTALL_FAILED_NO_MATCHING_ABIS) {
++            // No 64-bit libraries means there is no 64-bit alignment to check.
++            return new AlignmentResult(ApplicationInfo.PAGE_SIZE_APP_COMPAT_FLAG_UNDEFINED,
++                    new LibraryAlignmentInfo[0]);
++        }
+         if (abi < 0) {
+             return null;
+         }
 diff --git a/core/java/com/android/internal/lineage/app/LineageContextConstants.java b/core/java/com/android/internal/lineage/app/LineageContextConstants.java
 index 731f43a39468..476bb317231b 100644
 --- a/core/java/com/android/internal/lineage/app/LineageContextConstants.java
@@ -776,6 +793,38 @@ index bee52cf8b497..d7b9cf4f802e 100644
              .scan(initial = initial) { state, event -> state.applyEvent(event) }
              .stateIn(scope = scope, started = SharingStarted.WhileSubscribed(), initial)
      }
+diff --git a/services/autofill/java/com/android/server/autofill/AutofillManagerServiceImpl.java b/services/autofill/java/com/android/server/autofill/AutofillManagerServiceImpl.java
+index a8c909facf1f..8a7c8e7c0330 100644
+--- a/services/autofill/java/com/android/server/autofill/AutofillManagerServiceImpl.java
++++ b/services/autofill/java/com/android/server/autofill/AutofillManagerServiceImpl.java
+@@ -1720,6 +1720,12 @@ final class AutofillManagerServiceImpl
+                     .getComponentName(serviceName, mUserId,
+                             mMaster.mAugmentedAutofillResolver.isTemporary(mUserId));
+             if (pair == null) return null;
++            // Resolve metadata while locked, but bind credential-encrypted services only
++            // once the existing user-unlocking lifecycle can actually start them.
++            if (!pair.first.directBootAware
++                    && !mUserManagerInternal.isUserUnlockingOrUnlocked(mUserId)) {
++                return null;
++            }
+ 
+             mRemoteAugmentedAutofillServiceInfo = pair.first;
+             final ComponentName componentName = pair.second;
+diff --git a/services/autofill/java/com/android/server/autofill/RemoteAugmentedAutofillService.java b/services/autofill/java/com/android/server/autofill/RemoteAugmentedAutofillService.java
+index 4bab4bdafddf..d709df9939db 100644
+--- a/services/autofill/java/com/android/server/autofill/RemoteAugmentedAutofillService.java
++++ b/services/autofill/java/com/android/server/autofill/RemoteAugmentedAutofillService.java
+@@ -239,7 +239,9 @@ final class RemoteAugmentedAutofillService {
+     @Nullable
+     static Pair<ServiceInfo, ComponentName> getComponentName(@NonNull String componentName,
+             @UserIdInt int userId, boolean isTemporary) {
+-        int flags = PackageManager.GET_META_DATA;
++        int flags = PackageManager.GET_META_DATA
++                | PackageManager.MATCH_DIRECT_BOOT_AWARE
++                | PackageManager.MATCH_DIRECT_BOOT_UNAWARE;
+         if (!isTemporary) {
+             flags |= PackageManager.MATCH_SYSTEM_ONLY;
+         }
 diff --git a/services/core/java/com/android/server/ActivityTriggerService.java b/services/core/java/com/android/server/ActivityTriggerService.java
 deleted file mode 100644
 index 323ad096dc5c..000000000000
@@ -924,6 +973,21 @@ index 1b01fc1400c2..9c46cea3a0a2 100644
              mAtmInternal.onProcessUnMapped(pid);
          }
          return removed;
+diff --git a/services/core/java/com/android/server/am/ProcessList.java b/services/core/java/com/android/server/am/ProcessList.java
+index 82598942988e..a0bad97f04f6 100644
+--- a/services/core/java/com/android/server/am/ProcessList.java
++++ b/services/core/java/com/android/server/am/ProcessList.java
+@@ -1979,7 +1979,9 @@ public final class ProcessList extends ProcessListInternal
+             int[] gids = null;
+             int mountExternal = Zygote.MOUNT_EXTERNAL_NONE;
+             boolean externalStorageAccess = false;
+-            if (!app.isolated) {
++            // The WebView RELRO helper runs under a dedicated native UID, not the
++            // android package UID. It must not receive external-storage mounts or GIDs.
++            if (!app.isolated && uid != Process.SHARED_RELRO_UID) {
+                 int[] permGids = null;
+                 try {
+                     checkSlow(startUptime, "startProcess: getting gids from package manager");
 diff --git a/services/core/java/com/android/server/biometrics/sensors/face/FaceService.java b/services/core/java/com/android/server/biometrics/sensors/face/FaceService.java
 index a34791f70533..58c996310ea1 100644
 --- a/services/core/java/com/android/server/biometrics/sensors/face/FaceService.java
@@ -2838,6 +2902,314 @@ index a1bd36be93f8..000000000000
 -        return currentPct >= targetPct;
 -    }
 -}
+diff --git a/services/core/java/com/android/server/pm/KillAppBlocker.java b/services/core/java/com/android/server/pm/KillAppBlocker.java
+index 265b6f60f28c..38735291ad57 100644
+--- a/services/core/java/com/android/server/pm/KillAppBlocker.java
++++ b/services/core/java/com/android/server/pm/KillAppBlocker.java
+@@ -75,7 +75,8 @@ final class KillAppBlocker {
+             if (am != null) {
+                 try {
+                     am.registerUidObserver(mUidObserver, ActivityManager.UID_OBSERVER_GONE,
+-                            ActivityManager.PROCESS_STATE_UNKNOWN, "pm");
++                            ActivityManager.PROCESS_STATE_UNKNOWN,
++                            PackageManagerService.PLATFORM_PACKAGE_NAME);
+                     mRegistered = true;
+                 } catch (RemoteException e) {
+                     // no-op
+diff --git a/services/core/java/com/android/server/pm/PackageInstallerService.java b/services/core/java/com/android/server/pm/PackageInstallerService.java
+index 5cf011289c52..ed43a0d8f89a 100644
+--- a/services/core/java/com/android/server/pm/PackageInstallerService.java
++++ b/services/core/java/com/android/server/pm/PackageInstallerService.java
+@@ -250,6 +250,9 @@ public class PackageInstallerService extends IPackageInstaller.Stub implements
+      */
+     private final AtomicFile mSessionsFile;
+ 
++    // AtomicFile does not serialize concurrent writers. runNow can race the IO handler.
++    private final Object mSessionsFileLock = new Object();
++
+     /**
+      * Directory storing persisted {@link #mSessions} metadata which is too
+      * heavy to store directly in {@link #mSessionsFile}.
+@@ -691,50 +694,52 @@ public class PackageInstallerService extends IPackageInstaller.Stub implements
+     }
+ 
+     private boolean writeSessions() {
+-        if (LOGD) Slog.v(TAG, "writeSessions()");
+-        final PackageInstallerSession[] sessions;
+-        synchronized (mSessions) {
+-            final int size = mSessions.size();
+-            sessions = new PackageInstallerSession[size];
+-            for (int i = 0; i < size; i++) {
+-                sessions[i] = mSessions.valueAt(i);
++        synchronized (mSessionsFileLock) {
++            if (LOGD) Slog.v(TAG, "writeSessions()");
++            final PackageInstallerSession[] sessions;
++            synchronized (mSessions) {
++                final int size = mSessions.size();
++                sessions = new PackageInstallerSession[size];
++                for (int i = 0; i < size; i++) {
++                    sessions[i] = mSessions.valueAt(i);
++                }
+             }
+-        }
+ 
+-        FileOutputStream fos = null;
+-        try {
+-            fos = mSessionsFile.startWrite();
+-
+-            final TypedXmlSerializer out = Xml.resolveSerializer(fos);
+-            out.startDocument(null, true);
+-            out.startTag(null, TAG_SESSIONS);
+-            for (var session : sessions) {
+-                session.write(out, mSessionsDir);
+-            }
+-            out.endTag(null, TAG_SESSIONS);
+-
+-            // Preserve current developer verification policy per user to disk.
+-            synchronized (mDeveloperVerificationPolicyPerUser) {
+-                for (int i = 0; i < mDeveloperVerificationPolicyPerUser.size(); i++) {
+-                    out.startTag(null, TAG_DEVELOPER_VERIFICATION_POLICY_PER_USER);
+-                    out.attributeInt(null, ATTR_USER_ID,
+-                            mDeveloperVerificationPolicyPerUser.keyAt(i));
+-                    out.attributeInt(null, ATTR_DEVELOPER_VERIFICATION_POLICY,
+-                            mDeveloperVerificationPolicyPerUser.valueAt(i));
+-                    out.endTag(null, TAG_DEVELOPER_VERIFICATION_POLICY_PER_USER);
++            FileOutputStream fos = null;
++            try {
++                fos = mSessionsFile.startWrite();
++
++                final TypedXmlSerializer out = Xml.resolveSerializer(fos);
++                out.startDocument(null, true);
++                out.startTag(null, TAG_SESSIONS);
++                for (var session : sessions) {
++                    session.write(out, mSessionsDir);
+                 }
+-            }
+-            out.endDocument();
++                out.endTag(null, TAG_SESSIONS);
++
++                // Preserve current developer verification policy per user to disk.
++                synchronized (mDeveloperVerificationPolicyPerUser) {
++                    for (int i = 0; i < mDeveloperVerificationPolicyPerUser.size(); i++) {
++                        out.startTag(null, TAG_DEVELOPER_VERIFICATION_POLICY_PER_USER);
++                        out.attributeInt(null, ATTR_USER_ID,
++                                mDeveloperVerificationPolicyPerUser.keyAt(i));
++                        out.attributeInt(null, ATTR_DEVELOPER_VERIFICATION_POLICY,
++                                mDeveloperVerificationPolicyPerUser.valueAt(i));
++                        out.endTag(null, TAG_DEVELOPER_VERIFICATION_POLICY_PER_USER);
++                    }
++                }
++                out.endDocument();
+ 
+-            mSessionsFile.finishWrite(fos);
+-            return true;
+-        } catch (IOException e) {
+-            if (fos != null) {
+-                mSessionsFile.failWrite(fos);
++                mSessionsFile.finishWrite(fos);
++                return true;
++            } catch (IOException e) {
++                if (fos != null) {
++                    mSessionsFile.failWrite(fos);
++                }
+             }
+-        }
+ 
+-        return false;
++            return false;
++        }
+     }
+ 
+     private File buildAppIconFile(int sessionId) {
+@@ -2734,8 +2739,10 @@ public class PackageInstallerService extends IPackageInstaller.Stub implements
+                             appIconFile.delete();
+                         }
+ 
+-                        mSettingsWriteRequest.runNow();
+                     }
++                    // The serialized writer takes its file lock before snapshotting mSessions.
++                    // Do not wait for it while holding mSessions in the reverse order.
++                    mSettingsWriteRequest.runNow();
+                     if (!success) {
+                         mCallbacks.notifySessionFinished(
+                                 session.sessionId, session.userId, success);
+diff --git a/services/core/java/com/android/server/pm/PackageInstallerSession.java b/services/core/java/com/android/server/pm/PackageInstallerSession.java
+index c840fd4203a6..ecac68b84f5e 100644
+--- a/services/core/java/com/android/server/pm/PackageInstallerSession.java
++++ b/services/core/java/com/android/server/pm/PackageInstallerSession.java
+@@ -2673,15 +2673,17 @@ public class PackageInstallerSession extends IPackageInstallerSession.Stub {
+             assertPreparedAndNotDestroyedLocked("commit of session " + sessionId);
+             assertNoWriteFileTransfersOpenLocked();
+ 
+-            boolean isSecureFrpEnabled;
+-            PersistentDataBlockManager pdbManager =
+-                    mContext.getSystemService(PersistentDataBlockManager.class);
+-            if (pdbManager == null) {
+-                // Some devices may not support FRP. In that case, we can't block the install
+-                // accordingly.
+-                isSecureFrpEnabled = false;
+-            } else {
+-                isSecureFrpEnabled = pdbManager.isFactoryResetProtectionActive();
++            // Match SystemServer's optional PDB service startup conditions. Do not look up
++            // an intentionally unavailable service on devices without FRP support.
++            final boolean isPdbConfigured = !SystemProperties.get("ro.frp.pst").isEmpty()
++                    || (Build.IS_ARC && SystemProperties.getInt("ro.boot.dev_mode", 0) == 1);
++            boolean isSecureFrpEnabled = false;
++            if (isPdbConfigured) {
++                PersistentDataBlockManager pdbManager =
++                        mContext.getSystemService(PersistentDataBlockManager.class);
++                if (pdbManager != null) {
++                    isSecureFrpEnabled = pdbManager.isFactoryResetProtectionActive();
++                }
+             }
+ 
+             if (isSecureFrpEnabled
+diff --git a/services/core/java/com/android/server/pm/ShortcutParser.java b/services/core/java/com/android/server/pm/ShortcutParser.java
+index 1deca0cef383..20019a3a09f4 100644
+--- a/services/core/java/com/android/server/pm/ShortcutParser.java
++++ b/services/core/java/com/android/server/pm/ShortcutParser.java
+@@ -23,6 +23,7 @@ import android.content.Intent;
+ import android.content.pm.ActivityInfo;
+ import android.content.pm.ResolveInfo;
+ import android.content.pm.ShortcutInfo;
++import android.content.res.Resources;
+ import android.content.res.TypedArray;
+ import android.content.res.XmlResourceParser;
+ import android.text.TextUtils;
+@@ -124,6 +125,12 @@ public class ShortcutParser {
+                 return result;
+             }
+ 
++            final Resources resources = service.injectGetResourcesForApplicationAsUser(
++                    packageName, userId);
++            if (resources == null) {
++                return result;
++            }
++
+             final ComponentName activity = new ComponentName(packageName, activityInfo.name);
+ 
+             final AttributeSet attrs = Xml.asAttributeSet(parser);
+@@ -252,7 +259,7 @@ public class ShortcutParser {
+                 }
+                 if (depth == 2 && TAG_SHORTCUT.equals(tag)) {
+                     final ShortcutInfo si = parseShortcutAttributes(
+-                            service, attrs, packageName, activity, userId, rank);
++                            service, resources, attrs, packageName, activity, userId, rank);
+                     if (si == null) {
+                         // Shortcut was invalid.
+                         continue;
+@@ -273,7 +280,7 @@ public class ShortcutParser {
+                     continue;
+                 }
+                 if (depth == 2 && TAG_SHARE_TARGET.equals(tag)) {
+-                    final ShareTargetInfo sti = parseShareTargetAttributes(service, attrs);
++                    final ShareTargetInfo sti = parseShareTargetAttributes(resources, attrs);
+                     if (sti == null) {
+                         // ShareTarget was invalid.
+                         continue;
+@@ -290,7 +297,7 @@ public class ShortcutParser {
+                         continue;
+                     }
+ 
+-                    final Intent intent = Intent.parseIntent(service.mContext.getResources(),
++                    final Intent intent = Intent.parseIntent(resources,
+                             parser, attrs);
+                     if (TextUtils.isEmpty(intent.getAction())) {
+                         Log.e(TAG, "Shortcut intent action must be provided. activity=" + activity);
+@@ -305,7 +312,7 @@ public class ShortcutParser {
+                             || (currentShortcut.getCategories() != null)) {
+                         continue;
+                     }
+-                    final String name = parseCategories(service, attrs);
++                    final String name = parseCategories(resources, attrs);
+                     if (TextUtils.isEmpty(name)) {
+                         Log.e(TAG, "Empty category found. activity=" + activity);
+                         continue;
+@@ -321,7 +328,7 @@ public class ShortcutParser {
+                     if ((currentShareTarget == null)) {
+                         continue;
+                     }
+-                    final String name = parseCategory(service, attrs);
++                    final String name = parseCategory(resources, attrs);
+                     if (TextUtils.isEmpty(name)) {
+                         Log.e(TAG, "Empty category found. activity=" + activity);
+                         continue;
+@@ -337,7 +344,7 @@ public class ShortcutParser {
+                     if ((currentShareTarget == null)) {
+                         continue;
+                     }
+-                    final ShareTargetInfo.TargetData data = parseShareTargetData(service, attrs);
++                    final ShareTargetInfo.TargetData data = parseShareTargetData(resources, attrs);
+                     if (data == null) {
+                         Log.e(TAG, "Invalid data tag found. activity=" + activity);
+                         continue;
+@@ -356,8 +363,8 @@ public class ShortcutParser {
+         return result;
+     }
+ 
+-    private static String parseCategories(ShortcutService service, AttributeSet attrs) {
+-        final TypedArray sa = service.mContext.getResources().obtainAttributes(attrs,
++    private static String parseCategories(Resources resources, AttributeSet attrs) {
++        final TypedArray sa = resources.obtainAttributes(attrs,
+                 R.styleable.ShortcutCategories);
+         try {
+             if (sa.getType(R.styleable.ShortcutCategories_name) == TypedValue.TYPE_STRING) {
+@@ -372,9 +379,9 @@ public class ShortcutParser {
+     }
+ 
+     private static ShortcutInfo parseShortcutAttributes(ShortcutService service,
+-            AttributeSet attrs, String packageName, ComponentName activity,
++            Resources resources, AttributeSet attrs, String packageName, ComponentName activity,
+             @UserIdInt int userId, int rank) {
+-        final TypedArray sa = service.mContext.getResources().obtainAttributes(attrs,
++        final TypedArray sa = resources.obtainAttributes(attrs,
+                 R.styleable.Shortcut);
+         try {
+             if (sa.getType(R.styleable.Shortcut_shortcutId) != TypedValue.TYPE_STRING) {
+@@ -391,7 +398,7 @@ public class ShortcutParser {
+             final int splashScreenThemeResId = sa.getResourceId(
+                     R.styleable.Shortcut_splashScreenTheme, 0);
+             final String splashScreenThemeResName = splashScreenThemeResId != 0
+-                    ? service.mContext.getResources().getResourceName(splashScreenThemeResId)
++                    ? resources.getResourceName(splashScreenThemeResId)
+                     : null;
+ 
+             if (TextUtils.isEmpty(id)) {
+@@ -468,8 +475,8 @@ public class ShortcutParser {
+                 null /* capabilityBindings */);
+     }
+ 
+-    private static String parseCategory(ShortcutService service, AttributeSet attrs) {
+-        final TypedArray sa = service.mContext.getResources().obtainAttributes(attrs,
++    private static String parseCategory(Resources resources, AttributeSet attrs) {
++        final TypedArray sa = resources.obtainAttributes(attrs,
+                 R.styleable.IntentCategory);
+         try {
+             if (sa.getType(R.styleable.IntentCategory_name) != TypedValue.TYPE_STRING) {
+@@ -482,9 +489,9 @@ public class ShortcutParser {
+         }
+     }
+ 
+-    private static ShareTargetInfo parseShareTargetAttributes(ShortcutService service,
++    private static ShareTargetInfo parseShareTargetAttributes(Resources resources,
+             AttributeSet attrs) {
+-        final TypedArray sa = service.mContext.getResources().obtainAttributes(attrs,
++        final TypedArray sa = resources.obtainAttributes(attrs,
+                 R.styleable.Intent);
+         try {
+             String targetClass = sa.getString(R.styleable.Intent_targetClass);
+@@ -498,9 +505,9 @@ public class ShortcutParser {
+         }
+     }
+ 
+-    private static ShareTargetInfo.TargetData parseShareTargetData(ShortcutService service,
++    private static ShareTargetInfo.TargetData parseShareTargetData(Resources resources,
+             AttributeSet attrs) {
+-        final TypedArray sa = service.mContext.getResources().obtainAttributes(attrs,
++        final TypedArray sa = resources.obtainAttributes(attrs,
+                 R.styleable.AndroidManifestData);
+         try {
+             if (sa.getType(R.styleable.AndroidManifestData_mimeType) != TypedValue.TYPE_STRING) {
 diff --git a/services/core/java/com/android/server/vibrator/VibratorManagerService.java b/services/core/java/com/android/server/vibrator/VibratorManagerService.java
 index d483985c32ac..acaeeaea5837 100644
 --- a/services/core/java/com/android/server/vibrator/VibratorManagerService.java
@@ -2851,6 +3223,1004 @@ index d483985c32ac..acaeeaea5837 100644
          // Create Vibration.Stats as close to the received request as possible, for tracking.
          SingleVibrationSession session = new SingleVibrationSession(token, callerInfo, effect);
          HalVibration vib = session.getVibration();
+diff --git a/services/core/java/com/android/server/wm/ActivityCallerState.java b/services/core/java/com/android/server/wm/ActivityCallerState.java
+index a333a4d46162..5a9b4c5e8686 100644
+--- a/services/core/java/com/android/server/wm/ActivityCallerState.java
++++ b/services/core/java/com/android/server/wm/ActivityCallerState.java
+@@ -25,12 +25,9 @@ import static org.xmlpull.v1.XmlPullParser.END_DOCUMENT;
+ import static org.xmlpull.v1.XmlPullParser.END_TAG;
+ import static org.xmlpull.v1.XmlPullParser.START_TAG;
+ 
+-import android.content.ClipData;
+ import android.content.ContentProvider;
+-import android.content.ContentResolver;
+ import android.content.Intent;
+ import android.net.Uri;
+-import android.os.BadParcelableException;
+ import android.os.IBinder;
+ import android.os.UserHandle;
+ import android.util.ArraySet;
+@@ -39,12 +36,12 @@ import android.util.Slog;
+ import com.android.internal.util.XmlUtils;
+ import com.android.modules.utils.TypedXmlPullParser;
+ import com.android.modules.utils.TypedXmlSerializer;
++import com.android.server.uri.CallerUriPermissionSnapshot;
+ import com.android.server.uri.GrantUri;
+ 
+ import org.xmlpull.v1.XmlPullParserException;
+ 
+ import java.io.IOException;
+-import java.util.ArrayList;
+ import java.util.WeakHashMap;
+ 
+ /**
+@@ -102,20 +99,24 @@ final class ActivityCallerState {
+     }
+ 
+     void computeCallerInfo(IBinder callerToken, Intent intent, int callerUid,
+-            String callerPackageName, boolean isCallerShareIdentityEnabled) {
++            String callerPackageName, boolean isCallerShareIdentityEnabled,
++            CallerUriPermissionSnapshot permissions) {
+         final CallerInfo callerInfo = new CallerInfo(callerUid, callerPackageName,
+                 isCallerShareIdentityEnabled);
+         mCallerTokenInfoMap.put(callerToken, callerInfo);
+ 
+-        final ArraySet<Uri> contentUris = getContentUrisFromIntent(intent);
++        final ArraySet<Uri> contentUris = CallerUriPermissionSnapshot.getContentUrisFromIntent(intent);
++        if (!contentUris.isEmpty() && (permissions == null || !permissions.isForUid(callerUid))) {
++            Slog.e(TAG, "Missing caller URI permission snapshot for uid " + callerUid);
++        }
+         for (int i = contentUris.size() - 1; i >= 0; i--) {
+             final Uri contentUri = contentUris.valueAt(i);
+ 
+             final boolean hasRead = addContentUriIfUidHasPermission(contentUri, callerUid,
+-                    Intent.FLAG_GRANT_READ_URI_PERMISSION, callerInfo.mReadableContentUris);
++                    Intent.FLAG_GRANT_READ_URI_PERMISSION, callerInfo.mReadableContentUris, permissions);
+ 
+             final boolean hasWrite = addContentUriIfUidHasPermission(contentUri, callerUid,
+-                    Intent.FLAG_GRANT_WRITE_URI_PERMISSION, callerInfo.mWritableContentUris);
++                    Intent.FLAG_GRANT_WRITE_URI_PERMISSION, callerInfo.mWritableContentUris, permissions);
+ 
+             if (!hasRead && !hasWrite) {
+                 callerInfo.mInaccessibleContentUris.add(convertToGrantUri(contentUri,
+@@ -163,10 +164,10 @@ final class ActivityCallerState {
+     }
+ 
+     private boolean addContentUriIfUidHasPermission(Uri contentUri, int uid, int modeFlags,
+-            ArraySet<GrantUri> grantUris) {
++            ArraySet<GrantUri> grantUris, CallerUriPermissionSnapshot permissions) {
+         final GrantUri grantUri = convertToGrantUri(contentUri, modeFlags, uid);
+-        if (mAtmService.mUgmInternal.checkUriPermission(grantUri, uid,
+-                modeFlags, /* isFullAccessForContentUri */ true)) {
++        if (permissions != null && permissions.isForUid(uid)
++                && permissions.hasPermission(grantUri, modeFlags)) {
+             grantUris.add(grantUri);
+             return true;
+         }
+@@ -179,73 +180,6 @@ final class ActivityCallerState {
+                 modeFlags);
+     }
+ 
+-    private static ArraySet<Uri> getContentUrisFromIntent(Intent intent) {
+-        final ArraySet<Uri> uris = new ArraySet<>();
+-        if (intent == null) return uris;
+-
+-        // getData
+-        addUriIfContentUri(intent.getData(), uris);
+-
+-        // EXTRA_STREAM
+-        if (intent.hasExtra(Intent.EXTRA_STREAM)) {
+-            final ArrayList<Uri> streams = tryToUnparcelArrayListExtraStreamsUri(intent);
+-            if (streams == null) {
+-                addUriIfContentUri(tryToUnparcelExtraStreamUri(intent), uris);
+-            } else {
+-                for (int i = streams.size() - 1; i >= 0; i--) {
+-                    addUriIfContentUri(streams.get(i), uris);
+-                }
+-            }
+-        }
+-
+-        final ClipData clipData = intent.getClipData();
+-        if (clipData == null) return uris;
+-
+-        for (int i = 0; i < clipData.getItemCount(); i++) {
+-            final ClipData.Item item = clipData.getItemAt(i);
+-
+-            // getUri
+-            addUriIfContentUri(item.getUri(), uris);
+-
+-            // getIntent
+-            uris.addAll(getContentUrisFromIntent(item.getIntent()));
+-        }
+-        return uris;
+-    }
+-
+-    private static Uri tryToUnparcelExtraStreamUri(Intent intent) {
+-        try {
+-            return intent.getParcelableExtra(Intent.EXTRA_STREAM, Uri.class);
+-        } catch (BadParcelableException e) {
+-            // Even though the system "defuses" all the parsed Bundles, i.e. suppresses and logs
+-            // instances of {@link BadParcelableException}, we still want to be on the safer side
+-            // and catch the exception to ensure no breakages happen. If the unparcel fails, the
+-            // item is still preserved with the underlying parcel.
+-            Slog.w(TAG, "Failed to unparcel an URI in EXTRA_STREAM, returning null: " + e);
+-            return null;
+-        }
+-    }
+-
+-    private static ArrayList<Uri> tryToUnparcelArrayListExtraStreamsUri(Intent intent) {
+-        try {
+-            return intent.getParcelableArrayListExtra(Intent.EXTRA_STREAM, Uri.class);
+-        } catch (BadParcelableException e) {
+-            // Even though the system "defuses" all the parsed Bundles, i.e. suppresses and logs
+-            // instances of {@link BadParcelableException}, we still want to be on the safer side
+-            // and catch the exception to ensure no breakages happen. If the unparcel fails, the
+-            // item is still preserved with the underlying parcel.
+-            Slog.w(TAG, "Failed to unparcel an ArrayList of URIs in EXTRA_STREAM, returning null: "
+-                    + e);
+-            return null;
+-        }
+-    }
+-
+-    private static void addUriIfContentUri(Uri uri, ArraySet<Uri> uris) {
+-        if (uri != null && ContentResolver.SCHEME_CONTENT.equals(uri.getScheme())) {
+-            uris.add(uri);
+-        }
+-    }
+-
+     public static final class CallerInfo {
+         final int mUid;
+         final String mPackageName;
+diff --git a/services/core/java/com/android/server/wm/ActivityClientController.java b/services/core/java/com/android/server/wm/ActivityClientController.java
+index 13da26d0b594..8a02daa76eec 100644
+--- a/services/core/java/com/android/server/wm/ActivityClientController.java
++++ b/services/core/java/com/android/server/wm/ActivityClientController.java
+@@ -119,7 +119,6 @@ import com.android.server.Watchdog;
+ import com.android.server.pm.KnownPackages;
+ import com.android.server.pm.pkg.AndroidPackage;
+ import com.android.server.uri.GrantUri;
+-import com.android.server.uri.NeededUriGrants;
+ import com.android.server.utils.quota.Categorizer;
+ import com.android.server.utils.quota.Category;
+ import com.android.server.utils.quota.CountQuotaTracker;
+@@ -464,12 +463,12 @@ class ActivityClientController extends IActivityClientController.Stub {
+         }
+ 
+         // Carefully collect grants without holding lock.
+-        final NeededUriGrants destGrants = mService.collectGrants(destIntent, r);
+-        final NeededUriGrants resultGrants = mService.collectGrants(resultData, r.resultTo);
++        final ActivityUriPermissions destPermissions = mService.collectGrants(destIntent, r);
++        final ActivityUriPermissions resultPermissions = mService.collectGrants(resultData, r.resultTo);
+ 
+         synchronized (mGlobalLock) {
+             return r.getRootTask().navigateUpTo(
+-                    r, destIntent, resolvedType, destGrants, resultCode, resultData, resultGrants);
++                    r, destIntent, resolvedType, destPermissions, resultCode, resultData, resultPermissions);
+         }
+     }
+ 
+@@ -516,7 +515,7 @@ class ActivityClientController extends IActivityClientController.Stub {
+         }
+ 
+         // Carefully collect grants without holding lock.
+-        final NeededUriGrants resultGrants = mService.collectGrants(resultData, r.resultTo);
++        final ActivityUriPermissions resultPermissions = mService.collectGrants(resultData, r.resultTo);
+ 
+         synchronized (mGlobalLock) {
+             // Check again in case activity was removed when collecting grants.
+@@ -589,7 +588,7 @@ class ActivityClientController extends IActivityClientController.Stub {
+                     // Explicitly dismissing the activity so reset its relaunch flag.
+                     r.mRelaunchReason = RELAUNCH_REASON_NONE;
+                 } else {
+-                    r.finishIfPossible(resultCode, resultData, resultGrants, "app-request",
++                    r.finishIfPossible(resultCode, resultData, resultPermissions, "app-request",
+                             true /* oomAdj */);
+                     res = r.finishing;
+                     if (!res) {
+diff --git a/services/core/java/com/android/server/wm/ActivityRecord.java b/services/core/java/com/android/server/wm/ActivityRecord.java
+index a536d191644e..aeb364b4518d 100644
+--- a/services/core/java/com/android/server/wm/ActivityRecord.java
++++ b/services/core/java/com/android/server/wm/ActivityRecord.java
+@@ -354,7 +354,7 @@ import com.android.server.contentcapture.ContentCaptureManagerInternal;
+ import com.android.server.display.color.ColorDisplayService;
+ import com.android.server.pm.UserManagerInternal;
+ import com.android.server.uri.GrantUri;
+-import com.android.server.uri.NeededUriGrants;
++import com.android.server.uri.CallerUriPermissionSnapshot;
+ import com.android.server.uri.UriPermissionOwner;
+ import com.android.server.wm.ActivityMetricsLogger.TransitionInfoSnapshot;
+ import com.android.server.wm.WindowManagerService.H;
+@@ -1902,15 +1902,15 @@ public final class ActivityRecord extends WindowToken {
+         return mCallerState.isShareIdentityEnabled(callerToken);
+     }
+ 
+-    void computeInitialCallerInfo() {
++    void computeInitialCallerInfo(CallerUriPermissionSnapshot permissions) {
+         computeCallerInfo(initialCallerInfoAccessToken, intent, launchedFromUid,
+-                launchedFromPackage, mShareIdentity);
++                launchedFromPackage, mShareIdentity, permissions);
+     }
+ 
+     void computeCallerInfo(IBinder callerToken, Intent intent, int callerUid,
+-            String callerPackageName, boolean isCallerShareIdentityEnabled) {
++            String callerPackageName, boolean isCallerShareIdentityEnabled, CallerUriPermissionSnapshot permissions) {
+         mCallerState.computeCallerInfo(callerToken, intent, callerUid, callerPackageName,
+-                isCallerShareIdentityEnabled);
++                isCallerShareIdentityEnabled, permissions);
+     }
+ 
+     boolean checkContentUriPermission(IBinder callerToken, GrantUri grantUri, int modeFlags) {
+@@ -3585,7 +3585,7 @@ public final class ActivityRecord extends WindowToken {
+      * started for result from this one, and clears new intents.
+      */
+     private void finishActivityResults(int resultCode, Intent resultData,
+-            NeededUriGrants resultGrants) {
++            ActivityUriPermissions resultPermissions) {
+         // Send the result if needed
+         if (resultTo != null) {
+             if (DEBUG_RESULTS) {
+@@ -3599,7 +3599,7 @@ public final class ActivityRecord extends WindowToken {
+                 }
+             }
+             if (this.getUid() > 0) {
+-                mAtmService.mUgmInternal.grantUriPermissionUncheckedFromIntent(resultGrants,
++                mAtmService.mUgmInternal.grantUriPermissionUncheckedFromIntent(ActivityUriPermissions.grantsOf(resultPermissions),
+                         resultTo.getUriPermissionsLocked());
+             }
+             IBinder callerToken = new Binder();
+@@ -3607,7 +3607,7 @@ public final class ActivityRecord extends WindowToken {
+                 try {
+                     resultTo.computeCallerInfo(callerToken, resultData, this.getUid(),
+                             mAtmService.getPackageManager().getNameForUid(this.getUid()),
+-                            /* isShareIdentityEnabled */ false);
++                            /* isShareIdentityEnabled */ false, ActivityUriPermissions.callerOf(resultPermissions));
+                     // Result callers cannot share their identity via
+                     // {@link ActivityOptions#setShareIdentityEnabled(boolean)} since
+                     // {@link android.app.Activity#setResult} doesn't have a
+@@ -3623,7 +3623,7 @@ public final class ActivityRecord extends WindowToken {
+                 mAtmService.mH.post(() -> {
+                     synchronized (mAtmService.mGlobalLock) {
+                         resultToActivity.sendResult(this.getUid(), resultWho, requestCode,
+-                                resultCode, resultData, callerToken, resultGrants,
++                                resultCode, resultData, callerToken, resultPermissions,
+                                 mForceSendResultForMediaProjection);
+                     }
+                 });
+@@ -3662,11 +3662,11 @@ public final class ActivityRecord extends WindowToken {
+     @interface FinishRequest {}
+ 
+     /**
+-     * See {@link #finishIfPossible(int, Intent, NeededUriGrants, String, boolean)}
++     * See {@link #finishIfPossible(int, Intent, ActivityUriPermissions, String, boolean)}
+      */
+     @FinishRequest int finishIfPossible(String reason, boolean oomAdj) {
+         return finishIfPossible(Activity.RESULT_CANCELED,
+-                null /* resultData */, null /* resultGrants */, reason, oomAdj);
++                null /* resultData */, null /* resultPermissions */, reason, oomAdj);
+     }
+ 
+     /**
+@@ -3681,7 +3681,7 @@ public final class ActivityRecord extends WindowToken {
+      * request to finish it was not ignored.
+      */
+     @FinishRequest int finishIfPossible(int resultCode, Intent resultData,
+-            NeededUriGrants resultGrants, String reason, boolean oomAdj) {
++            ActivityUriPermissions resultPermissions, String reason, boolean oomAdj) {
+         ProtoLog.v(WM_DEBUG_STATES, "Finishing activity r=%s, result=%d, data=%s, "
+                 + "reason=%s", this, resultCode, resultData, reason);
+ 
+@@ -3747,7 +3747,7 @@ public final class ActivityRecord extends WindowToken {
+                 }
+             }
+ 
+-            finishActivityResults(resultCode, resultData, resultGrants);
++            finishActivityResults(resultCode, resultData, resultPermissions);
+             final boolean wasVisibleRequested = mVisibleRequested;
+             if (mVisibleRequested) {
+                 setVisibility(false);
+@@ -4138,7 +4138,7 @@ public final class ActivityRecord extends WindowToken {
+     /** Note: call {@link #cleanUp(boolean, boolean)} before this method. */
+     void removeFromHistory(String reason) {
+         finishActivityResults(Activity.RESULT_CANCELED,
+-                null /* resultData */, null /* resultGrants */);
++                null /* resultData */, null /* resultPermissions */);
+         makeFinishingLocked();
+ 
+         ProtoLog.i(WM_DEBUG_ADD_REMOVE, "Removing activity %s, reason= %s "
+@@ -4474,7 +4474,9 @@ public final class ActivityRecord extends WindowToken {
+         if (!chain.isCollecting()) {
+             chain.attachTransition(mTransitionController.requestCloseTransitionIfNeeded(trigger));
+         }
+-        chain.collectClose(trigger);
++        if (chain.isCollecting()) {
++            chain.collectClose(trigger);
++        }
+         cleanUp(true /* cleanServices */, true /* setState */);
+         if (remove) {
+             if (mStartingData != null && mVisible && task != null) {
+@@ -5047,20 +5049,20 @@ public final class ActivityRecord extends WindowToken {
+     }
+ 
+     void sendResult(int callingUid, String resultWho, int requestCode, int resultCode,
+-            Intent data, IBinder callerToken, NeededUriGrants dataGrants) {
+-        sendResult(callingUid, resultWho, requestCode, resultCode, data, callerToken, dataGrants,
++            Intent data, IBinder callerToken, ActivityUriPermissions dataPermissions) {
++        sendResult(callingUid, resultWho, requestCode, resultCode, data, callerToken, dataPermissions,
+                 false /* forceSendForMediaProjection */);
+     }
+ 
+     void sendResult(int callingUid, String resultWho, int requestCode, int resultCode,
+-            Intent data, IBinder callerToken, NeededUriGrants dataGrants,
++            Intent data, IBinder callerToken, ActivityUriPermissions dataPermissions,
+             boolean forceSendForMediaProjection) {
+         if (android.security.Flags.contentUriPermissionApis()
+                 && !mCallerState.hasCaller(callerToken)) {
+             try {
+                 computeCallerInfo(callerToken, data, callingUid,
+                         mAtmService.getPackageManager().getNameForUid(callingUid),
+-                        false /* isShareIdentityEnabled */);
++                        false /* isShareIdentityEnabled */, ActivityUriPermissions.callerOf(dataPermissions));
+                 // Result callers cannot share their identity via
+                 // {@link ActivityOptions#setShareIdentityEnabled(boolean)} since
+                 // {@link android.app.Activity#setResult} doesn't have a {@link android.os.Bundle}.
+@@ -5069,7 +5071,7 @@ public final class ActivityRecord extends WindowToken {
+             }
+         }
+         if (callingUid > 0) {
+-            mAtmService.mUgmInternal.grantUriPermissionUncheckedFromIntent(dataGrants,
++            mAtmService.mUgmInternal.grantUriPermissionUncheckedFromIntent(ActivityUriPermissions.grantsOf(dataPermissions),
+                     getUriPermissionsLocked());
+         }
+ 
+@@ -5165,14 +5167,15 @@ public final class ActivityRecord extends WindowToken {
+      * Deliver a new Intent to an existing activity, so that its onNewIntent()
+      * method will be called at the proper time.
+      */
+-    final void deliverNewIntentLocked(int callingUid, Intent intent, NeededUriGrants intentGrants,
++    final void deliverNewIntentLocked(int callingUid, Intent intent, ActivityUriPermissions uriPermissions,
+             String referrer, boolean isShareIdentityEnabled, int userId, int recipientAppId) {
+         IBinder callerToken = new Binder();
+         if (android.security.Flags.contentUriPermissionApis()) {
+-            computeCallerInfo(callerToken, intent, callingUid, referrer, isShareIdentityEnabled);
++            computeCallerInfo(callerToken, intent, callingUid, referrer, isShareIdentityEnabled,
++                    ActivityUriPermissions.callerOf(uriPermissions));
+         }
+         // The activity now gets access to the data associated with this Intent.
+-        mAtmService.mUgmInternal.grantUriPermissionUncheckedFromIntent(intentGrants,
++        mAtmService.mUgmInternal.grantUriPermissionUncheckedFromIntent(ActivityUriPermissions.grantsOf(uriPermissions),
+                 getUriPermissionsLocked());
+         if (isShareIdentityEnabled && android.security.Flags.contentUriPermissionApis()) {
+             final PackageManagerInternal pmInternal = mAtmService.getPackageManagerInternalLocked();
+diff --git a/services/core/java/com/android/server/wm/ActivityStartController.java b/services/core/java/com/android/server/wm/ActivityStartController.java
+index f95102dc0801..73076425c4e0 100644
+--- a/services/core/java/com/android/server/wm/ActivityStartController.java
++++ b/services/core/java/com/android/server/wm/ActivityStartController.java
+@@ -56,6 +56,7 @@ import com.android.internal.util.ArrayUtils;
+ import com.android.server.am.ActivityManagerService;
+ import com.android.server.am.PendingIntentRecord;
+ import com.android.server.uri.NeededUriGrants;
++import com.android.server.uri.CallerUriPermissionSnapshot;
+ import com.android.server.wm.ActivityStarter.DefaultFactory;
+ import com.android.server.wm.ActivityStarter.Factory;
+ 
+@@ -431,7 +432,8 @@ public class ActivityStartController {
+             // potentially acquire activity manager lock that leads to deadlock.
+             for (int i = 0; i < intents.length; i++) {
+                 Intent intent = intents[i];
+-                NeededUriGrants intentGrants = null;
++                NeededUriGrants grants = null;
++                ActivityUriPermissions uriPermissions = null;
+ 
+                 // Refuse possible leaked file descriptors.
+                 if (intent.hasFileDescriptors()) {
+@@ -466,7 +468,7 @@ public class ActivityStartController {
+                 if (aInfo != null) {
+                     try {
+                         // Carefully collect grants without holding lock
+-                        intentGrants = mSupervisor.mService.mUgmInternal
++                        grants = mSupervisor.mService.mUgmInternal
+                                 .checkGrantUriPermissionFromIntent(intent, filterCallingUid,
+                                         aInfo.applicationInfo.packageName,
+                                         UserHandle.getUserId(aInfo.getUid()));
+@@ -481,10 +483,10 @@ public class ActivityStartController {
+                                     .checkGrantUriPermissionFromIntent(intent, creatorUid,
+                                             aInfo.applicationInfo.packageName,
+                                             UserHandle.getUserId(aInfo.getUid()));
+-                            if (intentGrants == null) {
+-                                intentGrants = creatorIntentGrants;
++                            if (grants == null) {
++                                grants = creatorIntentGrants;
+                             } else {
+-                                intentGrants.merge(creatorIntentGrants);
++                                grants.merge(creatorIntentGrants);
+                             }
+                         } catch (SecurityException securityException) {
+                             ActivityStarter.logAndThrowExceptionForIntentRedirect(mService.mContext,
+@@ -493,6 +495,9 @@ public class ActivityStartController {
+                                     callingPackage, securityException);
+                         }
+                     }
++                    uriPermissions = ActivityUriPermissions.create(grants,
++                            CallerUriPermissionSnapshot.capture(intent, filterCallingUid,
++                                    mService.mUgmInternal));
+                     if ((aInfo.applicationInfo.privateFlags
+                             & ApplicationInfo.PRIVATE_FLAG_CANT_SAVE_STATE) != 0) {
+                         throw new IllegalArgumentException(
+@@ -506,7 +511,7 @@ public class ActivityStartController {
+                         ? options
+                         : bottomOptions;
+                 starters[i] = obtainStarter(intent, reason)
+-                        .setIntentGrants(intentGrants)
++                        .setUriPermissions(uriPermissions)
+                         .setCaller(caller)
+                         .setResolvedType(resolvedTypes[i])
+                         .setActivityInfo(aInfo)
+diff --git a/services/core/java/com/android/server/wm/ActivityStarter.java b/services/core/java/com/android/server/wm/ActivityStarter.java
+index 3e5e17be2fab..0986a918d290 100644
+--- a/services/core/java/com/android/server/wm/ActivityStarter.java
++++ b/services/core/java/com/android/server/wm/ActivityStarter.java
+@@ -159,6 +159,7 @@ import com.android.server.pm.PackageArchiver;
+ import com.android.server.pm.UserActivitiesAllowlist;
+ import com.android.server.power.ShutdownCheckPoints;
+ import com.android.server.statusbar.StatusBarManagerInternal;
++import com.android.server.uri.CallerUriPermissionSnapshot;
+ import com.android.server.uri.NeededUriGrants;
+ import com.android.server.wm.ActivityMetricsLogger.LaunchingState;
+ import com.android.server.wm.BackgroundActivityStartController.BalVerdict;
+@@ -412,7 +413,7 @@ class ActivityStarter {
+ 
+         IApplicationThread caller;
+         Intent intent;
+-        NeededUriGrants intentGrants;
++        ActivityUriPermissions uriPermissions;
+         // A copy of the original requested intent, in case for ephemeral app launch.
+         Intent ephemeralIntent;
+         String resolvedType;
+@@ -510,7 +511,7 @@ class ActivityStarter {
+         void reset() {
+             caller = null;
+             intent = null;
+-            intentGrants = null;
++            uriPermissions = null;
+             ephemeralIntent = null;
+             resolvedType = null;
+             activityInfo = null;
+@@ -556,7 +557,7 @@ class ActivityStarter {
+         void set(@NonNull Request request) {
+             caller = request.caller;
+             intent = request.intent;
+-            intentGrants = request.intentGrants;
++            uriPermissions = request.uriPermissions;
+             ephemeralIntent = request.ephemeralIntent;
+             resolvedType = request.resolvedType;
+             activityInfo = request.activityInfo;
+@@ -678,10 +679,11 @@ class ActivityStarter {
+                 }
+                 // leave intentCreatorUid as -1 if the intent creator is the same as the launcher
+             }
++            NeededUriGrants grants = null;
+             // Carefully collect grants without holding lock
+             if (activityInfo != null) {
+                 if (android.security.Flags.contentUriPermissionApis()) {
+-                    intentGrants = supervisor.mService.mUgmInternal
++                    grants = supervisor.mService.mUgmInternal
+                             .checkGrantUriPermissionFromIntent(intent, resolvedCallingUid,
+                                     activityInfo.applicationInfo.packageName,
+                                     UserHandle.getUserId(activityInfo.getUid()),
+@@ -695,10 +697,10 @@ class ActivityStarter {
+                                             UserHandle.getUserId(activityInfo.getUid()),
+                                             activityInfo.requireContentUriPermissionFromCaller,
+                                             /* requestHashCode */ this.hashCode());
+-                            if (intentGrants == null) {
+-                                intentGrants = creatorIntentGrants;
++                            if (grants == null) {
++                                grants = creatorIntentGrants;
+                             } else {
+-                                intentGrants.merge(creatorIntentGrants);
++                                grants.merge(creatorIntentGrants);
+                             }
+                         } catch (SecurityException securityException) {
+                             logAndThrowExceptionForIntentRedirect(supervisor.mService.mContext,
+@@ -708,21 +710,21 @@ class ActivityStarter {
+                         }
+                     }
+                 } else {
+-                    intentGrants = supervisor.mService.mUgmInternal
++                    grants = supervisor.mService.mUgmInternal
+                             .checkGrantUriPermissionFromIntent(intent, resolvedCallingUid,
+                                     activityInfo.applicationInfo.packageName,
+                                     UserHandle.getUserId(activityInfo.getUid()));
+-                    if (intentCreatorUid != DEFAULT_INTENT_CREATOR_UID && intentGrants != null) {
++                    if (intentCreatorUid != DEFAULT_INTENT_CREATOR_UID && grants != null) {
+                         try {
+                             NeededUriGrants creatorIntentGrants = supervisor.mService.mUgmInternal
+                                     .checkGrantUriPermissionFromIntent(intent, intentCreatorUid,
+                                             activityInfo.applicationInfo.packageName,
+                                             UserHandle.getUserId(
+                                                     activityInfo.getUid()));
+-                            if (intentGrants == null) {
+-                                intentGrants = creatorIntentGrants;
++                            if (grants == null) {
++                                grants = creatorIntentGrants;
+                             } else {
+-                                intentGrants.merge(creatorIntentGrants);
++                                grants.merge(creatorIntentGrants);
+                             }
+                         } catch (SecurityException securityException) {
+                             logAndThrowExceptionForIntentRedirect(supervisor.mService.mContext,
+@@ -732,6 +734,12 @@ class ActivityStarter {
+                         }
+                     }
+                 }
++                CallerUriPermissionSnapshot caller = ActivityUriPermissions.callerOf(uriPermissions);
++                if (!Thread.holdsLock(supervisor.mService.mGlobalLock)) {
++                    caller = CallerUriPermissionSnapshot.capture(intent, resolvedCallingUid,
++                            supervisor.mService.mUgmInternal);
++                }
++                uriPermissions = ActivityUriPermissions.create(grants, caller);
+             }
+         }
+ 
+@@ -883,6 +891,31 @@ class ActivityStarter {
+                 mRequest.resolveActivity(mSupervisor);
+             }
+ 
++            // Pre-resolved callers may bypass Request.resolveActivity. Prepare their
++            // caller-access metadata before taking the execution lock as well.
++            if (android.security.Flags.contentUriPermissionApis()
++                    && mRequest.activityInfo != null
++                    && !Thread.holdsLock(mService.mGlobalLock)
++                    && (mRequest.uriPermissions == null
++                            || mRequest.uriPermissions.caller == null)) {
++                int resolvedCallerUid = mRequest.callingUid;
++                if (mRequest.caller != null) {
++                    synchronized (mService.mGlobalLock) {
++                        final WindowProcessController callerApp =
++                                mService.getProcessController(mRequest.caller);
++                        if (callerApp != null) resolvedCallerUid = callerApp.mUid;
++                    }
++                } else if (resolvedCallerUid < 0) {
++                    resolvedCallerUid = callingUid;
++                }
++                if (resolvedCallerUid >= 0) {
++                    mRequest.uriPermissions = ActivityUriPermissions.create(
++                            ActivityUriPermissions.grantsOf(mRequest.uriPermissions),
++                            CallerUriPermissionSnapshot.capture(mRequest.intent, resolvedCallerUid,
++                                    mService.mUgmInternal));
++                }
++            }
++
+             if (trackLaunchOriginator()) {
+                 synchronized (mService.mGlobalLock) {
+                     final IntSupplier origUidSupplier = () -> mSupervisor.getActivityMetricsLogger()
+@@ -1101,7 +1134,7 @@ class ActivityStarter {
+ 
+         final IApplicationThread caller = request.caller;
+         Intent intent = request.intent;
+-        NeededUriGrants intentGrants = request.intentGrants;
++        ActivityUriPermissions uriPermissions = request.uriPermissions;
+         String resolvedType = request.resolvedType;
+         ActivityInfo aInfo = request.activityInfo;
+         ResolveInfo rInfo = request.resolveInfo;
+@@ -1301,7 +1334,7 @@ class ActivityStarter {
+         if (err != START_SUCCESS) {
+             if (resultRecord != null) {
+                 resultRecord.sendResult(INVALID_UID, resultWho, requestCode, RESULT_CANCELED,
+-                        null /* data */, null /* callerToken */, null /* dataGrants */);
++                        null /* data */, null /* callerToken */, null /* dataPermissions */);
+             }
+             SafeActivityOptions.abort(options);
+             return err;
+@@ -1327,7 +1360,7 @@ class ActivityStarter {
+                     if (resultRecord != null) {
+                         resultRecord.sendResult(INVALID_UID, resultWho, requestCode,
+                                 RESULT_CANCELED, null /* data */, null /* callerToken */,
+-                                null /* dataGrants */);
++                                null /* dataPermissions */);
+                     }
+                     SafeActivityOptions.abort(options);
+                     return ActivityManager.START_CLASS_NOT_FOUND;
+@@ -1444,13 +1477,13 @@ class ActivityStarter {
+ 
+             // The interception target shouldn't get any permission grants
+             // intended for the original destination
+-            intentGrants = null;
++            uriPermissions = null;
+         }
+ 
+         if (abort) {
+             if (resultRecord != null) {
+                 resultRecord.sendResult(INVALID_UID, resultWho, requestCode, RESULT_CANCELED,
+-                        null /* data */, null /* callerToken */, null /* dataGrants */);
++                        null /* data */, null /* callerToken */, null /* dataPermissions */);
+             }
+             // We pretend to the caller that it was really started, but they will just get a
+             // cancel result.
+@@ -1499,7 +1532,7 @@ class ActivityStarter {
+ 
+                 // The permissions review target shouldn't get any permission
+                 // grants intended for the original destination
+-                intentGrants = null;
++                uriPermissions = null;
+ 
+                 resolvedType = null;
+                 callingUid = realCallingUid;
+@@ -1537,7 +1570,7 @@ class ActivityStarter {
+ 
+             // The ephemeral installer shouldn't get any permission grants
+             // intended for the original destination
+-            intentGrants = null;
++            uriPermissions = null;
+ 
+             aInfo = mSupervisor.resolveActivity(intent, rInfo, startFlags, null /*profilerInfo*/);
+         }
+@@ -1624,7 +1657,7 @@ class ActivityStarter {
+ 
+         mLastStartActivityResult = startActivityUnchecked(r, sourceRecord, voiceSession,
+                 request.voiceInteractor, startFlags, checkedOptions,
+-                inTask, inTaskFragment, balVerdict, intentGrants, realCallingUid,
++                inTask, inTaskFragment, balVerdict, uriPermissions, realCallingUid,
+                 transition, isIndependent, request.userAllowlistStatus);
+ 
+         // Because the pending-intent usage in the waitAsyncStart hack "exits" ATMS into
+@@ -1654,7 +1687,7 @@ class ActivityStarter {
+         int requestCode = r.requestCode;
+         if (resultRecord != null) {
+             resultRecord.sendResult(INVALID_UID, resultWho, requestCode, RESULT_CANCELED,
+-                    null /* data */, null /* callerToken */, null /* dataGrants */);
++                    null /* data */, null /* callerToken */, null /* dataPermissions */);
+         }
+         // We pretend to the caller that it was really started to make it backward compatible, but
+         // they will just get a cancel result.
+@@ -1784,7 +1817,7 @@ class ActivityStarter {
+             int startFlags, ActivityOptions options, Task inTask,
+             TaskFragment inTaskFragment,
+             BalVerdict balVerdict,
+-            NeededUriGrants intentGrants, int realCallingUid, Transition transition,
++            ActivityUriPermissions uriPermissions, int realCallingUid, Transition transition,
+             boolean isIndependentLaunch, @AllowlistStatus int allowlistStatus) {
+         int result = START_CANCELED;
+         final Task startedActivityRootTask;
+@@ -1809,13 +1842,13 @@ class ActivityStarter {
+                 Trace.traceBegin(Trace.TRACE_TAG_WINDOW_MANAGER, "startActivityInner");
+                 result = startActivityInner(r, sourceRecord, voiceSession, voiceInteractor,
+                         startFlags, options, inTask, inTaskFragment, balVerdict,
+-                        intentGrants, realCallingUid);
++                        uriPermissions, realCallingUid);
+             } catch (Exception ex) {
+                 Slog.e(TAG, "Exception on startActivityInner", ex);
+             } finally {
+                 Trace.traceEnd(Trace.TRACE_TAG_WINDOW_MANAGER);
+                 startedActivityRootTask = handleStartResult(r, options, result, isIndependentLaunch,
+-                        remoteTransition, transition, allowlistStatus);
++                        remoteTransition, transition, allowlistStatus, uriPermissions);
+             }
+         } finally {
+             mService.continueWindowLayout();
+@@ -1842,7 +1875,7 @@ class ActivityStarter {
+     private @Nullable Task handleStartResult(@NonNull ActivityRecord started,
+             ActivityOptions options, int result, boolean isIndependentLaunch,
+             RemoteTransition remoteTransition, Transition transition,
+-            @AllowlistStatus int allowlistStatus) {
++            @AllowlistStatus int allowlistStatus, ActivityUriPermissions uriPermissions) {
+         final boolean userLeaving = mSupervisor.mUserLeaving;
+         mSupervisor.mUserLeaving = false;
+         final Task currentRootTask = started.getRootTask();
+@@ -1874,7 +1907,7 @@ class ActivityStarter {
+         }
+ 
+         if (android.security.Flags.contentUriPermissionApis() && started.isAttached()) {
+-            started.computeInitialCallerInfo();
++            started.computeInitialCallerInfo(ActivityUriPermissions.callerOf(uriPermissions));
+         }
+ 
+         // Apply setAlwaysOnTop when starting an activity is successful regardless of creating
+@@ -2028,7 +2061,7 @@ class ActivityStarter {
+             IVoiceInteractionSession voiceSession, IVoiceInteractor voiceInteractor,
+             int startFlags, ActivityOptions options, Task inTask,
+             TaskFragment inTaskFragment, BalVerdict balVerdict,
+-            NeededUriGrants intentGrants, int realCallingUid) {
++            ActivityUriPermissions uriPermissions, int realCallingUid) {
+         setInitialState(r, options, inTask, inTaskFragment, startFlags, sourceRecord,
+                 voiceSession, voiceInteractor, balVerdict, realCallingUid);
+ 
+@@ -2064,7 +2097,7 @@ class ActivityStarter {
+         if (startResult != START_SUCCESS) {
+             if (r.resultTo != null) {
+                 r.resultTo.sendResult(INVALID_UID, r.resultWho, r.requestCode, RESULT_CANCELED,
+-                        null /* data */, null /* callerToken */, null /* dataGrants */);
++                        null /* data */, null /* callerToken */, null /* dataPermissions */);
+             }
+             return startResult;
+         }
+@@ -2133,7 +2166,7 @@ class ActivityStarter {
+             recordTransientLaunchIfNeeded(targetTaskTop);
+             // Recycle the target task for this launch.
+             startResult =
+-                    recycleTask(targetTask, targetTaskTop, reusedTask, intentGrants);
++                    recycleTask(targetTask, targetTaskTop, reusedTask, uriPermissions);
+             if (startResult != START_SUCCESS) {
+                 return startResult;
+             }
+@@ -2145,7 +2178,7 @@ class ActivityStarter {
+         // we need to check if it should only be launched once.
+         final Task topRootTask = mPreferredTaskDisplayArea.getFocusedRootTask();
+         if (topRootTask != null) {
+-            startResult = deliverToCurrentTopIfNeeded(topRootTask, intentGrants);
++            startResult = deliverToCurrentTopIfNeeded(topRootTask, uriPermissions);
+             if (startResult != START_SUCCESS) {
+                 return startResult;
+             }
+@@ -2195,7 +2228,7 @@ class ActivityStarter {
+             }
+         }
+ 
+-        mService.mUgmInternal.grantUriPermissionUncheckedFromIntent(intentGrants,
++        mService.mUgmInternal.grantUriPermissionUncheckedFromIntent(ActivityUriPermissions.grantsOf(uriPermissions),
+                 mStartActivity.getUriPermissionsLocked());
+         if (mStartActivity.resultTo != null && mStartActivity.resultTo.info != null) {
+             // we need to resolve resultTo to a uid as grantImplicitAccess deals explicitly in UIDs
+@@ -2522,7 +2555,7 @@ class ActivityStarter {
+      */
+     @VisibleForTesting
+     int recycleTask(Task targetTask, ActivityRecord targetTaskTop, Task reusedTask,
+-            NeededUriGrants intentGrants) {
++            ActivityUriPermissions uriPermissions) {
+         // Should not recycle task which is from a different user, just adding the starting
+         // activity to the task.
+         if (targetTask.mUserId != mStartActivity.mUserId) {
+@@ -2567,7 +2600,7 @@ class ActivityStarter {
+             return START_RETURN_INTENT_TO_CALLER;
+         }
+         complyActivityFlags(targetTask,
+-                reusedTask != null ? reusedTask.getTopNonFinishingActivity() : null, intentGrants);
++                reusedTask != null ? reusedTask.getTopNonFinishingActivity() : null, uriPermissions);
+ 
+         if (mAddingToTask) {
+             mSupervisor.getBackgroundActivityLaunchController().clearTopIfNeeded(targetTask,
+@@ -2617,7 +2650,7 @@ class ActivityStarter {
+      * Check if the activity being launched is the same as the one currently at the top and it
+      * should only be launched once.
+      */
+-    private int deliverToCurrentTopIfNeeded(Task topRootTask, NeededUriGrants intentGrants) {
++    private int deliverToCurrentTopIfNeeded(Task topRootTask, ActivityUriPermissions uriPermissions) {
+         final ActivityRecord top = topRootTask.topRunningActivity(mNotTop);
+         final boolean dontStart = top != null
+                 && top.mActivityComponent.equals(mStartActivity.mActivityComponent)
+@@ -2648,11 +2681,11 @@ class ActivityStarter {
+         if (mStartActivity.resultTo != null) {
+             mStartActivity.resultTo.sendResult(INVALID_UID, mStartActivity.resultWho,
+                     mStartActivity.requestCode, RESULT_CANCELED,
+-                    null /* data */, null /* callerToken */, null /* dataGrants */);
++                    null /* data */, null /* callerToken */, null /* dataPermissions */);
+             mStartActivity.resultTo = null;
+         }
+ 
+-        deliverNewIntent(top, intentGrants);
++        deliverNewIntent(top, uriPermissions);
+ 
+         // Don't use mStartActivity.task to show the toast. We're not starting a new activity but
+         // reusing 'top'. Fields in mStartActivity may not be fully initialized.
+@@ -2668,7 +2701,7 @@ class ActivityStarter {
+      * task.
+      */
+     private void complyActivityFlags(Task targetTask, ActivityRecord reusedActivity,
+-            NeededUriGrants intentGrants) {
++            ActivityUriPermissions uriPermissions) {
+         ActivityRecord targetTaskTop = targetTask.getTopNonFinishingActivity();
+         final boolean resetTask =
+                 reusedActivity != null && (mLaunchFlags & FLAG_ACTIVITY_RESET_TASK_IF_NEEDED) != 0;
+@@ -2709,7 +2742,7 @@ class ActivityStarter {
+                     // so make sure the task now has the identity of the new intent.
+                     clearTop.getTask().setIntent(mStartActivity);
+                 }
+-                deliverNewIntent(clearTop, intentGrants);
++                deliverNewIntent(clearTop, uriPermissions);
+             } else {
+                 // A special case: we need to start the activity because it is not currently
+                 // running, and the caller has asked to clear the current task to have this
+@@ -2746,7 +2779,7 @@ class ActivityStarter {
+                     mMovedToTopActivity = act;
+                 }
+                 act.updateOptionsLocked(mOptions);
+-                deliverNewIntent(act, intentGrants);
++                deliverNewIntent(act, uriPermissions);
+                 act.getTaskFragment().clearLastPausedActivity();
+             } else {
+                 mAddingToTask = true;
+@@ -2766,7 +2799,7 @@ class ActivityStarter {
+                 if (targetTaskTop.isRootOfTask()) {
+                     targetTaskTop.getTask().setIntent(mStartActivity);
+                 }
+-                deliverNewIntent(targetTaskTop, intentGrants);
++                deliverNewIntent(targetTaskTop, uriPermissions);
+             } else if (!targetTask.isSameIntentFilter(mStartActivity)) {
+                 // In this case we are launching the root activity of the task, but with a
+                 // different intent. We should start a new instance on top.
+@@ -3031,7 +3064,7 @@ class ActivityStarter {
+             Slog.w(TAG, "Activity is launching as a new task, so cancelling activity result.");
+             mStartActivity.resultTo.sendResult(INVALID_UID, mStartActivity.resultWho,
+                     mStartActivity.requestCode, RESULT_CANCELED,
+-                    null /* data */, null /* callerToken */, null /* dataGrants */);
++                    null /* data */, null /* callerToken */, null /* dataPermissions */);
+             mStartActivity.resultTo = null;
+         }
+     }
+@@ -3358,13 +3391,13 @@ class ActivityStarter {
+         }
+     }
+ 
+-    private void deliverNewIntent(ActivityRecord activity, NeededUriGrants intentGrants) {
++    private void deliverNewIntent(ActivityRecord activity, ActivityUriPermissions uriPermissions) {
+         if (mIntentDelivered) {
+             return;
+         }
+ 
+         activity.logStartActivity(EventLogTags.WM_NEW_INTENT, activity.getTask());
+-        activity.deliverNewIntentLocked(mCallingUid, mStartActivity.intent, intentGrants,
++        activity.deliverNewIntentLocked(mCallingUid, mStartActivity.intent, uriPermissions,
+                 mStartActivity.launchedFromPackage, mStartActivity.mShareIdentity,
+                 mStartActivity.mUserId,
+                 UserHandle.getAppId(mStartActivity.getUid()));
+@@ -3569,8 +3602,8 @@ class ActivityStarter {
+         return mRequest.intent;
+     }
+ 
+-    ActivityStarter setIntentGrants(NeededUriGrants intentGrants) {
+-        mRequest.intentGrants = intentGrants;
++    ActivityStarter setUriPermissions(ActivityUriPermissions uriPermissions) {
++        mRequest.uriPermissions = uriPermissions;
+         return this;
+     }
+ 
+diff --git a/services/core/java/com/android/server/wm/ActivityTaskManagerService.java b/services/core/java/com/android/server/wm/ActivityTaskManagerService.java
+index 8b2279e9db61..5c941dff1662 100644
+--- a/services/core/java/com/android/server/wm/ActivityTaskManagerService.java
++++ b/services/core/java/com/android/server/wm/ActivityTaskManagerService.java
+@@ -305,6 +305,7 @@ import com.android.server.pm.UserManagerService;
+ import com.android.server.policy.PermissionPolicyInternal;
+ import com.android.server.sdksandbox.SdkSandboxManagerLocal;
+ import com.android.server.statusbar.StatusBarManagerInternal;
++import com.android.server.uri.CallerUriPermissionSnapshot;
+ import com.android.server.uri.NeededUriGrants;
+ import com.android.server.uri.UriGrantsManagerInternal;
+ import com.android.server.wm.utils.WindowStyleCache;
+@@ -1409,9 +1410,28 @@ public class ActivityTaskManagerService extends IActivityTaskManager.Stub {
+         SafeActivityOptions options = SafeActivityOptions.fromBundle(bOptions, origCallingPid,
+                 origCallingUid);
+ 
++        final ActivityRecord dispatchingActivity;
++        final Intent dispatchIntent;
++        final int dispatchUid;
++        synchronized (mGlobalLock) {
++            dispatchingActivity = ActivityRecord.isInRootTaskLocked(callingActivity);
++            if (dispatchingActivity == null || !dispatchingActivity.attachedToProcess()) {
++                SafeActivityOptions.abort(options);
++                return false;
++            }
++            dispatchUid = dispatchingActivity.getUid();
++            dispatchIntent = new Intent(intent);
++            dispatchIntent.setDataAndType(dispatchingActivity.intent.getData(),
++                    dispatchingActivity.intent.getType());
++        }
++        final CallerUriPermissionSnapshot callerPermissions =
++                CallerUriPermissionSnapshot.capture(dispatchIntent, dispatchUid, mUgmInternal);
++
+         synchronized (mGlobalLock) {
+             final ActivityRecord r = ActivityRecord.isInRootTaskLocked(callingActivity);
+-            if (r == null) {
++            if (r != dispatchingActivity || r.getUid() != dispatchUid
++                    || !Objects.equals(r.intent.getData(), dispatchIntent.getData())
++                    || !Objects.equals(r.intent.getType(), dispatchIntent.getType())) {
+                 SafeActivityOptions.abort(options);
+                 return false;
+             }
+@@ -1514,6 +1534,7 @@ public class ActivityTaskManagerService extends IActivityTaskManager.Stub {
+                 // ignored. So now both callingUid and realCallingUid is set to the caller app.
+                 final ActivityStarter starter = getActivityStartController()
+                         .obtainStarter(intent, "startNextMatchingActivity")
++                        .setUriPermissions(ActivityUriPermissions.create(null, callerPermissions))
+                         .setCaller(r.app.getThread())
+                         .setResolvedType(r.resolvedType)
+                         .setActivityInfo(aInfo)
+@@ -2401,10 +2422,13 @@ public class ActivityTaskManagerService extends IActivityTaskManager.Stub {
+         }
+     }
+ 
+-    NeededUriGrants collectGrants(Intent intent, ActivityRecord target) {
++    ActivityUriPermissions collectGrants(Intent intent, ActivityRecord target) {
+         if (target != null) {
+-            return mUgmInternal.checkGrantUriPermissionFromIntent(intent,
+-                    Binder.getCallingUid(), target.packageName, target.mUserId);
++            final int callerUid = Binder.getCallingUid();
++            final NeededUriGrants grants = mUgmInternal.checkGrantUriPermissionFromIntent(intent,
++                    callerUid, target.packageName, target.mUserId);
++            return ActivityUriPermissions.create(grants,
++                    CallerUriPermissionSnapshot.capture(intent, callerUid, mUgmInternal));
+         } else {
+             return null;
+         }
+@@ -7330,11 +7354,11 @@ public class ActivityTaskManagerService extends IActivityTaskManager.Stub {
+             }
+ 
+             // Carefully collect grants without holding lock
+-            final NeededUriGrants dataGrants = collectGrants(data, r);
++            final ActivityUriPermissions dataPermissions = collectGrants(data, r);
+ 
+             synchronized (mGlobalLock) {
+                 r.sendResult(callingUid, resultWho, requestCode, resultCode, data, new Binder(),
+-                        dataGrants);
++                        dataPermissions);
+             }
+         }
+ 
+diff --git a/services/core/java/com/android/server/wm/ActivityTaskSupervisor.java b/services/core/java/com/android/server/wm/ActivityTaskSupervisor.java
+index 2229ff526bfe..af5a10b731cc 100644
+--- a/services/core/java/com/android/server/wm/ActivityTaskSupervisor.java
++++ b/services/core/java/com/android/server/wm/ActivityTaskSupervisor.java
+@@ -1950,7 +1950,9 @@ public class ActivityTaskSupervisor implements RecentTasks.Callbacks {
+         if (!wasCollecting) {
+             chain.attachTransition(task.mTransitionController.requestCloseTransitionIfNeeded(task));
+         }
+-        chain.collectClose(task);
++        if (chain.isCollecting()) {
++            chain.collectClose(task);
++        }
+         final Transition transition = chain.getTransition();
+         if (!wasCollecting && transition != null) {
+             if (!task.mTransitionController.useFullReadyTracking()) {
+diff --git a/services/core/java/com/android/server/wm/Task.java b/services/core/java/com/android/server/wm/Task.java
+index 33e0d7ab223a..221f7babf4de 100644
+--- a/services/core/java/com/android/server/wm/Task.java
++++ b/services/core/java/com/android/server/wm/Task.java
+@@ -186,7 +186,6 @@ import com.android.modules.utils.TypedXmlSerializer;
+ import com.android.server.Watchdog;
+ import com.android.server.am.ActivityManagerService;
+ import com.android.server.am.AppTimeTracker;
+-import com.android.server.uri.NeededUriGrants;
+ import com.android.window.flags.Flags;
+ 
+ import org.xmlpull.v1.XmlPullParser;
+@@ -5871,8 +5870,8 @@ class Task extends TaskFragment {
+     }
+ 
+     boolean navigateUpTo(ActivityRecord srec, Intent destIntent, String resolvedType,
+-            NeededUriGrants destGrants, int resultCode, Intent resultData,
+-            NeededUriGrants resultGrants) {
++            ActivityUriPermissions destPermissions, int resultCode, Intent resultData,
++            ActivityUriPermissions resultPermissions) {
+         if (!srec.attachedToProcess()) {
+             // Nothing to do if the caller is not attached, because this method should be called
+             // from an alive activity.
+@@ -5923,8 +5922,8 @@ class Task extends TaskFragment {
+         resultCodeHolder[0] = resultCode;
+         final Intent[] resultDataHolder = new Intent[1];
+         resultDataHolder[0] = resultData;
+-        final NeededUriGrants[] resultGrantsHolder = new NeededUriGrants[1];
+-        resultGrantsHolder[0] = resultGrants;
++        final ActivityUriPermissions[] resultGrantsHolder = new ActivityUriPermissions[1];
++        resultGrantsHolder[0] = resultPermissions;
+         final ActivityRecord finalParent = parent;
+         task.forAllActivities((ar) -> {
+             if (ar == finalParent) return true;
+@@ -5948,7 +5947,7 @@ class Task extends TaskFragment {
+                     .setUserId(srec.mUserId)
+                     .setCaller(srec.app.getThread())
+                     .setResultTo(parent.token)
+-                    .setIntentGrants(destGrants)
++                    .setUriPermissions(destPermissions)
+                     .setCallingPid(-1)
+                     .setCallingUid(callingUid)
+                     .setCallingPackage(srec.packageName)
+@@ -5959,7 +5958,7 @@ class Task extends TaskFragment {
+                     .execute();
+             foundParentInTask = isStartResultSuccessful(res);
+             if (res == ActivityManager.START_SUCCESS) {
+-                parent.finishIfPossible(resultCode, resultData, resultGrants,
++                parent.finishIfPossible(resultCode, resultData, resultPermissions,
+                         "navigate-top", true /* oomAdj */);
+             }
+         }
 diff --git a/services/core/jni/Android.bp b/services/core/jni/Android.bp
 index 852c2609ae1b..1dbc78112803 100644
 --- a/services/core/jni/Android.bp
@@ -2964,6 +4334,40 @@ index 025091f76e38..000000000000
 -          method_list, NELEM(method_list));
 -}
 -};
+diff --git a/services/core/jni/com_android_server_am_CachedAppOptimizer.cpp b/services/core/jni/com_android_server_am_CachedAppOptimizer.cpp
+index 542af7008a71..6457b2a5b137 100644
+--- a/services/core/jni/com_android_server_am_CachedAppOptimizer.cpp
++++ b/services/core/jni/com_android_server_am_CachedAppOptimizer.cpp
+@@ -331,13 +331,20 @@ static int64_t compactMemory(const std::vector<Vma>& vmas, int pid, int madviseT
+     return totalBytesProcessed;
+ }
+ 
++static bool canCompactVma(const Vma& vma) {
++    // Cached-app reclaim must not operate on shared memory or device-owned mappings.
++    // Binder/GPU mappings can be MAP_PRIVATE while still being backed by a device.
++    return !vma.is_shared && vma.name.rfind("/dev/", 0) != 0;
++}
++
+ static int getFilePageAdvice(const Vma& vma) {
+-    if (vma.inode > 0 && !vma.is_shared) {
++    if (vma.inode > 0 && canCompactVma(vma)) {
+         return MADV_COLD;
+     }
+     return -1;
+ }
+ static int getAnonPageAdvice(const Vma& vma) {
++    if (vma.inode != 0 || !canCompactVma(vma)) return -1;
+     bool hasReadFlag = (vma.flags & PROT_READ) > 0;
+     bool hasWriteFlag = (vma.flags & PROT_WRITE) > 0;
+     bool hasExecuteFlag = (vma.flags & PROT_EXEC) > 0;
+@@ -347,6 +354,7 @@ static int getAnonPageAdvice(const Vma& vma) {
+     return -1;
+ }
+ static int getAnyPageAdvice(const Vma& vma) {
++    if (!canCompactVma(vma)) return -1;
+     if (inSystemCompaction == true) {
+         return MADV_PAGEOUT;
+     }
 diff --git a/services/core/jni/onload.cpp b/services/core/jni/onload.cpp
 index 94d40af9c025..544d9b41fd4a 100644
 --- a/services/core/jni/onload.cpp
