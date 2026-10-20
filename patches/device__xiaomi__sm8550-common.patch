@@ -752,3 +752,155 @@ index df7e654..03d8022 100644
 +r_dir_file(vendor_wcnss_service, vendor_fuxi_wifi_factory_file)
 +allow vendor_wcnss_service vendor_persist_bluetooth_file:dir search;
 +allow vendor_wcnss_service vendor_persist_bluetooth_file:file r_file_perms;
+diff --git a/udfps/UdfpsHandler.cpp b/udfps/UdfpsHandler.cpp
+index 6781731..6b78cb4 100644
+--- a/udfps/UdfpsHandler.cpp
++++ b/udfps/UdfpsHandler.cpp
+@@ -15,6 +15,7 @@
+ #include <sys/ioctl.h>
+ #include <fstream>
+ #include <thread>
++#include <mutex>
+ 
+ #include <display/drm/mi_disp.h>
+ #include <linux/xiaomi_touch.h>
+@@ -133,8 +134,13 @@ class XiaomiSm8550UdfpsHander : public UdfpsHandler {
+                 bool localHbmUiReady = value & LOCAL_HBM_UI_READY;
+                 bool requestLowBrightnessCapture = value & FOD_LOW_BRIGHTNESS_CAPTURE;
+ 
++                bool operationActive;
++                {
++                    std::lock_guard<std::mutex> lock(mStateMutex);
++                    operationActive = mOperationActive;
++                }
+                 mDevice->extCmd(mDevice, COMMAND_NIT,
+-                                localHbmUiReady
++                                localHbmUiReady && operationActive
+                                         ? (requestLowBrightnessCapture ? TARGET_BRIGHTNESS_110NIT
+                                                                        : TARGET_BRIGHTNESS_1000NIT)
+                                         : TARGET_BRIGHTNESS_OFF);
+@@ -142,48 +148,58 @@ class XiaomiSm8550UdfpsHander : public UdfpsHandler {
+         }).detach();
+     }
+ 
+-    void onFingerDown(uint32_t x, uint32_t y, float /*minor*/, float /*major*/) {
++    void onOperationStarted() override {
++        std::lock_guard<std::mutex> lock(mStateMutex);
++        ++mOperationGeneration;
++        mOperationActive = true;
++    }
++
++    void onFingerDown(uint32_t x, uint32_t y, float /*minor*/, float /*major*/) override {
+         LOG(DEBUG) << __func__ << "x: " << x << ", y: " << y;
+ 
++        uint64_t generation;
++        {
++            std::lock_guard<std::mutex> lock(mStateMutex);
++            if (!mOperationActive) return;
++            generation = mOperationGeneration;
++        }
++
++        // Vendor commands may synchronously report acquisition/authentication. Do not
++        // hold the display-state lock across callbacks into this handler.
+         mDevice->extCmd(mDevice, COMMAND_FOD_PRESS_X, x);
+         mDevice->extCmd(mDevice, COMMAND_FOD_PRESS_Y, y);
+         mDevice->extCmd(mDevice, COMMAND_FOD_PRESS_STATUS, PARAM_FOD_PRESSED);
+ 
++        // Authentication can finish inside extCmd. A terminal callback, or a new
++        // operation, invalidates this pending press before it can turn LHBM back on.
++        std::lock_guard<std::mutex> lock(mStateMutex);
++        if (!mOperationActive || generation != mOperationGeneration) return;
++
+         // Update fod_finger_state node in case hwmodule polls it
+         struct touch_mode_request touchRequest = {
+                 .mode = TOUCH_MODE_FOD_FINGER_STATE,
+                 .value = 1,
+         };
+-        ioctl(touch_fd_.get(), TOUCH_IOC_SET_CUR_VALUE, &touchRequest);
++        if (ioctl(touch_fd_.get(), TOUCH_IOC_SET_CUR_VALUE, &touchRequest) < 0) {
++            PLOG(ERROR) << "failed to set FOD finger state";
++        }
+ 
+         // Request HBM
+         struct disp_local_hbm_req displayLhbmRequest = {
+                 .base = displayBasePrimary,
+                 .local_hbm_value = LHBM_TARGET_BRIGHTNESS_WHITE_1000NIT,
+         };
+-        ioctl(disp_fd_.get(), MI_DISP_IOCTL_SET_LOCAL_HBM, &displayLhbmRequest);
++        if (ioctl(disp_fd_.get(), MI_DISP_IOCTL_SET_LOCAL_HBM, &displayLhbmRequest) < 0) {
++            PLOG(ERROR) << "failed to set LHBM to " << displayLhbmRequest.local_hbm_value;
++        }
+     }
+ 
+-    void onFingerUp() {
+-        LOG(DEBUG) << __func__;
+-
+-        mDevice->extCmd(mDevice, COMMAND_FOD_PRESS_X, 0);
+-        mDevice->extCmd(mDevice, COMMAND_FOD_PRESS_Y, 0);
+-        mDevice->extCmd(mDevice, COMMAND_FOD_PRESS_STATUS, PARAM_FOD_RELEASED);
+-
+-        // Disable HBM
+-        struct disp_local_hbm_req displayLhbmRequest = {
+-                .base = displayBasePrimary,
+-                .local_hbm_value = LHBM_TARGET_BRIGHTNESS_OFF_FINGER_UP,
+-        };
+-        ioctl(disp_fd_.get(), MI_DISP_IOCTL_SET_LOCAL_HBM, &displayLhbmRequest);
++    void onFingerUp() override {
++        releaseFinger(LHBM_TARGET_BRIGHTNESS_OFF_FINGER_UP, false);
++    }
+ 
+-        // Update fod_finger_state node in case hwmodule polls it
+-        struct touch_mode_request touchRequest = {
+-                .mode = TOUCH_MODE_FOD_FINGER_STATE,
+-                .value = 0,
+-        };
+-        ioctl(touch_fd_.get(), TOUCH_IOC_SET_CUR_VALUE, &touchRequest);
++    void onAuthenticationSucceeded() override {
++        cancel();
+     }
+ 
+     void onAcquired(int32_t result, int32_t vendorCode) {
+@@ -194,9 +210,42 @@ class XiaomiSm8550UdfpsHander : public UdfpsHandler {
+         }
+     }
+ 
+-    void cancel() { LOG(DEBUG) << __func__; }
++    void cancel() override {
++        releaseFinger(LHBM_TARGET_BRIGHTNESS_OFF_AUTH_STOP, true);
++    }
+ 
+   private:
++    void releaseFinger(int brightness, bool operationFinished) {
++        {
++            std::lock_guard<std::mutex> lock(mStateMutex);
++            if (!operationFinished && !mOperationActive) return;
++            if (operationFinished) {
++                mOperationActive = false;
++                ++mOperationGeneration;
++            }
++            struct disp_local_hbm_req displayRequest = {
++                    .base = displayBasePrimary,
++                    .local_hbm_value = static_cast<uint32_t>(brightness),
++            };
++            if (ioctl(disp_fd_.get(), MI_DISP_IOCTL_SET_LOCAL_HBM, &displayRequest) < 0) {
++                PLOG(ERROR) << "failed to release LHBM, request=" << brightness;
++            }
++            struct touch_mode_request touchRequest = {
++                    .mode = TOUCH_MODE_FOD_FINGER_STATE,
++                    .value = 0,
++            };
++            if (ioctl(touch_fd_.get(), TOUCH_IOC_SET_CUR_VALUE, &touchRequest) < 0) {
++                PLOG(ERROR) << "failed to clear FOD finger state";
++            }
++        }
++        mDevice->extCmd(mDevice, COMMAND_FOD_PRESS_X, 0);
++        mDevice->extCmd(mDevice, COMMAND_FOD_PRESS_Y, 0);
++        mDevice->extCmd(mDevice, COMMAND_FOD_PRESS_STATUS, PARAM_FOD_RELEASED);
++    }
++
++    std::mutex mStateMutex;
++    bool mOperationActive = false;
++    uint64_t mOperationGeneration = 0;
+     fingerprint_device_t* mDevice;
+     android::base::unique_fd disp_fd_;
+     android::base::unique_fd touch_fd_;

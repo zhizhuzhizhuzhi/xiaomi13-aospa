@@ -127,7 +127,8 @@
       "sepolicy/vendor/hal_usb.te",
       "sepolicy/vendor/hwservice_contexts",
       "sepolicy/vendor/vendor_init.te",
-      "sepolicy/vendor/wcnss_service.te"
+      "sepolicy/vendor/wcnss_service.te",
+      "udfps/UdfpsHandler.cpp"
     ],
     "overlay": [
       "configs/permissions/qti-uce-shared-libraries.xml",
@@ -425,10 +426,12 @@
     "files": [
       "IFAAService/AndroidManifest.xml",
       "IFAAService/src/org/ifaa/aidl/manager/IfaaService.kt",
+      "aidl/fingerprint/Session.cpp",
       "aidl/sensors/Android.bp",
       "aidl/vibrator/aidl/Vibrator.cpp",
       "aidl/vibrator/effect/effect.cpp",
       "dolby/src/co/aospa/dolby/xiaomi/preference/DolbyIeqPreference.kt",
+      "fingerprint/include/UdfpsHandler.h",
       "interfaces/xiaomi/hardware/mlipay/1.0/IMlipayService.hal"
     ],
     "overlay": []

@@ -135,6 +135,82 @@ index dc89544..d2dd885 100644
  
          private val invalidFpVendors = arrayOf(
              "",
+diff --git a/aidl/fingerprint/Session.cpp b/aidl/fingerprint/Session.cpp
+index 9126ec7..165bdc3 100644
+--- a/aidl/fingerprint/Session.cpp
++++ b/aidl/fingerprint/Session.cpp
+@@ -54,9 +54,11 @@ ndk::ScopedAStatus Session::enroll(const HardwareAuthToken& hat,
+                                    std::shared_ptr<ICancellationSignal>* out) {
+     hw_auth_token_t authToken;
+     translate(hat, authToken);
++    if (mUdfpsHandler) mUdfpsHandler->onOperationStarted();
+     int error = mDevice->enroll(mDevice, &authToken, mUserId, 60);
+     if (error) {
+         ALOGE("enroll failed: %d", error);
++        if (mUdfpsHandler) mUdfpsHandler->cancel();
+         mCb->onError(Error::UNABLE_TO_PROCESS, error);
+     }
+ 
+@@ -67,9 +69,11 @@ ndk::ScopedAStatus Session::enroll(const HardwareAuthToken& hat,
+ ndk::ScopedAStatus Session::authenticate(int64_t operationId,
+                                          std::shared_ptr<ICancellationSignal>* out) {
+     checkSensorLockout();
++    if (mUdfpsHandler) mUdfpsHandler->onOperationStarted();
+     int error = mDevice->authenticate(mDevice, operationId, mUserId);
+     if (error) {
+         ALOGE("authenticate failed: %d", error);
++        if (mUdfpsHandler) mUdfpsHandler->cancel();
+         mCb->onError(Error::UNABLE_TO_PROCESS, error);
+     }
+ 
+@@ -179,8 +183,8 @@ ndk::ScopedAStatus Session::onContextChanged(const common::OperationContext& /*c
+     return ndk::ScopedAStatus::ok();
+ }
+ 
+-ndk::ScopedAStatus Session::onPointerCancelWithContext(const PointerContext& /*context*/) {
+-    return ndk::ScopedAStatus::ok();
++ndk::ScopedAStatus Session::onPointerCancelWithContext(const PointerContext& context) {
++    return onPointerUp(context.pointerId);
+ }
+ 
+ ndk::ScopedAStatus Session::setIgnoreDisplayTouches(bool /*shouldIgnore*/) {
+@@ -195,7 +199,9 @@ ndk::ScopedAStatus Session::cancel() {
+     int ret = mDevice->cancel(mDevice);
+ 
+     if (ret == 0) {
+-        mCb->onError(Error::CANCELED, 0 /* vendorCode */);
++        // A successful return accepts the request; the legacy HAL reports its
++        // completion through notify(FINGERPRINT_ERROR_CANCELED). Sending an
++        // extra error here races the next authentication/resetLockout client.
+         return ndk::ScopedAStatus::ok();
+     }
+ 
+@@ -204,6 +210,7 @@ ndk::ScopedAStatus Session::cancel() {
+ 
+ ndk::ScopedAStatus Session::close() {
+     mClosed = true;
++    if (mUdfpsHandler) mUdfpsHandler->cancel();
+     mCb->onSessionClosed();
+     AIBinder_DeathRecipient_delete(mDeathRecipient);
+     return ndk::ScopedAStatus::ok();
+@@ -323,6 +330,7 @@ void Session::notify(const fingerprint_msg_t* msg) {
+     // const uint64_t devId = reinterpret_cast<uint64_t>(mDevice);
+     switch (msg->type) {
+         case FINGERPRINT_ERROR: {
++            if (mUdfpsHandler) mUdfpsHandler->cancel();
+             int32_t vendorCode = 0;
+             Error result = VendorErrorFilter(msg->data.error, &vendorCode);
+             ALOGD("onError(%hhd, %d)", result, vendorCode);
+@@ -346,6 +354,9 @@ void Session::notify(const fingerprint_msg_t* msg) {
+         case FINGERPRINT_TEMPLATE_ENROLLING: {
+             ALOGD("onEnrollResult(fid=%d, gid=%d, rem=%d)", msg->data.enroll.finger.fid,
+                   msg->data.enroll.finger.gid, msg->data.enroll.samples_remaining);
++            if (msg->data.enroll.samples_remaining == 0 && mUdfpsHandler) {
++                mUdfpsHandler->cancel();
++            }
+             mCb->onEnrollmentProgress(msg->data.enroll.finger.fid,
+                                       msg->data.enroll.samples_remaining);
+         } break;
 diff --git a/aidl/sensors/Android.bp b/aidl/sensors/Android.bp
 index f00c5e9..a210b59 100644
 --- a/aidl/sensors/Android.bp
@@ -248,6 +324,18 @@ index b51d00d..5910460 100644
 +            else -> 0 // Unset or unsupported engine preset.
          }
  }
+diff --git a/fingerprint/include/UdfpsHandler.h b/fingerprint/include/UdfpsHandler.h
+index 28cece7..f6e3242 100644
+--- a/fingerprint/include/UdfpsHandler.h
++++ b/fingerprint/include/UdfpsHandler.h
+@@ -14,6 +14,7 @@ class UdfpsHandler {
+     virtual ~UdfpsHandler() = default;
+ 
+     virtual void init(fingerprint_device_t* device) {};
++    virtual void onOperationStarted() {};
+     virtual void onFingerDown(uint32_t x, uint32_t y, float minor, float major) {};
+     virtual void onFingerUp() {};
+ 
 diff --git a/interfaces/xiaomi/hardware/mlipay/1.0/IMlipayService.hal b/interfaces/xiaomi/hardware/mlipay/1.0/IMlipayService.hal
 index 9f573de..f126537 100644
 --- a/interfaces/xiaomi/hardware/mlipay/1.0/IMlipayService.hal
