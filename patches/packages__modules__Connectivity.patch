@@ -1,0 +1,94 @@
+diff --git a/framework/src/android/net/ConnectivitySettingsManager.java b/framework/src/android/net/ConnectivitySettingsManager.java
+index 18be573..8a5fbed 100644
+--- a/framework/src/android/net/ConnectivitySettingsManager.java
++++ b/framework/src/android/net/ConnectivitySettingsManager.java
+@@ -43,6 +43,7 @@ import android.os.Process;
+ import android.os.UserHandle;
+ import android.provider.Settings;
+ import android.telephony.CarrierConfigManager;
++import android.telephony.SubscriptionManager;
+ import android.text.TextUtils;
+ import android.util.ArraySet;
+ import android.util.Log;
+@@ -77,6 +78,9 @@ public class ConnectivitySettingsManager {
+ 
+     private static @NonNull PersistableBundle getConfigForSubId(
+             @NonNull CarrierConfigManager ccm, int subId, @NonNull String... keys) {
++        if (!SubscriptionManager.isValidSubscriptionId(subId)) {
++            return CarrierConfigManager.getDefaultConfig();
++        }
+         PersistableBundle config = null;
+         try {
+             config = ccm.getConfigForSubId(subId, keys);
+diff --git a/tests/unit/java/com/android/server/connectivity/NetdEventListenerServiceTest.java b/tests/unit/java/com/android/server/connectivity/NetdEventListenerServiceTest.java
+index 89e2a51..78e55b2 100644
+--- a/tests/unit/java/com/android/server/connectivity/NetdEventListenerServiceTest.java
++++ b/tests/unit/java/com/android/server/connectivity/NetdEventListenerServiceTest.java
+@@ -22,18 +22,25 @@ import static com.android.testutils.MiscAsserts.assertStringContains;
+ import static org.junit.Assert.assertEquals;
+ import static org.junit.Assert.fail;
+ import static org.mockito.ArgumentMatchers.any;
++import static org.mockito.ArgumentMatchers.anyInt;
++import static org.mockito.ArgumentMatchers.anyLong;
++import static org.mockito.ArgumentMatchers.eq;
+ import static org.mockito.Mockito.doReturn;
+ import static org.mockito.Mockito.mock;
+ import static org.mockito.Mockito.verify;
++import static org.mockito.Mockito.never;
+ 
+ import android.content.Context;
+ import android.net.ConnectivityManager;
+ import android.net.Network;
+ import android.net.NetworkCapabilities;
++import android.os.BatteryStatsInternal;
+ import android.os.Build;
++import android.os.Process;
+ import android.system.OsConstants;
+ import android.util.Base64;
+ import androidx.test.filters.SmallTest;
++import com.android.server.LocalServices;
+ import com.android.server.connectivity.metrics.nano.IpConnectivityLogClass.IpConnectivityEvent;
+ import com.android.server.connectivity.metrics.nano.IpConnectivityLogClass.IpConnectivityLog;
+ import com.android.testutils.DevSdkIgnoreRule;
+@@ -487,6 +494,41 @@ public class NetdEventListenerServiceTest {
+         assertEquals(want, got);
+     }
+ 
++    @Test
++    public void testNoUidWakeupRetainsMetricsWithoutApplicationAttribution() throws Exception {
++        final BatteryStatsInternal batteryStats = mock(BatteryStatsInternal.class);
++        LocalServices.addService(BatteryStatsInternal.class, batteryStats);
++        try {
++            wakeupEvent("wlan0", Process.INVALID_UID, 0x800, 17, MAC_ADDR,
++                    EXAMPLE_IPV4, EXAMPLE_IPV4, 1234, 5678, System.currentTimeMillis());
++
++            verify(batteryStats, never()).noteCpuWakingNetworkPacket(any(), anyLong(), anyInt());
++            final String dump = String.join("\n", listNetdEvent());
++            assertStringContains(dump, "no uid: 1");
++            assertStringContains(dump, "uid: -1");
++        } finally {
++            LocalServices.removeServiceForTest(BatteryStatsInternal.class);
++        }
++    }
++
++    @Test
++    public void testApplicationWakeupStillReachesBatteryAttribution() throws Exception {
++        final BatteryStatsInternal batteryStats = mock(BatteryStatsInternal.class);
++        LocalServices.addService(BatteryStatsInternal.class, batteryStats);
++        try {
++            final int uid = 10042;
++            wakeupEvent("wlan0", uid, 0x800, 17, MAC_ADDR,
++                    EXAMPLE_IPV4, EXAMPLE_IPV4, 1234, 5678, System.currentTimeMillis());
++
++            verify(batteryStats).noteCpuWakingNetworkPacket(eq(TEST_WIFI_NETWORK), anyLong(), eq(uid));
++            final String dump = String.join("\n", listNetdEvent());
++            assertStringContains(dump, "uid: 10042");
++            assertStringContains(dump, "no uid: 0");
++        } finally {
++            LocalServices.removeServiceForTest(BatteryStatsInternal.class);
++        }
++    }
++
+     private void setCapabilities(int netId) {
+         final ArgumentCaptor<ConnectivityManager.NetworkCallback> networkCallback =
+                 ArgumentCaptor.forClass(ConnectivityManager.NetworkCallback.class);

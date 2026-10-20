@@ -1,0 +1,20 @@
+diff --git a/res/values/strings.xml b/res/values/strings.xml
+index 2bb349b..41dc4c8 100644
+--- a/res/values/strings.xml
++++ b/res/values/strings.xml
+@@ -2,5 +2,6 @@
+ <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+   <string name="app_name">Module Metadata</string>
+ 
+-  <!-- Module names go here -->
++  <!-- Mainline Wi-Fi module installed by this product. -->
++  <string name="wifi_module_name">Wi-Fi</string>
+ </resources>
+diff --git a/res/xml/module_metadata.xml b/res/xml/module_metadata.xml
+index e066161..84e515a 100644
+--- a/res/xml/module_metadata.xml
++++ b/res/xml/module_metadata.xml
+@@ -1,2 +1,3 @@
+ <module-metadata xmlns:android="https://schemas.android.com/apk/res/android">
++  <module name="@string/wifi_module_name" packageName="com.android.wifi" isHidden="false" />
+ </module-metadata>

@@ -655,6 +655,127 @@ index d1212fcad864..cb3cc46ed225 100644
 +    }
 +
  }
+diff --git a/packages/SystemUI/src/com/android/systemui/statusbar/pipeline/ims/data/repository/ImsRepository.kt b/packages/SystemUI/src/com/android/systemui/statusbar/pipeline/ims/data/repository/ImsRepository.kt
+index bee52cf8b497..d7b9cf4f802e 100644
+--- a/packages/SystemUI/src/com/android/systemui/statusbar/pipeline/ims/data/repository/ImsRepository.kt
++++ b/packages/SystemUI/src/com/android/systemui/statusbar/pipeline/ims/data/repository/ImsRepository.kt
+@@ -25,6 +25,7 @@ import android.telephony.ims.ImsStateCallback
+ import android.telephony.ims.RegistrationManager.RegistrationCallback
+ import android.telephony.ims.feature.MmTelFeature
+ import android.telephony.ims.stub.ImsRegistrationImplBase.REGISTRATION_TECH_NONE
++import android.util.Log
+ import com.android.systemui.dagger.qualifiers.Application
+ import com.android.systemui.dagger.qualifiers.Background
+ import com.android.systemui.statusbar.pipeline.ims.data.model.ImsStateModel
+@@ -62,6 +63,10 @@ class ImsRepositoryImpl(
+         val initial = ImsCallbackState()
+         val imsMmTelManager = imsManager.getImsMmTelManager(subId)
+         callbackFlow {
++            val callbackLock = Any()
++            var stopped = false
++            var registrationCallbackRegistered = false
++            var capabilityCallbackRegistered = false
+             val registrationCallback = object : RegistrationCallback() {
+                 override fun onRegistered(attributes: ImsRegistrationAttributes) {
+                     trySend(CallbackEvent.OnImsRegistrationChanged(true, attributes))
+@@ -78,35 +83,71 @@ class ImsRepositoryImpl(
+                     trySend(CallbackEvent.OnImsCapabilitiesStatusChanged(capabilities))
+                 }
+             }
++            fun unregisterCallbacks() {
++                if (registrationCallbackRegistered) {
++                    registrationCallbackRegistered = false
++                    try {
++                        imsMmTelManager.unregisterImsRegistrationCallback(registrationCallback)
++                    } catch (e: RuntimeException) {
++                        Log.w("ImsRepository", "Failed to unregister IMS callback for $subId", e)
++                    }
++                }
++                if (capabilityCallbackRegistered) {
++                    capabilityCallbackRegistered = false
++                    try {
++                        imsMmTelManager.unregisterMmTelCapabilityCallback(capabilityCallback)
++                    } catch (e: RuntimeException) {
++                        Log.w("ImsRepository", "Failed to unregister IMS capabilities for $subId", e)
++                    }
++                }
++            }
+             val stateCallback = object : ImsStateCallback() {
+                 override fun onAvailable() {
+-                    imsMmTelManager.registerImsRegistrationCallback(
+-                        bgDispatcher.asExecutor(), registrationCallback
+-                    )
+-                    imsMmTelManager.registerMmTelCapabilityCallback(
+-                        bgDispatcher.asExecutor(), capabilityCallback
+-                    )
++                    synchronized(callbackLock) {
++                        if (stopped || registrationCallbackRegistered) return
++                        try {
++                            imsMmTelManager.registerImsRegistrationCallback(
++                                bgDispatcher.asExecutor(), registrationCallback
++                            )
++                            registrationCallbackRegistered = true
++                            imsMmTelManager.registerMmTelCapabilityCallback(
++                                bgDispatcher.asExecutor(), capabilityCallback
++                            )
++                            capabilityCallbackRegistered = true
++                        } catch (e: ImsException) {
++                            // Availability can change before these Binder calls complete. Forward
++                            // the failure to the flow; exceptions on this executor bypass catch.
++                            stopped = true
++                            unregisterCallbacks()
++                            close(e)
++                        }
++                    }
+                 }
+ 
+                 override fun onUnavailable(reason: Int) {
+-                    trySend(CallbackEvent.OnImsRegistrationChanged(false, null))
+-                    imsMmTelManager.unregisterImsRegistrationCallback(registrationCallback)
+-                    imsMmTelManager.unregisterMmTelCapabilityCallback(capabilityCallback)
++                    synchronized(callbackLock) {
++                        if (stopped) return
++                        trySend(CallbackEvent.OnImsRegistrationChanged(false, null))
++                        trySend(CallbackEvent.OnImsCapabilitiesStatusChanged(
++                            MmTelFeature.MmTelCapabilities()
++                        ))
++                        unregisterCallbacks()
++                    }
+                 }
+ 
+                 override fun onError() {
+-                    trySend(CallbackEvent.OnImsRegistrationChanged(false, null))
+-                    imsMmTelManager.unregisterImsRegistrationCallback(registrationCallback)
+-                    imsMmTelManager.unregisterMmTelCapabilityCallback(capabilityCallback)
++                    onUnavailable(ImsStateCallback.REASON_IMS_SERVICE_DISCONNECTED)
+                 }
+             }
+             imsMmTelManager.registerImsStateCallback(
+                 bgDispatcher.asExecutor(), stateCallback
+             )
+             awaitClose {
+-                imsMmTelManager.unregisterImsStateCallback(stateCallback)
+-                imsMmTelManager.unregisterImsRegistrationCallback(registrationCallback)
+-                imsMmTelManager.unregisterMmTelCapabilityCallback(capabilityCallback)
++                synchronized(callbackLock) {
++                    stopped = true
++                    imsMmTelManager.unregisterImsStateCallback(stateCallback)
++                    unregisterCallbacks()
++                }
+             }
+         }
+             .retryWhen { cause, _ ->
+@@ -116,7 +157,9 @@ class ImsRepositoryImpl(
+                 delay(1000)
+                 cause is ImsException && cause.code == ImsException.CODE_ERROR_SERVICE_UNAVAILABLE
+             }
+-            .catch { /* Nothing */ }
++            .catch { cause ->
++                Log.w("ImsRepository", "IMS observation stopped for subscription $subId", cause)
++            }
+             .scan(initial = initial) { state, event -> state.applyEvent(event) }
+             .stateIn(scope = scope, started = SharingStarted.WhileSubscribed(), initial)
+     }
 diff --git a/services/core/java/com/android/server/ActivityTriggerService.java b/services/core/java/com/android/server/ActivityTriggerService.java
 deleted file mode 100644
 index 323ad096dc5c..000000000000

@@ -1,0 +1,21 @@
+diff --git a/server/NetlinkHandler.cpp b/server/NetlinkHandler.cpp
+index df67590..2182742 100644
+--- a/server/NetlinkHandler.cpp
++++ b/server/NetlinkHandler.cpp
+@@ -210,11 +210,15 @@ void NetlinkHandler::onEvent(NetlinkEvent *evt) {
+         }
+ 
+     } else if (!strcmp(subsys, "xt_idletimer")) {
++        // xt_IDLETIMER emits bare KOBJ_ADD when creating the sysfs timer.
++        // Only KOBJ_CHANGE carries interface activity and its associated fields.
++        if (evt->getAction() != NetlinkEvent::Action::kChange) return;
++
+         const char *label = evt->findParam("INTERFACE");
+         const char *state = evt->findParam("STATE");
+         const char *timestamp = evt->findParam("TIME_NS");
+         const char *uid = evt->findParam("UID");
+-        if (state) {
++        if (label && state) {
+             bool isActive = !strcmp("active", state);
+             int64_t processTimestamp = (timestamp == nullptr) ? 0 : strtoll(timestamp, nullptr, 10);
+             int intLabel;

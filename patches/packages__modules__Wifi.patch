@@ -1,0 +1,39 @@
+diff --git a/service/java/com/android/server/wifi/WifiServiceImpl.java b/service/java/com/android/server/wifi/WifiServiceImpl.java
+index 8889ddd..914bc64 100644
+--- a/service/java/com/android/server/wifi/WifiServiceImpl.java
++++ b/service/java/com/android/server/wifi/WifiServiceImpl.java
+@@ -1186,7 +1186,8 @@ public class WifiServiceImpl extends IWifiManager.Stub {
+                     new Handler(mWifiHandlerThread.getLooper()));
+             updateLocationMode();
+ 
+-            if (SdkLevel.isAtLeastT()) {
++            if (SdkLevel.isAtLeastT()
++                    && mContext.getPackageManager().hasSystemFeature(PackageManager.FEATURE_UWB)) {
+                 UwbManager uwbManager =
+                         mContext.getSystemService(UwbManager.class);
+                 if (uwbManager != null) {
+@@ -1195,7 +1196,9 @@ public class WifiServiceImpl extends IWifiManager.Stub {
+                 }
+             }
+ 
+-            if (SdkLevel.isAtLeastV()) {
++            if (SdkLevel.isAtLeastV()
++                    && mContext.getPackageManager().hasSystemFeature(
++                            PackageManager.FEATURE_THREAD_NETWORK)) {
+                 ThreadNetworkManager threadManager =
+                         mContext.getSystemService(ThreadNetworkManager.class);
+                 if (threadManager != null) {
+diff --git a/service/java/com/android/server/wifi/util/ApConfigUtil.java b/service/java/com/android/server/wifi/util/ApConfigUtil.java
+index 32ec5ad..f68cac2 100644
+--- a/service/java/com/android/server/wifi/util/ApConfigUtil.java
++++ b/service/java/com/android/server/wifi/util/ApConfigUtil.java
+@@ -339,6 +339,9 @@ public class ApConfigUtil {
+         }
+ 
+         List<Integer> channelList = new ArrayList<Integer>();
++        if (channelString.isEmpty()) {
++            return channelList;
++        }
+ 
+         for (String channelRange : channelString.split(",")) {
+             try {

@@ -203,6 +203,7 @@
       "core/res/AndroidManifest.xml",
       "packages/SettingsLib/src/com/android/settingslib/development/SystemPropPoker.java",
       "packages/SettingsLib/tests/robotests/src/com/android/settingslib/development/SystemPropPokerTest.java",
+      "packages/SystemUI/src/com/android/systemui/statusbar/pipeline/ims/data/repository/ImsRepository.kt",
       "services/core/java/com/android/server/ActivityTriggerService.java",
       "services/core/java/com/android/server/am/ActivityManagerService.java",
       "services/core/java/com/android/server/biometrics/sensors/face/FaceService.java",
@@ -227,6 +228,8 @@
     "overlay": [
       "core/java/com/android/internal/aospa/health/HealthInterface.java",
       "core/java/com/android/internal/aospa/health/IHealthInterface.aidl",
+      "packages/SystemUI/tests/src/com/android/systemui/statusbar/pipeline/ims/data/repository/ImsRepositoryImplTest.kt",
+      "packages/SystemUI/tests/utils/src/com/android/systemui/statusbar/pipeline/ims/data/repository/FakeCommonImsRepository.kt",
       "services/core/java/com/android/server/aospa/health/AospaHealthFeature.java",
       "services/core/java/com/android/server/aospa/health/ChargingControlController.java",
       "services/core/java/com/android/server/aospa/health/ChargingControlNotification.java",
@@ -250,6 +253,18 @@
       "libs/ui/GraphicBuffer.cpp",
       "libs/ui/include/ui/GraphicBuffer.h",
       "services/surfaceflinger/QtiExtension/QtiSurfaceFlingerExtension.cpp"
+    ],
+    "overlay": []
+  },
+  {
+    "path": "frameworks/opt/telephony",
+    "revision": "840c0c4624d3d230a75299f69942a8dc91b3fea7",
+    "patch": "patches/frameworks__opt__telephony.patch",
+    "files": [
+      "src/java/com/android/internal/telephony/RILUtils.java",
+      "src/java/com/android/internal/telephony/analytics/TelephonyAnalytics.java",
+      "src/java/com/android/internal/telephony/satellite/SatelliteController.java",
+      "tests/telephonytests/src/com/android/internal/telephony/RILTest.java"
     ],
     "overlay": []
   },
@@ -428,10 +443,33 @@
     "overlay": []
   },
   {
+    "path": "packages/modules/Connectivity",
+    "revision": "0f2ecd388947020cd473a151da42184222d0b708",
+    "patch": "patches/packages__modules__Connectivity.patch",
+    "files": [
+      "framework/src/android/net/ConnectivitySettingsManager.java",
+      "tests/unit/java/com/android/server/connectivity/NetdEventListenerServiceTest.java"
+    ],
+    "overlay": []
+  },
+  {
+    "path": "packages/modules/ModuleMetadata",
+    "revision": "10d4773e79f22becd1a9565cc6814eeb53b50991",
+    "patch": "patches/packages__modules__ModuleMetadata.patch",
+    "files": [
+      "res/values/strings.xml",
+      "res/xml/module_metadata.xml"
+    ],
+    "overlay": []
+  },
+  {
     "path": "packages/modules/Wifi",
     "revision": "d7c04a17f8eb8a01f50e7697934c618f79ef75b7",
-    "patch": null,
-    "files": [],
+    "patch": "patches/packages__modules__Wifi.patch",
+    "files": [
+      "service/java/com/android/server/wifi/WifiServiceImpl.java",
+      "service/java/com/android/server/wifi/util/ApConfigUtil.java"
+    ],
     "overlay": []
   },
   {
@@ -484,6 +522,15 @@
     "patch": "patches/system__memory__libdmabufheap.patch",
     "files": [
       "BufferAllocatorWrapper.cpp"
+    ],
+    "overlay": []
+  },
+  {
+    "path": "system/netd",
+    "revision": "cbaf6468b4902fae76f997388a3f8ef9ebe6a4c3",
+    "patch": "patches/system__netd.patch",
+    "files": [
+      "server/NetlinkHandler.cpp"
     ],
     "overlay": []
   },

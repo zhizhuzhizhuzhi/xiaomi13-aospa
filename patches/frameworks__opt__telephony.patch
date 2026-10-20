@@ -1,0 +1,204 @@
+diff --git a/src/java/com/android/internal/telephony/RILUtils.java b/src/java/com/android/internal/telephony/RILUtils.java
+index 86c957e..ca40df8 100644
+--- a/src/java/com/android/internal/telephony/RILUtils.java
++++ b/src/java/com/android/internal/telephony/RILUtils.java
+@@ -3571,7 +3571,9 @@ public class RILUtils {
+         List<InetAddress> dnsList = new ArrayList<>();
+         if (dnses != null) {
+             for (String dns : dnses) {
++                if (dns == null) continue;
+                 dns = dns.trim();
++                if (dns.isEmpty()) continue;
+                 InetAddress ia;
+                 try {
+                     ia = InetAddresses.parseNumericAddress(dns);
+@@ -3654,7 +3656,9 @@ public class RILUtils {
+         List<InetAddress> dnsList = new ArrayList<>();
+         if (result.dnses != null) {
+             for (String dns : result.dnses) {
++                if (dns == null) continue;
+                 dns = dns.trim();
++                if (dns.isEmpty()) continue;
+                 InetAddress ia;
+                 try {
+                     ia = InetAddresses.parseNumericAddress(dns);
+diff --git a/src/java/com/android/internal/telephony/analytics/TelephonyAnalytics.java b/src/java/com/android/internal/telephony/analytics/TelephonyAnalytics.java
+index 6ee0dad..38c7d8f 100644
+--- a/src/java/com/android/internal/telephony/analytics/TelephonyAnalytics.java
++++ b/src/java/com/android/internal/telephony/analytics/TelephonyAnalytics.java
+@@ -76,7 +76,7 @@ public class TelephonyAnalytics {
+     private final Handler mHandler;
+     private ExecutorService mExecutorService;
+     protected TelephonyAnalyticsUtil mTelephonyAnalyticsUtil;
+-    protected int mSubId;
++    protected int mSubId = SubscriptionManager.INVALID_SUBSCRIPTION_ID;
+     protected ServiceStateAnalytics mServiceStateAnalytics;
+     protected Context mContext;
+     protected Executor mExecutor;
+@@ -87,18 +87,18 @@ public class TelephonyAnalytics {
+                 @Override
+                 public void onSubscriptionsChanged() {
+                     int newSubId = getSubId();
+-                    if ((mSubId != newSubId)
+-                            && (newSubId != SubscriptionManager.INVALID_SUBSCRIPTION_ID)) {
++                    if (mSubId == newSubId) {
++                        return;
++                    }
++                    if (SubscriptionManager.isValidSubscriptionId(mSubId)) {
+                         stopAnalytics(mSubId);
+-                        mSubId = newSubId;
++                    }
++                    mSubId = newSubId;
++                    if (SubscriptionManager.isValidSubscriptionId(newSubId)) {
+                         startAnalytics(newSubId);
+-                        Rlog.d(
+-                                TAG,
+-                                "Started Listener, mSubId = "
+-                                        + mSubId
+-                                        + "SlotId = "
+-                                        + mSlotIndex);
+                     }
++                    Rlog.d(TAG, "Subscription changed, mSubId = " + mSubId
++                            + " SlotId = " + mSlotIndex);
+                 }
+             };
+     protected CallAnalyticsProvider mCallAnalyticsProvider;
+@@ -111,10 +111,10 @@ public class TelephonyAnalytics {
+     public TelephonyAnalytics(Phone phone) {
+         mPhone = phone;
+         mContext = mPhone.getContext();
+-        mExecutor = Runnable::run;
+         mSubscriptionManager = mContext.getSystemService(SubscriptionManager.class);
+         mSlotIndex = mPhone.getPhoneId();
+         mHandler = new Handler(BackgroundThread.get().getLooper());
++        mExecutor = mHandler::post;
+         mExecutorService = Executors.newSingleThreadExecutor();
+         mTelephonyAnalyticsUtil = TelephonyAnalyticsUtil.getInstance(mContext);
+         initializeAnalyticsClasses();
+@@ -123,27 +123,23 @@ public class TelephonyAnalytics {
+         mServiceStateAnalyticsProvider =
+                 new ServiceStateAnalyticsProvider(mTelephonyAnalyticsUtil, mSlotIndex);
+ 
+-        startAnalytics(mSubId);
+-
+         if (mSubscriptionManager != null) {
+             mSubscriptionManager.addOnSubscriptionsChangedListener(
+                     mExecutor, mSubscriptionsChangeListener);
+-            Rlog.d(TAG, "stopped listener");
++            Rlog.d(TAG, "Registered subscription change listener");
+         }
+     }
+ 
+     @SuppressLint("MissingPermission")
+     private int getSubId() {
+-        int subId = INVALID_SUB_ID;
+-        try {
+-            SubscriptionInfo info =
+-                    mSubscriptionManager.getActiveSubscriptionInfoForSimSlotIndex(mSlotIndex);
+-            subId = info.getSubscriptionId();
+-            Rlog.d("TelephonyAnalyticsSubId", "SubId = " + subId
+-                    + "SlotIndex = " + mSlotIndex);
+-        } catch (NullPointerException e) {
+-            Rlog.e("TelephonyAnalyticsSubId", "Null Pointer Exception Caught");
++        SubscriptionInfo info =
++                mSubscriptionManager.getActiveSubscriptionInfoForSimSlotIndex(mSlotIndex);
++        if (info == null) {
++            return SubscriptionManager.INVALID_SUBSCRIPTION_ID;
+         }
++        int subId = info.getSubscriptionId();
++        Rlog.d("TelephonyAnalyticsSubId", "SubId = " + subId
++                + "SlotIndex = " + mSlotIndex);
+         return subId;
+     }
+ 
+diff --git a/src/java/com/android/internal/telephony/satellite/SatelliteController.java b/src/java/com/android/internal/telephony/satellite/SatelliteController.java
+index 4e9547f..db9de6c 100644
+--- a/src/java/com/android/internal/telephony/satellite/SatelliteController.java
++++ b/src/java/com/android/internal/telephony/satellite/SatelliteController.java
+@@ -3679,17 +3679,19 @@ public class SatelliteController extends Handler {
+      */
+     @SatelliteManager.SatelliteResult public int registerForSatelliteModemStateChanged(
+             @NonNull ISatelliteModemStateCallback callback) {
+-        plogd("registerForSatelliteModemStateChanged: add Listeners for ModemState");
+-        mSatelliteRegistrationFailureListeners.put(callback.asBinder(), callback);
+-        mTerrestrialNetworkAvailableChangedListeners.put(callback.asBinder(), callback);
+-
+-        if (mSatelliteSessionController != null) {
+-            mSatelliteSessionController.registerForSatelliteModemStateChanged(callback);
+-        } else {
++        if (!mSatelliteModemInterface.isSatelliteServiceSupported()) {
++            return SatelliteManager.SATELLITE_RESULT_REQUEST_NOT_SUPPORTED;
++        }
++        if (mSatelliteSessionController == null) {
+             ploge("registerForSatelliteModemStateChanged: mSatelliteSessionController"
+                     + " is not initialized yet");
+             return SatelliteManager.SATELLITE_RESULT_INVALID_TELEPHONY_STATE;
+         }
++
++        plogd("registerForSatelliteModemStateChanged: add Listeners for ModemState");
++        mSatelliteRegistrationFailureListeners.put(callback.asBinder(), callback);
++        mTerrestrialNetworkAvailableChangedListeners.put(callback.asBinder(), callback);
++        mSatelliteSessionController.registerForSatelliteModemStateChanged(callback);
+         return SATELLITE_RESULT_SUCCESS;
+     }
+ 
+@@ -3702,15 +3704,17 @@ public class SatelliteController extends Handler {
+      */
+     public void unregisterForModemStateChanged(
+             @NonNull ISatelliteModemStateCallback callback) {
++        boolean registered =
++                mSatelliteRegistrationFailureListeners.remove(callback.asBinder()) != null;
++        registered |=
++                mTerrestrialNetworkAvailableChangedListeners.remove(callback.asBinder()) != null;
+         if (mSatelliteSessionController != null) {
+             mSatelliteSessionController.unregisterForSatelliteModemStateChanged(callback);
+-        } else {
++        } else if (registered) {
+             ploge("unregisterForModemStateChanged: mSatelliteSessionController"
+                     + " is not initialized yet");
+         }
+         plogd("unregisterForModemStateChanged: remove Listeners for ModemState");
+-        mSatelliteRegistrationFailureListeners.remove(callback.asBinder());
+-        mTerrestrialNetworkAvailableChangedListeners.remove(callback.asBinder());
+     }
+ 
+     /**
+diff --git a/tests/telephonytests/src/com/android/internal/telephony/RILTest.java b/tests/telephonytests/src/com/android/internal/telephony/RILTest.java
+index 9115a2e..5cf5801 100644
+--- a/tests/telephonytests/src/com/android/internal/telephony/RILTest.java
++++ b/tests/telephonytests/src/com/android/internal/telephony/RILTest.java
+@@ -2173,6 +2173,34 @@ public class RILTest extends TelephonyTest {
+         assertEquals(expectedSignalStrength, signalStrengthNr);
+     }
+ 
++    @Test
++    public void testConvertAidlDataCallResultAbsentDns() {
++        android.hardware.radio.data.SetupDataCallResult result =
++                new android.hardware.radio.data.SetupDataCallResult();
++        result.ifname = "rmnet_data3";
++        result.dnses = new String[] {null, "", "  ", " 192.0.2.53 ", "2001:db8::53"};
++        result.pcscf = new String[] {"2001:db8::1"};
++
++        DataCallResponse response = RILUtils.convertHalDataCallResult(result);
++
++        assertEquals(Arrays.asList(InetAddresses.parseNumericAddress("192.0.2.53"),
++                InetAddresses.parseNumericAddress("2001:db8::53")), response.getDnsAddresses());
++        assertEquals(Arrays.asList(InetAddresses.parseNumericAddress("2001:db8::1")),
++                response.getPcscfAddresses());
++        assertEquals("rmnet_data3", response.getInterfaceName());
++    }
++
++    @Test
++    public void testConvertHidlDataCallResultAbsentDns() {
++        android.hardware.radio.V1_4.SetupDataCallResult result =
++                new android.hardware.radio.V1_4.SetupDataCallResult();
++        result.ifname = "rmnet_data3";
++        result.dnses = new ArrayList<>(Arrays.asList(null, "", "  ", "192.0.2.53"));
++
++        assertEquals(Arrays.asList(InetAddresses.parseNumericAddress("192.0.2.53")),
++                RILUtils.convertHalDataCallResult(result).getDnsAddresses());
++    }
++
+     @Test
+     public void testConvertDataCallResult() {
+         DataCallResponse response = new DataCallResponse.Builder()
