@@ -1,0 +1,10 @@
+// Copyright (C) 2026 The Android Open Source Project
+// SPDX-License-Identifier: Apache-2.0
+android_test {
+    name: "SystemUILeashLifetimeTests",
+    srcs: ["src/**/*.java"],
+    manifest: "AndroidManifest.xml",
+    platform_apis: true,
+    certificate: "platform",
+    test_suites: ["device-tests"],
+}

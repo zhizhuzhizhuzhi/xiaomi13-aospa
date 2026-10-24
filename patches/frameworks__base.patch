@@ -1025,6 +1025,46 @@ index d1212fcad864..cb3cc46ed225 100644
 +    }
 +
  }
+diff --git a/packages/SystemUI/animation/src/com/android/systemui/animation/ActivityTransitionAnimator.kt b/packages/SystemUI/animation/src/com/android/systemui/animation/ActivityTransitionAnimator.kt
+index 1e61df9..2ceaaef 100644
+--- a/packages/SystemUI/animation/src/com/android/systemui/animation/ActivityTransitionAnimator.kt
++++ b/packages/SystemUI/animation/src/com/android/systemui/animation/ActivityTransitionAnimator.kt
+@@ -2530,27 +2530,15 @@ constructor(
+                         val finishTransaction = SurfaceControl.Transaction()
+                         listener?.onTransitionAnimationEnd(finishTransaction)
+ 
+-                        if (reparent) {
++                        if (reparent && window.leash.isValid) {
++                            // Record the operation before the finish callback releases the leash.
++                            // The transaction retains its native references, so the deferred cleanup
++                            // does not need to access the released SurfaceControl wrapper.
++                            val cleanUpTransaction =
++                                SurfaceControl.Transaction().reparent(window.leash, null)
+                             val cleanUpTransitionLeash: () -> Unit = {
+-                                // Relying on this try-catch is not great, but the existence of
+-                                // RemoteAnimationRunnerCompat means that we can't reliably
+-                                // assume that the transaction will be executed while the leash
+-                                // is still valid.
+-                                // TODO(b/397180418): remove once the RemoteAnimation wrapper is
+-                                //  cleaned up.
+-                                try {
+-                                    // Reparent to null to avoid leaking the transition leash.
+-                                    // TODO(b/397180418): shouldn't be needed anymore once the
+-                                    //  RemoteAnimation wrapper is cleaned up.
+-                                    SurfaceControl.Transaction().use {
+-                                        it.reparent(window.leash, null)
+-                                        it.apply(/* sync */ false)
+-                                    }
+-                                } catch (e: IllegalStateException) {
+-                                    Log.e(
+-                                        TAG,
+-                                        "Failed to clean up transition leash: already released",
+-                                    )
++                                cleanUpTransaction.use {
++                                    it.apply(/* sync */ false)
+                                 }
+                             }
+ 
 diff --git a/packages/SystemUI/multivalentTests/src/com/android/systemui/biometrics/UdfpsControllerTest.java b/packages/SystemUI/multivalentTests/src/com/android/systemui/biometrics/UdfpsControllerTest.java
 index fee2b4ffb4df..1d944f5998c8 100644
 --- a/packages/SystemUI/multivalentTests/src/com/android/systemui/biometrics/UdfpsControllerTest.java

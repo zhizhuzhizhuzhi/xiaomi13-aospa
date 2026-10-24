@@ -288,6 +288,7 @@
       "packages/SettingsLib/src/com/android/settingslib/bluetooth/BluetoothUtils.java",
       "packages/SettingsLib/src/com/android/settingslib/development/SystemPropPoker.java",
       "packages/SettingsLib/tests/robotests/src/com/android/settingslib/development/SystemPropPokerTest.java",
+      "packages/SystemUI/animation/src/com/android/systemui/animation/ActivityTransitionAnimator.kt",
       "packages/SystemUI/multivalentTests/src/com/android/systemui/biometrics/UdfpsControllerTest.java",
       "packages/SystemUI/multivalentTests/src/com/android/systemui/keyguard/domain/interactor/FromGoneTransitionInteractorTest.kt",
       "packages/SystemUI/multivalentTests/src/com/android/systemui/qs/tiles/InternetTileNewImplTest.kt",
@@ -415,6 +416,9 @@
     "overlay": [
       "core/java/com/android/internal/aospa/health/HealthInterface.java",
       "core/java/com/android/internal/aospa/health/IHealthInterface.aidl",
+      "packages/SystemUI/tests/leash-lifetime/Android.bp",
+      "packages/SystemUI/tests/leash-lifetime/AndroidManifest.xml",
+      "packages/SystemUI/tests/leash-lifetime/src/com/android/systemui/leashtest/LeashLifetimeInstrumentation.java",
       "packages/SystemUI/tests/src/com/android/systemui/statusbar/pipeline/ims/data/repository/ImsRepositoryImplTest.kt",
       "packages/SystemUI/tests/utils/src/com/android/systemui/statusbar/pipeline/ims/data/repository/FakeCommonImsRepository.kt",
       "services/core/java/com/android/server/aospa/health/AospaHealthFeature.java",
