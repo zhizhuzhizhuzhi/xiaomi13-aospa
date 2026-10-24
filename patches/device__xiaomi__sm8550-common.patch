@@ -239,6 +239,17 @@ index 07036e6..57b1368 100644
  
      // Override device specific props
      set_build_prop("ro.build.product", sku);
+diff --git a/init/ueventd.xiaomi.rc b/init/ueventd.xiaomi.rc
+index 036f202..b11d07a 100644
+--- a/init/ueventd.xiaomi.rc
++++ b/init/ueventd.xiaomi.rc
+@@ -75,3 +75,6 @@ subsystem mi_display
+ 
+ # Xiaomi NTAG
+ /dev/ntag5-nci            0660   nfc        nfc
++
++# Fuxi fingerprint HAL updates FOD touch state through this device.
++/dev/xiaomi-touch    0660    system    input
 diff --git a/overlays/CarrierConfigRes/res/xml/vendor.xml b/overlays/CarrierConfigRes/res/xml/vendor.xml
 index da45bf8..00ddcee 100644
 --- a/overlays/CarrierConfigRes/res/xml/vendor.xml

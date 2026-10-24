@@ -60,7 +60,8 @@
       "configs/properties/vendor.prop",
       "device.mk",
       "overlays/Frameworks/res/values/config.xml",
-      "overlays/Frameworks/res/values/dimens.xml"
+      "overlays/Frameworks/res/values/dimens.xml",
+      "overlays/SystemUI/res/values/config.xml"
     ],
     "overlay": [
       "build/release/aconfig/bluetooth_async_bonded_snapshot.textproto",
@@ -109,6 +110,7 @@
       "configs/vintf/manifest_kalama.xml",
       "init/Android.bp",
       "init/init_xiaomi8550.cpp",
+      "init/ueventd.xiaomi.rc",
       "overlays/CarrierConfigRes/res/xml/vendor.xml",
       "proprietary-files.txt",
       "sensors/AodNotifier.cpp",
@@ -286,7 +288,6 @@
       "packages/SettingsLib/src/com/android/settingslib/development/SystemPropPoker.java",
       "packages/SettingsLib/tests/robotests/src/com/android/settingslib/development/SystemPropPokerTest.java",
       "packages/SystemUI/multivalentTests/src/com/android/systemui/biometrics/UdfpsControllerTest.java",
-      "packages/SystemUI/multivalentTests/src/com/android/systemui/keyguard/KeyguardUnlockAnimationControllerTest.kt",
       "packages/SystemUI/multivalentTests/src/com/android/systemui/keyguard/domain/interactor/FromGoneTransitionInteractorTest.kt",
       "packages/SystemUI/multivalentTests/src/com/android/systemui/qs/tiles/InternetTileNewImplTest.kt",
       "packages/SystemUI/multivalentTests/src/com/android/systemui/qs/tiles/impl/cell/domain/interactor/MobileDataTileDataInteractorTest.kt",
@@ -312,9 +313,13 @@
       "packages/SystemUI/pods/brightness/src/test/data/repository/ScreenBrightnessDisplayManagerRepositoryTest.kt",
       "packages/SystemUI/pods/build/Android.bp",
       "packages/SystemUI/pods/graphics/src/main/ImageLoaderImpl.kt",
+      "packages/SystemUI/res/values/dimens.xml",
       "packages/SystemUI/src/com/android/systemui/biometrics/BiometricPromptLottieViewWrapper.kt",
+      "packages/SystemUI/src/com/android/systemui/biometrics/UdfpsController.java",
+      "packages/SystemUI/src/com/android/systemui/doze/DozeScreenBrightness.java",
       "packages/SystemUI/src/com/android/systemui/keyguard/KeyguardService.java",
       "packages/SystemUI/src/com/android/systemui/keyguard/KeyguardUnlockAnimationController.kt",
+      "packages/SystemUI/src/com/android/systemui/keyguard/KeyguardViewMediator.java",
       "packages/SystemUI/src/com/android/systemui/keyguard/domain/interactor/FromGoneTransitionInteractor.kt",
       "packages/SystemUI/src/com/android/systemui/keyguard/domain/interactor/LightRevealScrimInteractor.kt",
       "packages/SystemUI/src/com/android/systemui/statusbar/notification/stack/MagneticNotificationRowManagerImpl.kt",
@@ -976,8 +981,7 @@
     "patch": "patches/vendor__xiaomi__fuxi.patch",
     "files": [
       "Android.bp",
-      "fuxi-vendor.mk",
-      "proprietary/vendor/etc/displayconfig/display_id_4630947006070067843.xml"
+      "fuxi-vendor.mk"
     ],
     "overlay": []
   },

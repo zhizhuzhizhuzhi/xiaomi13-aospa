@@ -140,3 +140,15 @@ index ee75512..26ed7a0 100644
      <!-- Height of the status bar.
           Do not read this dimen directly. Use {@link SystemBarUtils#getStatusBarHeight} instead.
           -->
+diff --git a/overlays/SystemUI/res/values/config.xml b/overlays/SystemUI/res/values/config.xml
+index e0d9a28..9df32d1 100644
+--- a/overlays/SystemUI/res/values/config.xml
++++ b/overlays/SystemUI/res/values/config.xml
+@@ -2,4 +2,6 @@
+ <resources>
+     <!-- Preferred max refresh rate at keyguard, if supported by the display. -->
+     <integer name="config_keyguardMaxRefreshRate">60</integer>
++    <!-- Calibrated Fuxi backlight for the native high AOD level during notifications. -->
++    <item name="doze_notification_pulse_brightness" format="float" type="dimen">0.059839617</item>
+ </resources>
+\ No newline at end of file

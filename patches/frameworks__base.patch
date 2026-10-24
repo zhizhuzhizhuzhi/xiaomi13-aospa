@@ -1039,68 +1039,6 @@ index fee2b4ffb4df..1d944f5998c8 100644
                          mock(CoroutineScope.class),
                          UserActivityNotifierKosmosKt.getUserActivityNotifier(mKosmos),
                          mWakefulnessLifecycle,
-diff --git a/packages/SystemUI/multivalentTests/src/com/android/systemui/keyguard/KeyguardUnlockAnimationControllerTest.kt b/packages/SystemUI/multivalentTests/src/com/android/systemui/keyguard/KeyguardUnlockAnimationControllerTest.kt
-index dbd5caaac09d..8f1a6b06acdf 100644
---- a/packages/SystemUI/multivalentTests/src/com/android/systemui/keyguard/KeyguardUnlockAnimationControllerTest.kt
-+++ b/packages/SystemUI/multivalentTests/src/com/android/systemui/keyguard/KeyguardUnlockAnimationControllerTest.kt
-@@ -139,42 +139,26 @@ class KeyguardUnlockAnimationControllerTest : SysuiTestCase() {
-         keyguardUnlockAnimationController.notifyFinishedKeyguardExitAnimation(true)
-     }
- 
--    /**
--     * If we're wake and unlocking, we are animating from the black/AOD screen to the app/launcher
--     * underneath. The LightRevealScrim will animate circularly from the fingerprint reader,
--     * revealing the app/launcher below. In this case, we want to make sure we are not animating the
--     * surface, or the user will see the wallpaper briefly as the app animates in.
--     */
-+    /** AOD unlock uses the same window entry animator and completes with it. */
-     @Test
-     @DisableFlags(Flags.FLAG_KEYGUARD_WM_STATE_REFACTOR)
--    fun noSurfaceAnimation_ifWakeAndUnlocking() {
-+    fun surfaceAnimation_ifWakeAndUnlocking() {
-         whenever(biometricUnlockController.isWakeAndUnlock).thenReturn(true)
--
-         keyguardUnlockAnimationController.notifyStartSurfaceBehindRemoteAnimation(
--            animatedSurfaces,
--            arrayOf(),
--            arrayOf(),
--            0 /* startTime */,
--            false, /* requestedShowSurfaceBehindKeyguard */
-+            animatedSurfaces, arrayOf(), arrayOf(), 0, false,
-         )
--
--        val captorSb = ArgThatCaptor<SyncRtSurfaceTransactionApplier.SurfaceParams>()
--        verify(surfaceTransactionApplier, times(1))
--            .scheduleApply(captorSb.capture { sp -> sp.surface == surfaceControl1 })
--
--        val params = captorSb.getLastValue()
--
--        // We expect that we've instantly set the surface behind to alpha = 1f, and have no
--        // transforms (translate, scale) on its matrix.
--        assertEquals(1f, params.alpha)
--        assertTrue(params.matrix.isIdentity)
--
--        // Also expect we've immediately asked the keyguard view mediator to finish the remote
--        // animation.
--        verify(keyguardViewMediator, times(1))
--            .exitKeyguardAndFinishSurfaceBehindRemoteAnimation(false /* cancelled */)
--
--        verifyNoMoreInteractions(surfaceTransactionApplier)
-+        val captor = ArgThatCaptor<SyncRtSurfaceTransactionApplier.SurfaceParams>()
-+        verify(surfaceTransactionApplier).scheduleApply(
-+            captor.capture { params -> params.surface == surfaceControl1 }
-+        )
-+        // Do not expose an unanimated desktop/app during the animator's start delay.
-+        assertEquals(0f, captor.getLastValue().alpha)
-+        assertFalse(captor.getLastValue().matrix.isIdentity)
-+        assertTrue(keyguardUnlockAnimationController.surfaceBehindEntryAnimator.isStarted)
-+        verify(keyguardViewMediator, never())
-+            .exitKeyguardAndFinishSurfaceBehindRemoteAnimation(false)
-+        keyguardUnlockAnimationController.surfaceBehindEntryAnimator.end()
-+        verify(keyguardViewMediator).exitKeyguardAndFinishSurfaceBehindRemoteAnimation(false)
-     }
- 
-     /** If we are not wake and unlocking, we expect the unlock animation to play normally. */
 diff --git a/packages/SystemUI/multivalentTests/src/com/android/systemui/keyguard/domain/interactor/FromGoneTransitionInteractorTest.kt b/packages/SystemUI/multivalentTests/src/com/android/systemui/keyguard/domain/interactor/FromGoneTransitionInteractorTest.kt
 index 1132d523e2e0..74bad2823dda 100644
 --- a/packages/SystemUI/multivalentTests/src/com/android/systemui/keyguard/domain/interactor/FromGoneTransitionInteractorTest.kt
@@ -1766,6 +1704,17 @@ index 0332d527b4fd..e01996da7f32 100644
      override suspend fun loadSize(icon: Icon, context: Context): Size? =
          withContext(backgroundDispatcher) { loadSizeSync(icon, context) }
  
+diff --git a/packages/SystemUI/res/values/dimens.xml b/packages/SystemUI/res/values/dimens.xml
+index 1b4b599..2519f31 100644
+--- a/packages/SystemUI/res/values/dimens.xml
++++ b/packages/SystemUI/res/values/dimens.xml
+@@ -2309,4 +2309,6 @@
+     <dimen name="usb_device_dialog_button_background_radius_full">360dp</dimen>
+     <!-- Usb Device Dialog values end -->
+ 
++    <!-- Negative disables notification-pulse brightness override by default. -->
++    <item name="doze_notification_pulse_brightness" format="float" type="dimen">-1.0</item>
+ </resources>
 diff --git a/packages/SystemUI/src/com/android/systemui/biometrics/BiometricPromptLottieViewWrapper.kt b/packages/SystemUI/src/com/android/systemui/biometrics/BiometricPromptLottieViewWrapper.kt
 index e48e6e2dfdc6..d2460845c71d 100644
 --- a/packages/SystemUI/src/com/android/systemui/biometrics/BiometricPromptLottieViewWrapper.kt
@@ -1785,11 +1734,168 @@ index e48e6e2dfdc6..d2460845c71d 100644
 +    LottieViewWrapper(
 +        ContextThemeWrapper(context, androidx.appcompat.R.style.Theme_AppCompat_DayNight), attrs
 +    )
+diff --git a/packages/SystemUI/src/com/android/systemui/biometrics/UdfpsController.java b/packages/SystemUI/src/com/android/systemui/biometrics/UdfpsController.java
+index 9d20611..74a800a 100644
+--- a/packages/SystemUI/src/com/android/systemui/biometrics/UdfpsController.java
++++ b/packages/SystemUI/src/com/android/systemui/biometrics/UdfpsController.java
+@@ -643,8 +643,17 @@ public class UdfpsController implements DozeReceiver, Dumpable {
+                 mFalsingManager.isFalseTouch(UDFPS_AUTHENTICATION);
+                 break;
+ 
+-            case UP:
+             case CANCEL:
++                // AOD starts acquisition independently of this touch window. Losing the
++                // normal touch stream during a display transition is not a physical up.
++                // The AOD acquisition still ends on a real UP or its terminal callback.
++                if (mIsAodInterruptActive) {
++                    Log.d(TAG, "Keeping AOD acquisition across touch-window cancel");
++                    break;
++                }
++                // A normal touch-owned acquisition is cancelled as usual.
++                // fall through
++            case UP:
+                 if (InteractionEvent.CANCEL.equals(processedTouch.getEvent())) {
+                     Log.w(TAG, "This is a CANCEL event that's reported as an UP event!");
+                 }
+diff --git a/packages/SystemUI/src/com/android/systemui/doze/DozeScreenBrightness.java b/packages/SystemUI/src/com/android/systemui/doze/DozeScreenBrightness.java
+index 59310bf..bd2b3b3 100644
+--- a/packages/SystemUI/src/com/android/systemui/doze/DozeScreenBrightness.java
++++ b/packages/SystemUI/src/com/android/systemui/doze/DozeScreenBrightness.java
+@@ -112,6 +112,10 @@ public class DozeScreenBrightness extends BroadcastReceiver implements DozeMachi
+     private int mDevicePosture;
+     private boolean mRegistered;
+     private final float mDefaultDozeBrightness;
++    private final float mNotificationPulseBrightness;
++    private DozeMachine mDozeMachine;
++    private float mAmbientBrightness;
++    private boolean mNotificationPulseActive;
+     private boolean mPaused = false;
+     private boolean mScreenOff = false;
+     private int mLastSensorValue = -1;
+@@ -163,6 +167,9 @@ public class DozeScreenBrightness extends BroadcastReceiver implements DozeMachi
+                 R.dimen.config_screenBrightnessMinimumDimAmountFloat);
+ 
+         mDefaultDozeBrightness = mDisplayManager.getDefaultDozeBrightness(mContext.getDisplayId());
++        mAmbientBrightness = mDefaultDozeBrightness;
++        mNotificationPulseBrightness = context.getResources().getFloat(
++                com.android.systemui.res.R.dimen.doze_notification_pulse_brightness);
+         mScreenBrightnessDim = alwaysOnDisplayPolicy.dimBrightness;
+         float[] sensorToBrightness =
+                 mDisplayManager.getDozeBrightnessSensorValueToBrightness(mContext.getDisplayId());
+@@ -181,9 +188,19 @@ public class DozeScreenBrightness extends BroadcastReceiver implements DozeMachi
+         mDevicePostureController.addCallback(mDevicePostureCallback);
+     }
+ 
++    @Override
++    public void setDozeMachine(DozeMachine dozeMachine) {
++        mDozeMachine = dozeMachine;
++    }
++
+     @Override
+     public void transitionTo(DozeMachine.State oldState, DozeMachine.State newState) {
+         mState = newState;
++        final boolean wasNotificationPulseActive = mNotificationPulseActive;
++        mNotificationPulseActive = mNotificationPulseBrightness >= 0f
++                && (newState == DozeMachine.State.DOZE_PULSING
++                    || newState == DozeMachine.State.DOZE_PULSING_BRIGHT)
++                && mDozeMachine.getPulseReason() == DozeLog.PULSE_REASON_NOTIFICATION;
+         switch (newState) {
+             case INITIALIZED:
+                 startListeningForWallpaperSupportsAmbientMode();
+@@ -210,6 +227,9 @@ public class DozeScreenBrightness extends BroadcastReceiver implements DozeMachi
+         if (newState != DozeMachine.State.FINISH) {
+             setScreenOff(newState == DozeMachine.State.DOZE);
+             setPaused(newState == DozeMachine.State.DOZE_AOD_PAUSED);
++            if (wasNotificationPulseActive != mNotificationPulseActive) {
++                applyCurrentBrightness();
++            }
+         }
+     }
+ 
+@@ -242,7 +262,7 @@ public class DozeScreenBrightness extends BroadcastReceiver implements DozeMachi
+             float brightness = computeBrightness(sensorValue);
+             brightnessReady = brightness >= 0;
+             if (brightnessReady) {
+-                mDozeService.setDozeScreenBrightness(
++                setAmbientBrightness(
+                         clampToDimBrightnessForScreenOff(clampToUserSetting(brightness)));
+             }
+ 
+@@ -322,8 +342,22 @@ public class DozeScreenBrightness extends BroadcastReceiver implements DozeMachi
+     public void onAccuracyChanged(Sensor sensor, int accuracy) {
+     }
+ 
++    private void setAmbientBrightness(float brightness) {
++        mAmbientBrightness = brightness;
++        applyCurrentBrightness();
++    }
++
++    private void applyCurrentBrightness() {
++        // Keep sensor updates while pulsing, so the end of a notification restores
++        // the current environment brightness rather than an old captured value.
++        float brightness = mNotificationPulseActive
++                ? Math.max(mAmbientBrightness, clampToUserSetting(mNotificationPulseBrightness))
++                : mAmbientBrightness;
++        mDozeService.setDozeScreenBrightness(brightness);
++    }
++
+     private void resetBrightnessToDefault() {
+-        mDozeService.setDozeScreenBrightness(clampToDimBrightnessForScreenOff(
++        setAmbientBrightness(clampToDimBrightnessForScreenOff(
+                 clampToUserSettingOrAutoBrightness(mDefaultDozeBrightness)));
+         mDozeHost.setAodDimmingScrim(0f);
+         mDozeHost.setAodWallpaperDimmingScrim(0f);
+@@ -440,6 +474,9 @@ public class DozeScreenBrightness extends BroadcastReceiver implements DozeMachi
+                 + Arrays.toString(mSensorToWallpaperScrimOpacity));
+         idpw.println("screenBrightnessDim=" + mScreenBrightnessDim);
+         idpw.println("mDefaultDozeBrightness=" + mDefaultDozeBrightness);
++        idpw.println("mAmbientBrightness=" + mAmbientBrightness);
++        idpw.println("mNotificationPulseBrightness=" + mNotificationPulseBrightness);
++        idpw.println("mNotificationPulseActive=" + mNotificationPulseActive);
+         idpw.println("mLastSensorValue=" + mLastSensorValue);
+     }
+ 
 diff --git a/packages/SystemUI/src/com/android/systemui/keyguard/KeyguardService.java b/packages/SystemUI/src/com/android/systemui/keyguard/KeyguardService.java
-index 8d1c39add7a2..0d6bdfabb115 100644
+index 8d1c39a..4d6f352 100644
 --- a/packages/SystemUI/src/com/android/systemui/keyguard/KeyguardService.java
 +++ b/packages/SystemUI/src/com/android/systemui/keyguard/KeyguardService.java
-@@ -311,6 +311,12 @@ public class KeyguardService extends Service {
+@@ -211,6 +211,15 @@ public class KeyguardService extends Service {
+     // Note: Also used for wrapping occlude by Dream animation. It works (with some redundancy).
+     public static IRemoteTransition wrap(final KeyguardViewMediator keyguardViewMediator,
+             final IRemoteAnimationRunner runner) {
++        return wrap(keyguardViewMediator, runner, true /* finishOnCancel */);
++    }
++
++    /**
++     * Runners that acknowledge asynchronous cancellation through their finished callback must keep
++     * their leashes until that callback. Other legacy runners finish on cancellation directly.
++     */
++    static IRemoteTransition wrap(final KeyguardViewMediator keyguardViewMediator,
++            final IRemoteAnimationRunner runner, boolean finishOnCancel) {
+         return new RemoteTransitionStub() {
+ 
+             @GuardedBy("mLeashMap")
+@@ -287,7 +296,9 @@ public class KeyguardService extends Service {
+ 
+                 try {
+                     runner.onAnimationCancelled();
+-                    finish(currentTransition);
++                    if (finishOnCancel) {
++                        finish(currentTransition);
++                    }
+                 } catch (RemoteException e) {
+                     // Ignore.
+                 }
+@@ -306,20 +317,25 @@ public class KeyguardService extends Service {
+                 SurfaceControl.Transaction finishTransaction = null;
+ 
+                 synchronized (mLeashMap) {
++                    finishCallback = mFinishCallbacks.remove(transition);
++                    if (finishCallback == null) {
++                        return;
++                    }
+                     if (mCounterRotator.getSurface() != null
+                             && mCounterRotator.getSurface().isValid()) {
                          finishTransaction = new SurfaceControl.Transaction();
                          mCounterRotator.cleanUp(finishTransaction);
                      }
@@ -1800,49 +1906,105 @@ index 8d1c39add7a2..0d6bdfabb115 100644
 +                        }
 +                    }
                      mLeashMap.clear();
-                     finishCallback = mFinishCallbacks.remove(transition);
+-                    finishCallback = mFinishCallbacks.remove(transition);
                  }
+ 
+-                if (finishCallback != null) {
+-                    finishCallback.onTransitionFinished(null /* wct */, finishTransaction);
+-                } else if (finishTransaction != null) {
+-                    finishTransaction.apply();
+-                }
++                finishCallback.onTransitionFinished(null /* wct */, finishTransaction);
+             }
+         };
+     }
 diff --git a/packages/SystemUI/src/com/android/systemui/keyguard/KeyguardUnlockAnimationController.kt b/packages/SystemUI/src/com/android/systemui/keyguard/KeyguardUnlockAnimationController.kt
-index 2fa697fa812b..b63c73ed0763 100644
+index 2fa697f..5e25ac2 100644
 --- a/packages/SystemUI/src/com/android/systemui/keyguard/KeyguardUnlockAnimationController.kt
 +++ b/packages/SystemUI/src/com/android/systemui/keyguard/KeyguardUnlockAnimationController.kt
-@@ -456,8 +456,7 @@ constructor(
-             // If the launcher is underneath, but we're about to launch an activity, don't do
-             // the animations since they won't be visible.
-             !notificationShadeWindowController.isLaunchingActivity &&
--            launcherUnlockController != null &&
--            !biometricUnlockControllerLazy.get().isWakeAndUnlock
-+            launcherUnlockController != null
-     }
- 
-     /**
-@@ -700,22 +699,14 @@ constructor(
-                 unlockToLauncherWithInWindowAnimations()
+@@ -345,7 +345,18 @@ constructor(
              }
- 
--            // If we're waking and unlocking to a non-Launcher app surface (or Launcher in-window
--            // animations are not available), show it immediately and end the remote animation. The
--            // circular light reveal will show the app surface, and it looks weird if it's moving
--            // around behind that.
--            biometricUnlockControllerLazy.get().isWakeAndUnlock -> {
--                Log.d(TAG, "playCannedUnlockAnimation, isWakeAndUnlock")
--                setSurfaceBehindAppearAmount(1f)
--                keyguardViewMediator
--                    .get()
--                    .exitKeyguardAndFinishSurfaceBehindRemoteAnimation(false /* cancelled */)
--            }
--
-             // Otherwise, we're doing a normal full-window unlock. Start this animator, which will
-             // scale/translate the window underneath the lockscreen.
-             else -> {
-                 Log.d(TAG, "playCannedUnlockAnimation, surfaceBehindEntryAnimator#start")
-+                // AOD unlock has no opaque lockscreen covering the first frame.
-+                // Initialize before the existing entry-animation start delay.
-+                surfaceBehindAlpha = 0f
-+                setSurfaceBehindAppearAmount(0f)
-                 surfaceBehindEntryAnimator.start()
+             addListener(
+                 object : AnimatorListenerAdapter() {
++                    override fun onAnimationStart(animation: Animator) {
++                        cancelled = false
++                    }
++
++                    private var cancelled = false
++
++                    override fun onAnimationCancel(animation: Animator) {
++                        cancelled = true
++                    }
++
+                     override fun onAnimationEnd(animation: Animator) {
++                        if (cancelled) return
+                         // If we animated the surface alpha to 0f, it means we cancelled a swipe to
+                         // dismiss. In this case, we should ask the KeyguardViewMediator to end the
+                         // remote animation to hide the surface behind the keyguard, but should
+@@ -379,19 +390,27 @@ constructor(
              }
-         }
+             addListener(
+                 object : AnimatorListenerAdapter() {
++                    private var cancelled = false
++
++                    override fun onAnimationCancel(animation: Animator) {
++                        cancelled = true
++                    }
++
+                     override fun onAnimationStart(animation: Animator) {
++                        cancelled = false
+                         super.onAnimationStart(animation)
+                         Trace.asyncTraceBegin(Trace.TRACE_TAG_APP, "WallpaperAlphaAnimation", 0)
+                     }
+ 
+                     override fun onAnimationEnd(animation: Animator) {
++                        Trace.asyncTraceEnd(Trace.TRACE_TAG_APP, "WallpaperAlphaAnimation", 0)
++                        if (cancelled) return
+                         Log.d(TAG, "wallpaperCannedUnlockAnimator#onAnimationEnd")
+                         keyguardViewMediator
+                             .get()
+                             .exitKeyguardAndFinishSurfaceBehindRemoteAnimation(
+                                 false /* cancelled */
+                             )
+-                        Trace.asyncTraceEnd(Trace.TRACE_TAG_APP, "WallpaperAlphaAnimation", 0)
+                     }
+                 }
+             )
+@@ -416,7 +435,18 @@ constructor(
+             }
+             addListener(
+                 object : AnimatorListenerAdapter() {
++                    override fun onAnimationStart(animation: Animator) {
++                        cancelled = false
++                    }
++
++                    private var cancelled = false
++
++                    override fun onAnimationCancel(animation: Animator) {
++                        cancelled = true
++                    }
++
+                     override fun onAnimationEnd(animation: Animator) {
++                        if (cancelled) return
+                         Log.d(TAG, "surfaceBehindEntryAnimator#onAnimationEnd")
+                         playingCannedUnlockAnimation = false
+                         keyguardViewMediator
+diff --git a/packages/SystemUI/src/com/android/systemui/keyguard/KeyguardViewMediator.java b/packages/SystemUI/src/com/android/systemui/keyguard/KeyguardViewMediator.java
+index dc65bd6..b82aecd 100644
+--- a/packages/SystemUI/src/com/android/systemui/keyguard/KeyguardViewMediator.java
++++ b/packages/SystemUI/src/com/android/systemui/keyguard/KeyguardViewMediator.java
+@@ -1806,7 +1806,10 @@ public class KeyguardViewMediator implements CoreStartable,
+         mKeyguardTransitions.register(
+                 ActivityTransitionAnimator.Companion.shellMigrationEnabled()
+                         ? getExitTransition()
+-                        : KeyguardService.wrap(this, getExitAnimationRunner()),
++                        // Exit cancellation is queued on mHandler. Its finished callback runs only
++                        // after the unlock animators have stopped using their leashes.
++                        : KeyguardService.wrap(this, getExitAnimationRunner(),
++                                false /* finishOnCancel */),
+                 KeyguardService.wrap(this, getAppearAnimationRunner()),
+                 ActivityTransitionAnimator.Companion.shellMigrationEnabled()
+                         ? getOccludeTransition()
 diff --git a/packages/SystemUI/src/com/android/systemui/keyguard/domain/interactor/FromGoneTransitionInteractor.kt b/packages/SystemUI/src/com/android/systemui/keyguard/domain/interactor/FromGoneTransitionInteractor.kt
 index 8f4d009f3383..5e2321be8575 100644
 --- a/packages/SystemUI/src/com/android/systemui/keyguard/domain/interactor/FromGoneTransitionInteractor.kt
@@ -1857,51 +2019,38 @@ index 8f4d009f3383..5e2321be8575 100644
          }
      }
 diff --git a/packages/SystemUI/src/com/android/systemui/keyguard/domain/interactor/LightRevealScrimInteractor.kt b/packages/SystemUI/src/com/android/systemui/keyguard/domain/interactor/LightRevealScrimInteractor.kt
-index 1e70d0bd28f0..310c7888886b 100644
+index 1e70d0b..187858e 100644
 --- a/packages/SystemUI/src/com/android/systemui/keyguard/domain/interactor/LightRevealScrimInteractor.kt
 +++ b/packages/SystemUI/src/com/android/systemui/keyguard/domain/interactor/LightRevealScrimInteractor.kt
-@@ -22,7 +22,10 @@ import com.android.systemui.dagger.qualifiers.Application
- import com.android.systemui.dagger.qualifiers.Background
- import com.android.systemui.keyguard.data.repository.DEFAULT_REVEAL_DURATION
- import com.android.systemui.keyguard.data.repository.MINMODE_REVEAL_DURATION
-+import com.android.systemui.keyguard.data.repository.KeyguardRepository
- import com.android.systemui.keyguard.data.repository.LightRevealScrimRepository
-+import com.android.systemui.keyguard.shared.model.BiometricUnlockMode
-+import com.android.systemui.keyguard.shared.model.BiometricUnlockSource
- import com.android.systemui.keyguard.shared.model.Edge
- import com.android.systemui.keyguard.shared.model.KeyguardState
- import com.android.systemui.minmode.MinModeManager
-@@ -51,6 +54,7 @@ class LightRevealScrimInteractor
- constructor(
-     private val transitionInteractor: KeyguardTransitionInteractor,
-     private val repository: LightRevealScrimRepository,
-+    private val keyguardRepository: KeyguardRepository,
-     @Application private val scope: CoroutineScope,
-     private val scrimLogger: ScrimLogger,
-     private val powerInteractor: Lazy<PowerInteractor>,
-@@ -67,8 +71,21 @@ constructor(
-         scope.launch {
-             transitionInteractor.startedKeyguardTransitionStep.collect {
-                 scrimLogger.d(TAG, "listenForStartedKeyguardTransitionStep", it)
-+                val biometricUnlockState = keyguardRepository.biometricUnlockState.value
-+                val fingerprintWakeAndUnlock =
-+                    it.to == KeyguardState.GONE &&
-+                        biometricUnlockState.source == BiometricUnlockSource.FINGERPRINT_SENSOR &&
-+                        biometricUnlockState.mode in setOf(
-+                            BiometricUnlockMode.WAKE_AND_DISMISS,
-+                            BiometricUnlockMode.WAKE_AND_DISMISS_PULSING,
-+                            BiometricUnlockMode.WAKE_AND_DISMISS_FROM_DREAM,
-+                        )
-                 val animationDuration =
--                    if (it.to == KeyguardState.AOD && isLastSleepDueToFold) {
-+                    if (fingerprintWakeAndUnlock) {
-+                        // The window entry animator reveals the app; do not cover it with a
-+                        // second, circular reveal from the fingerprint sensor.
-+                        0L
-+                    } else if (it.to == KeyguardState.AOD && isLastSleepDueToFold) {
-                         // Do not animate the scrim when folding as we want to cover the screen
-                         // with the scrim immediately while displays are switching.
-                         // This is needed to play the fold to AOD animation which starts with
+@@ -32,7 +32,6 @@ import com.android.systemui.power.shared.model.WakeSleepReason
+ import com.android.systemui.scene.shared.model.Scenes
+ import com.android.systemui.statusbar.LightRevealEffect
+ import com.android.systemui.util.kotlin.BooleanFlowOperators.anyOf
+-import com.android.systemui.util.kotlin.sample
+ import dagger.Lazy
+ import java.util.Optional
+ import javax.inject.Inject
+@@ -40,6 +39,7 @@ import kotlinx.coroutines.CoroutineDispatcher
+ import kotlinx.coroutines.CoroutineScope
+ import kotlinx.coroutines.flow.Flow
+ import kotlinx.coroutines.flow.filter
++import kotlinx.coroutines.flow.first
+ import kotlinx.coroutines.flow.flatMapLatest
+ import kotlinx.coroutines.flow.flowOf
+ import kotlinx.coroutines.flow.flowOn
+@@ -103,7 +103,11 @@ constructor(
+      * LiftReveal.
+      */
+     val lightRevealEffect: Flow<LightRevealEffect> =
+-        transitionInteractor.startedKeyguardTransitionStep.sample(repository.revealEffect)
++        transitionInteractor.startedKeyguardTransitionStep.map {
++            // Resolve from the current biometric state, not a separately scheduled cached
++            // emission that can still describe the preceding non-biometric wakeup.
++            repository.revealEffect.first()
++        }
+ 
+     /** Limit the max alpha for the scrim to allow for some transparency */
+     val maxAlpha: Flow<Float> =
 diff --git a/packages/SystemUI/src/com/android/systemui/statusbar/notification/stack/MagneticNotificationRowManagerImpl.kt b/packages/SystemUI/src/com/android/systemui/statusbar/notification/stack/MagneticNotificationRowManagerImpl.kt
 index b9d534949b00..966f386c271e 100644
 --- a/packages/SystemUI/src/com/android/systemui/statusbar/notification/stack/MagneticNotificationRowManagerImpl.kt
