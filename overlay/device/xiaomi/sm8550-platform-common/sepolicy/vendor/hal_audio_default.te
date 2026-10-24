@@ -1,0 +1,3 @@
+# Audio queries the vendor PD-locator diagnostic mode and boot completion state.
+get_prop(hal_audio_default, vendor_pd_locater_dbg_prop)
+get_prop(hal_audio_default, boot_status_prop)

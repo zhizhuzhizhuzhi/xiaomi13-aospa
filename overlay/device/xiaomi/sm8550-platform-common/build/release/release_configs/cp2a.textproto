@@ -1,0 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
+name: "cp2a"
+aconfig_value_sets: "//device/xiaomi/sm8550-platform-common:aconfig_value_set-sm8550_window_lifecycle"
+aconfig_value_sets: "//device/xiaomi/sm8550-platform-common:aconfig_value_set-sm8550_bluetooth_async_snapshot"

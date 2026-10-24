@@ -1,0 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+flag_value {
+    package: "com.android.bluetooth.flags"
+    name: "async_le_audio_broadcast_support"
+    state: ENABLED
+    permission: READ_ONLY
+}

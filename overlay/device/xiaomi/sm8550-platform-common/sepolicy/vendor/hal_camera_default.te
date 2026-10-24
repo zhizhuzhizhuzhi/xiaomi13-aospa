@@ -1,0 +1,5 @@
+allow hal_camera_client hal_camera_aon_service:service_manager find;
+add_service(hal_camera_server, hal_camera_aon_service)
+
+# Camera algorithms follow the existing KGSL devfreq link to read GPU state.
+allow hal_camera_default vendor_sysfs_kgsl:lnk_file read;

@@ -1,0 +1,8 @@
+# SPDX-License-Identifier: Apache-2.0
+# Release task-transition references only after the animation tracks are idle.
+flag_value {
+    package: "com.android.window.flags"
+    name: "release_all_transition_surfaces_on_idle"
+    state: ENABLED
+    permission: READ_ONLY
+}

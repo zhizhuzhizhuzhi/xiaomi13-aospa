@@ -1,0 +1,2 @@
+# MTD performs framework service-manager lookups in addition to HIDL calls.
+binder_use(hal_mtdservice_default)

@@ -10,9 +10,11 @@ plans=[]
 def git(path,*args):
     return subprocess.run(['git','-C',str(path),*args],capture_output=True,text=True)
 for r in records:
-    repo=root/r['path']; head=git(repo,'rev-parse','HEAD')
-    if head.returncode or head.stdout.strip()!=r['revision']:
-        raise SystemExit('Wrong base revision: '+r['path'])
+    repo=root/r['path']
+    if r.get('kind') != 'shared':
+        head=git(repo,'rev-parse','HEAD')
+        if head.returncode or head.stdout.strip()!=r['revision']:
+            raise SystemExit('Wrong base revision: '+r['path'])
     patch=kit/r['patch'] if r['patch'] else None
     state='none'
     if patch:

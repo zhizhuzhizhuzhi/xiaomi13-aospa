@@ -1,0 +1,28 @@
+// Copyright (C) 2024 Paranoid Android
+// SPDX-License-Identifier: Apache-2.0
+
+soong_namespace {}
+
+aconfig_values {
+    name: "aconfig_values-sm8550_window_lifecycle",
+    package: "com.android.window.flags",
+    srcs: ["build/release/aconfig/transition_surface_cleanup.textproto"],
+}
+aconfig_value_set {
+    name: "aconfig_value_set-sm8550_window_lifecycle",
+    values: ["aconfig_values-sm8550_window_lifecycle"],
+}
+
+aconfig_values {
+    name: "aconfig_values-sm8550_bluetooth_async_snapshot",
+    package: "com.android.bluetooth.flags",
+    srcs: [
+        "build/release/aconfig/bluetooth_async_snapshot.textproto",
+        "build/release/aconfig/bluetooth_async_broadcast_support.textproto",
+        "build/release/aconfig/bluetooth_async_bonded_snapshot.textproto",
+    ],
+}
+aconfig_value_set {
+    name: "aconfig_value_set-sm8550_bluetooth_async_snapshot",
+    values: ["aconfig_values-sm8550_bluetooth_async_snapshot"],
+}

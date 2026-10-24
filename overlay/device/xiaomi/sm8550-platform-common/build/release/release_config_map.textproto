@@ -1,0 +1,3 @@
+# SPDX-License-Identifier: Apache-2.0
+description: "Shared Xiaomi SM8550 platform flags"
+default_containers: "system"

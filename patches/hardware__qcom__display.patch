@@ -1,15 +1,39 @@
 diff --git a/composer/Android.bp b/composer/Android.bp
-index 4dfa42d..830c20c 100644
+index 4dfa42d..7391bfe 100644
 --- a/composer/Android.bp
 +++ b/composer/Android.bp
-@@ -3,6 +3,7 @@ composer_srcs = ["*.cpp"]
+@@ -1,9 +1,30 @@
++// Stock-stack selection preserves the existing install behavior per device.
++soong_config_module_type {
++    name: "sm8550_composer_install_defaults_type",
++    module_type: "cc_defaults",
++    config_namespace: "sheng_display",
++    bool_variables: ["stock_stack"],
++    properties: ["installable"],
++}
++
++sm8550_composer_install_defaults_type {
++    name: "sm8550_composer_install_defaults",
++    soong_config_variables: {
++        stock_stack: {
++            installable: true,
++            conditions_default: {
++                installable: false,
++            },
++        },
++    },
++}
++
+ composer_srcs = ["*.cpp"]
+ 
  cc_binary {
  
      name: "vendor.qti.hardware.display.composer-service",
-+    installable: false,
-     defaults: ["qtidisplay_defaults"],
+-    defaults: ["qtidisplay_defaults"],
++    defaults: ["qtidisplay_defaults", "sm8550_composer_install_defaults"],
      sanitize: {
          integer_overflow: true,
+     },
 diff --git a/init/init.qti.display_boot.sh b/init/init.qti.display_boot.sh
 index e29ba42..8d31a9e 100644
 --- a/init/init.qti.display_boot.sh

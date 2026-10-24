@@ -59,10 +59,19 @@ index 2f22600..2c839fc 100644
 +# Use the Skia Vulkan backend for HWUI.
 +TARGET_USES_VULKAN := true
 diff --git a/common.mk b/common.mk
-index 361ae3b..705526a 100644
+index 361ae3b..3b9ba26 100644
 --- a/common.mk
 +++ b/common.mk
-@@ -159,6 +159,10 @@ PRODUCT_PACKAGES += \
+@@ -86,7 +86,7 @@ PRODUCT_PACKAGES += \
+ 
+ # Audio
+ PRODUCT_COPY_FILES += \
+-    $(LOCAL_PATH)/configs/audio/audio_policy_configuration.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio/sku_kalama_qssi/audio_policy_configuration.xml
++    device/xiaomi/sm8550-platform-common/configs/audio/audio_policy_configuration.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio/sku_kalama_qssi/audio_policy_configuration.xml
+ 
+ # Boot Control
+ PRODUCT_PACKAGES += \
+@@ -159,9 +159,13 @@ PRODUCT_PACKAGES += \
      android.hardware.health-service.qti \
      android.hardware.health-service.qti_recovery
  
@@ -72,7 +81,11 @@ index 361ae3b..705526a 100644
 +
  # Hotword Enrollement
  PRODUCT_COPY_FILES += \
-     $(LOCAL_PATH)/configs/permissions/privapp-permissions-hotword.xml:$(TARGET_COPY_OUT_PRODUCT)/etc/permissions/privapp-permissions-hotword.xml
+-    $(LOCAL_PATH)/configs/permissions/privapp-permissions-hotword.xml:$(TARGET_COPY_OUT_PRODUCT)/etc/permissions/privapp-permissions-hotword.xml
++    device/xiaomi/sm8550-platform-common/configs/permissions/privapp-permissions-hotword.xml:$(TARGET_COPY_OUT_PRODUCT)/etc/permissions/privapp-permissions-hotword.xml
+ 
+ # Init
+ PRODUCT_PACKAGES += \
 @@ -185,7 +189,7 @@ PRODUCT_COPY_FILES += \
  
  # Lineage Health

@@ -1,0 +1,2 @@
+# The shipped fingerprint implementation queries the shared camera configuration.
+get_prop(hal_fingerprint_default, vendor_camera_prop)
