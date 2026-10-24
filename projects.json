@@ -243,6 +243,7 @@
     "revision": "cffc5ffd2651f79a834df64d67431fc7856a3bb1",
     "patch": "patches/external__wpa_supplicant_8.patch",
     "files": [
+      "hostapd/aidl/hostapd.cpp",
       "src/drivers/driver_nl80211.c"
     ],
     "overlay": []

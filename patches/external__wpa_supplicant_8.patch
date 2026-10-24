@@ -1,3 +1,16 @@
+diff --git a/hostapd/aidl/hostapd.cpp b/hostapd/aidl/hostapd.cpp
+index fd43412..ef21b46 100644
+--- a/hostapd/aidl/hostapd.cpp
++++ b/hostapd/aidl/hostapd.cpp
+@@ -641,7 +641,7 @@ std::string CreateHostapdConfig(
+ 			} else {
+ 				eht_params_as_string += StringPrintf(
+ 					"bssid=%s\n"
+-					"mld_ap=1",
++					"mld_ap=0",
+ 					interface_mac_addr.c_str());
+             }
+ 		}
 diff --git a/src/drivers/driver_nl80211.c b/src/drivers/driver_nl80211.c
 index 79fcc3a..3859c94 100644
 --- a/src/drivers/driver_nl80211.c
