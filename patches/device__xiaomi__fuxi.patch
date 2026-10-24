@@ -44,10 +44,10 @@ index fa80708..4c62de1 100644
 +    values: ["aconfig_values-fuxi_bluetooth_async_snapshot"],
 +}
 diff --git a/BoardConfig.mk b/BoardConfig.mk
-index 400edfc..a803153 100644
+index 400edfc..1f02517 100644
 --- a/BoardConfig.mk
 +++ b/BoardConfig.mk
-@@ -22,3 +22,10 @@ TARGET_OTA_ASSERT_DEVICE := fuxi
+@@ -22,3 +22,13 @@ TARGET_OTA_ASSERT_DEVICE := fuxi
  # Properties
  TARGET_ODM_PROP += $(DEVICE_PATH)/configs/properties/odm.prop
  TARGET_VENDOR_PROP += $(DEVICE_PATH)/configs/properties/vendor.prop
@@ -58,6 +58,9 @@ index 400edfc..a803153 100644
 +# Fuxi-only PowerStats device node access and canonical ueventd input.
 +BOARD_VENDOR_SEPOLICY_DIRS += $(DEVICE_PATH)/sepolicy/vendor
 +$(call soong_config_set_bool,xiaomi_fuxi,power_stats,true)
++
++# Stock audio HAL uses the pre-speaker-layout audio_port_config ABI.
++$(call soong_config_set_bool,android_hardware_audio,skip_speaker_layout_channel_mask_field,true)
 diff --git a/configs/properties/odm.prop b/configs/properties/odm.prop
 index b7f3ab7..3d3f7dd 100644
 --- a/configs/properties/odm.prop
