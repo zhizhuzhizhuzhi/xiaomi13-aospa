@@ -232,23 +232,3 @@ index 1434fc8..91bd6e2 100644
  
      </PerfConfigs>
  </PerfConfigsStore>
-diff --git a/vendor/perf/qti-perf.mk b/vendor/perf/qti-perf.mk
-index 5fac908..6d469b0 100644
---- a/vendor/perf/qti-perf.mk
-+++ b/vendor/perf/qti-perf.mk
-@@ -37,7 +37,7 @@ PRODUCT_VENDOR_PROPERTIES += \
-     ro.vendor.perf-hal.ver=3.0 \
-     ro.vendor.extension_library=libqti-perfd-client.so \
-     ro.vendor.perf.scroll_opt=true \
--    ro.vendor.qspm.enable=true \
-+    ro.vendor.qspm.enable=false \
-     vendor.perf.framepacing.enable=1
- 
- ifeq (,$(filter 4.14, $(TARGET_KERNEL_VERSION)))
-@@ -54,3 +54,6 @@ PRODUCT_VENDOR_PROPERTIES += \
- 
- # Get non-open-source specific aspects
- $(call inherit-product-if-exists, vendor/qcom/common/vendor/perf/perf-vendor.mk)
-+
-+# AP engine is removed with its QSPM backend.
-+PRODUCT_COPY_FILES := $(filter-out %/QGPE.xml:$(TARGET_COPY_OUT_VENDOR)/etc/lm/QGPE.xml,$(PRODUCT_COPY_FILES))

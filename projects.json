@@ -35,8 +35,7 @@
       "vendor/init/kalama/etc/init/init.aospa.perf.soc.rc",
       "vendor/init/qti-init.mk",
       "vendor/init/system_dlkm_modprobe.sh",
-      "vendor/perf/configs/kalama/perf/perfconfigstore.xml",
-      "vendor/perf/qti-perf.mk"
+      "vendor/perf/configs/kalama/perf/perfconfigstore.xml"
     ],
     "overlay": []
   },
@@ -140,7 +139,6 @@
       "sepolicy/private/cameraserver.te",
       "sepolicy/private/device_as_webcam.te",
       "sepolicy/private/fuxi_apps.te",
-      "sepolicy/private/property_contexts",
       "sepolicy/public/fuxi_apps.te",
       "sepolicy/vendor/fuxi_apps.te",
       "sepolicy/vendor/hal_aospa_health.te",
@@ -535,7 +533,9 @@
       "Android.bp",
       "drivers/power/supply/qti_battery_charger.c"
     ],
-    "overlay": []
+    "overlay": [
+      "arch/arm64/boot/dts/vendor/qcom/fuxi-sm8550.dtsi"
+    ]
   },
   {
     "path": "kernel_platform/prebuilts/asuite",
