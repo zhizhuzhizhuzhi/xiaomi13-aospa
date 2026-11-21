@@ -1,60 +1,28 @@
-# Build AOSPA for Xiaomi 13 (fuxi)
+# AOSPA Android 17 for Xiaomi 13 (fuxi)
 
-[简体中文](README.md)
+[中文](README.md)
 
-## Environment
+Build entry point for this device. The [manifest](https://github.com/zhizhuzhizhuzhi/android_local_manifests/tree/aospa-17) pins the source repositories. [Shared integration](https://github.com/zhizhuzhizhuzhi/android_vendor_xiaomi_sm8550-integration/tree/aospa-17) owns common source patches and build tools; the [device repository](https://github.com/zhizhuzhizhuzhi/android_device_xiaomi_fuxi/tree/aospa-17) owns device configuration.
 
-Ubuntu 22.04 / 24.04, x86_64, 64 GB RAM, and 500 GB free disk space.
+Use Ubuntu 22.04/24.04 x86_64 with Android build dependencies, Git, Git LFS, repo and Python 3.11+. Keep the relative paths listed in the input manifests when preparing input files.
 
-```bash
-sudo apt update
-sudo apt install git git-lfs curl python3 python-is-python3 build-essential \
-  zip unzip rsync bc bison flex gperf ccache libssl-dev libelf-dev \
-  libncurses-dev libxml2-utils xsltproc zlib1g-dev liblz4-tool
-mkdir -p "$HOME/bin"
-curl -o "$HOME/bin/repo" https://storage.googleapis.com/git-repo-downloads/repo
-chmod +x "$HOME/bin/repo"
-export PATH="$HOME/bin:$PATH"
-git lfs install
-```
-
-## Get the source
-
-```bash
-git clone https://github.com/zhizhuzhizhuzhi/xiaomi13-aospa.git aospa-fuxi-kit
-mkdir android-fuxi
-cd android-fuxi
-repo init -u https://github.com/zhizhuzhizhuzhi/xiaomi13-aospa.git \
-  -b main -m manifests/release.xml
+```sh
+mkdir android-fuxi && cd android-fuxi
+repo init -u https://github.com/zhizhuzhizhuzhi/android_local_manifests.git -b aospa-17 -m fuxi.xml --git-lfs
 repo sync -c --no-tags -j8
-python3 ../aospa-fuxi-kit/scripts/apply.py "$PWD"
-```
-
-## Build and package
-
-Prepare matching inputs with the relative paths listed in `dependencies.json`:
-
-```bash
-python3 ../aospa-fuxi-kit/scripts/fetch-dependencies.py "$PWD" \
+python3 vendor/xiaomi/sm8550-integration/tools/prepare-source.py "$PWD" --device fuxi
+python3 vendor/xiaomi/sm8550-integration/tools/prepare-inputs.py "$PWD" --device fuxi \
   --source /path/to/prepared-fuxi-inputs --replace-stock-inputs
+BUILD_NUMBER=20261121 bash vendor/xiaomi/sm8550-integration/tools/build.sh "$PWD" fuxi userdebug 16
 ```
 
-The build script checks the inputs and prepares the kernel. Java and Clang are provided by the source tree.
+Select `user` instead of `userdebug` for that build variant. Prepared input hashes are stored in `common/inputs.json` and `profiles/fuxi/inputs.json` in the integration repository.
 
-### userdebug
+Package the target-files archive:
 
-```bash
-BUILD_NUMBER=20261121 bash ../aospa-fuxi-kit/scripts/build.sh "$PWD" userdebug "$(nproc)"
-python3 ../aospa-fuxi-kit/scripts/package.py "$PWD" \
-  out/target/product/fuxi/obj/PACKAGING/target_files_intermediates/aospa_fuxi-target_files.zip \
-  "$PWD/aospa_fuxi-fastboot-userdebug.zip"
+```sh
+python3 vendor/xiaomi/sm8550-integration/tools/package.py fuxi "$PWD" \
+  /path/to/target_files.zip /path/to/aospa_fuxi-fastboot.zip
 ```
 
-### user
-
-```bash
-BUILD_NUMBER=20261121 bash ../aospa-fuxi-kit/scripts/build.sh "$PWD" user "$(nproc)"
-OUT_DIR=out-user-release python3 ../aospa-fuxi-kit/scripts/package.py "$PWD" \
-  out-user-release/target/product/fuxi/obj/PACKAGING/target_files_intermediates/aospa_fuxi-target_files.zip \
-  "$PWD/aospa_fuxi-fastboot-user.zip"
-```
+The compatibility wrappers in `scripts/` invoke the same tools from the source checkout. AOSPA and Cloyuri use separate manifests and source branches. See [licensing](LICENSE.md).

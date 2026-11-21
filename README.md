@@ -1,60 +1,32 @@
-# Xiaomi 13（fuxi）AOSPA 构建
+# Xiaomi 13（fuxi）AOSPA Android 17
 
 [English](README_EN.md)
 
-## 环境
+本仓库提供设备构建入口。源码版本由 [manifest](https://github.com/zhizhuzhizhuzhi/android_local_manifests/tree/aospa-17) 固定；公共补丁和构建工具统一放在 [SM8550 integration](https://github.com/zhizhuzhizhuzhi/android_vendor_xiaomi_sm8550-integration/tree/aospa-17)，设备配置直接来自独立的 [device 仓库](https://github.com/zhizhuzhizhuzhi/android_device_xiaomi_fuxi/tree/aospa-17)。
 
-Ubuntu 22.04 / 24.04，x86_64，64 GB 内存，500 GB 可用磁盘空间。
+## 获取源码和构建
 
-```bash
-sudo apt update
-sudo apt install git git-lfs curl python3 python-is-python3 build-essential \
-  zip unzip rsync bc bison flex gperf ccache libssl-dev libelf-dev \
-  libncurses-dev libxml2-utils xsltproc zlib1g-dev liblz4-tool
-mkdir -p "$HOME/bin"
-curl -o "$HOME/bin/repo" https://storage.googleapis.com/git-repo-downloads/repo
-chmod +x "$HOME/bin/repo"
-export PATH="$HOME/bin:$PATH"
-git lfs install
-```
+Ubuntu 22.04 / 24.04 x86_64，安装 Android 构建依赖、Git、Git LFS、repo 和 Python 3.11+。准备与清单匹配的输入目录，保留其中记录的相对路径。
 
-## 获取源码
-
-```bash
-git clone https://github.com/zhizhuzhizhuzhi/xiaomi13-aospa.git aospa-fuxi-kit
-mkdir android-fuxi
-cd android-fuxi
-repo init -u https://github.com/zhizhuzhizhuzhi/xiaomi13-aospa.git \
-  -b main -m manifests/release.xml
+```sh
+mkdir android-fuxi && cd android-fuxi
+repo init -u https://github.com/zhizhuzhizhuzhi/android_local_manifests.git -b aospa-17 -m fuxi.xml --git-lfs
 repo sync -c --no-tags -j8
-python3 ../aospa-fuxi-kit/scripts/apply.py "$PWD"
-```
-
-## 编译和打包
-
-准备与当前源码匹配的依赖，目录中保留 `dependencies.json` 所列相对路径：
-
-```bash
-python3 ../aospa-fuxi-kit/scripts/fetch-dependencies.py "$PWD" \
+python3 vendor/xiaomi/sm8550-integration/tools/prepare-source.py "$PWD" --device fuxi
+python3 vendor/xiaomi/sm8550-integration/tools/prepare-inputs.py "$PWD" --device fuxi \
   --source /path/to/prepared-fuxi-inputs --replace-stock-inputs
+BUILD_NUMBER=20261121 bash vendor/xiaomi/sm8550-integration/tools/build.sh "$PWD" fuxi userdebug 16
 ```
 
-构建脚本检查依赖并准备内核。Java 和 Clang 使用源码树自带版本。
+将 `userdebug` 改为 `user` 可选择对应构建变体。输入哈希分别放在公共集成仓库的 `common/inputs.json` 和 `profiles/fuxi/inputs.json`；已有匹配文件直接复用。
 
-### userdebug
+## 打包
 
-```bash
-BUILD_NUMBER=20261121 bash ../aospa-fuxi-kit/scripts/build.sh "$PWD" userdebug "$(nproc)"
-python3 ../aospa-fuxi-kit/scripts/package.py "$PWD" \
-  out/target/product/fuxi/obj/PACKAGING/target_files_intermediates/aospa_fuxi-target_files.zip \
-  "$PWD/aospa_fuxi-fastboot-userdebug.zip"
+```sh
+python3 vendor/xiaomi/sm8550-integration/tools/package.py fuxi "$PWD" \
+  /path/to/target_files.zip /path/to/aospa_fuxi-fastboot.zip
 ```
 
-### user
+`scripts/` 中的兼容入口调用源码树里的同一套工具。本仓库不再复制 device 源码或公共补丁。
 
-```bash
-BUILD_NUMBER=20261121 bash ../aospa-fuxi-kit/scripts/build.sh "$PWD" user "$(nproc)"
-OUT_DIR=out-user-release python3 ../aospa-fuxi-kit/scripts/package.py "$PWD" \
-  out-user-release/target/product/fuxi/obj/PACKAGING/target_files_intermediates/aospa_fuxi-target_files.zip \
-  "$PWD/aospa_fuxi-fastboot-user.zip"
-```
+AOSPA 与 Cloyuri 使用各自的源码分支和 manifest。许可证见 [LICENSE.md](LICENSE.md)。

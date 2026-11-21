@@ -1,5 +1,0 @@
-service qtiaudiohalvendorextn /system_ext/bin/qtiaudiohalvendorextn
-    interface aidl android.media.audio.IHalAdapterVendorExtension/default
-    class hal
-    user system
-    group system

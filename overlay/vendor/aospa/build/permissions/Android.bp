@@ -1,6 +1,0 @@
-// Build-time permission policy shared by all device products.
-genrule_defaults {
-    name: "aospa_native_brightness_permission_defaults",
-    defaults_visibility: ["//visibility:public"],
-    cmd: "sed '/<privapp-permissions package=\"com\\.google\\.android\\.apps\\.turbo\">/,/<\\/privapp-permissions>/s/<permission name=\"android\\.permission\\.CONFIGURE_DISPLAY_BRIGHTNESS\"/<deny-permission name=\"android.permission.CONFIGURE_DISPLAY_BRIGHTNESS\"/' $(in) > $(out)",
-}

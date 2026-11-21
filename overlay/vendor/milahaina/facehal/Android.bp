@@ -1,3 +1,0 @@
-soong_namespace {
-    imports: ["vendor/milahaina/facehal/lib/milahaina"],
-}

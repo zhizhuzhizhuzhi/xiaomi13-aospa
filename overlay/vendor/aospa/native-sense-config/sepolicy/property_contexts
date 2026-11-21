@@ -1,3 +1,0 @@
-# Immutable native PA Sense configuration, shared by fuxi and pudding.
-ro.face.sense_service                  u:object_r:system_prop:s0 exact bool
-ro.face.sense_service.native_provider  u:object_r:system_prop:s0 exact bool
