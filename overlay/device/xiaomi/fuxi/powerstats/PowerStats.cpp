@@ -55,9 +55,17 @@ class PowerStats final : public BnPowerStats {
         // if a subsystem subsequently goes offline.
         for (const auto& source : kSources) {
             fuxi::KernelStats data{};
-            if (readSource(source, &data)) mSources.push_back(source);
-            else LOG(INFO) << "Sleep statistics unavailable for " << source.name
-                           << ": " << strerror(errno);
+            if (readSource(source, &data)) {
+                mSources.push_back(source);
+            } else {
+                const int error = errno;
+                // SMEM can report an absent provider as ENODEV as well as
+                // ENOENT/ENXIO. Other errors remain fatal; EINVAL is DDR-only.
+                CHECK(fuxi::isSleepStatsProviderAbsent(source.command, error))
+                        << "Sleep statistics probe failed for " << source.name
+                        << ": " << strerror(error);
+                LOG(INFO) << "Kernel has no sleep statistics provider for " << source.name;
+            }
         }
         CHECK(!mSources.empty()) << "No real sleep statistics providers";
     }

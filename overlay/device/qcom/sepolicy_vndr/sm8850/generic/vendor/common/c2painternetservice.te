@@ -1,0 +1,19 @@
+# Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# vendor_c2painternetservice - C2PA Internet daemon
+type vendor_c2painternetservice, domain;
+type vendor_c2painternetservice_exec, exec_type, vendor_file_type, file_type;
+
+init_daemon_domain(vendor_c2painternetservice)
+
+#Allow udp socket to access server
+net_domain(vendor_c2painternetservice)
+
+# Allow access to HLOS Mink Daemon socket
+unix_socket_connect(vendor_c2painternetservice, vendor_hlos_minkd_opener, vendor_hlosminkdaemon)
+
+# Allow read access to mink socket log files
+userdebug_or_eng(`
+  get_prop(vendor_c2painternetservice, vendor_mink_trace_prop)
+')

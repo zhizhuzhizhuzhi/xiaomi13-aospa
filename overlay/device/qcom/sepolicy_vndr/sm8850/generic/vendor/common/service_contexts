@@ -1,0 +1,93 @@
+# Copyright (c) 2021, The Linux Foundation. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are
+# met:
+#     * Redistributions of source code must retain the above copyright
+#       notice, this list of conditions and the following disclaimer.
+#     * Redistributions in binary form must reproduce the above
+#       copyright notice, this list of conditions and the following
+#       disclaimer in the documentation and/or other materials provided
+#       with the distribution.
+#     * Neither the name of The Linux Foundation nor the names of its
+#       contributors may be used to endorse or promote products derived
+#       from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" AND ANY EXPRESS OR IMPLIED
+# WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+# MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT
+# ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS
+# BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
+# BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+# WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+# OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
+# IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+# Changes from Qualcomm Innovation Center are provided under the following license:
+# Copyright (c) 2023, 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+vendor.qti.hardware.ListenSoundModelAidl.IListenSoundModel/default    u:object_r:hal_audio_service:s0
+vendor.qti.data.factoryservice.IFactory/default                       u:object_r:vendor_hal_factory_aidlservice:s0
+android.hardware.neuralnetworks.IDevice/qti-default                   u:object_r:hal_neuralnetworks_service:s0
+android.hardware.neuralnetworks.IDevice/qti-gpu                       u:object_r:hal_neuralnetworks_service:s0
+android.hardware.neuralnetworks.IDevice/qti-dsp                       u:object_r:hal_neuralnetworks_service:s0
+vendor.qti.hardware.radio.ims.IImsRadio/imsradio0                     u:object_r:vendor_hal_telephony_service2:s0
+vendor.qti.hardware.radio.ims.IImsRadio/imsradio1                     u:object_r:vendor_hal_telephony_service2:s0
+vendor.qti.hardware.radio.qtiradio.IQtiRadioStable/slot1              u:object_r:vendor_hal_telephony_service2:s0
+vendor.qti.hardware.radio.qtiradio.IQtiRadioStable/slot2              u:object_r:vendor_hal_telephony_service2:s0
+vendor.qti.hardware.radio.am.IQcRilAudio/slot1                        u:object_r:vendor_hal_telephony_service2:s0
+vendor.qti.hardware.radio.am.IQcRilAudio/slot2                        u:object_r:vendor_hal_telephony_service2:s0
+vendor.qti.hardware.display.config.IDisplayConfig/default             u:object_r:vendor_hal_vnddisplayconfig_service:s0
+vendor.qti.hardware.radio.qcrilhook.IQtiOemHook/oemhook0              u:object_r:vendor_hal_telephony_service2:s0
+vendor.qti.hardware.radio.qcrilhook.IQtiOemHook/oemhook1              u:object_r:vendor_hal_telephony_service2:s0
+vendor.qti.hardware.radio.internal.deviceinfo.IDeviceInfo/deviceinfo  u:object_r:vendor_hal_telephony_service2:s0
+vendor.qti.hardware.radio.qtiradioconfig.IQtiRadioConfig/default      u:object_r:vendor_hal_telephony_service2:s0
+vendor.qti.hardware.radio.atfwd.IAtFwd/AtFwdAidl                      u:object_r:vendor_hal_telephony_service2:s0
+vendor.qti.hardware.radio.uim_remote_client.IUimRemoteServiceClient/uimRemoteClient0              u:object_r:vendor_hal_telephony_service2:s0
+vendor.qti.hardware.radio.uim_remote_client.IUimRemoteServiceClient/uimRemoteClient1              u:object_r:vendor_hal_telephony_service2:s0
+vendor.qti.hardware.radio.uim_remote_server.IUimRemoteServiceServer/uimRemoteServer0              u:object_r:vendor_hal_telephony_service2:s0
+vendor.qti.hardware.radio.uim_remote_server.IUimRemoteServiceServer/uimRemoteServer1              u:object_r:vendor_hal_telephony_service2:s0
+vendor.qti.hardware.radio.lpa.IUimLpa/UimLpa0                         u:object_r:vendor_hal_telephony_service2:s0
+vendor.qti.hardware.radio.lpa.IUimLpa/UimLpa1                         u:object_r:vendor_hal_telephony_service2:s0
+vendor.qti.hardware.radio.uim.IUim/Uim0                               u:object_r:vendor_hal_telephony_service2:s0
+vendor.qti.hardware.radio.uim.IUim/Uim1                               u:object_r:vendor_hal_telephony_service2:s0
+android.hardware.camera.provider.ICameraProvider/vendor.qti/0         u:object_r:hal_camera_service:s0
+android.hardware.camera.provider.ICameraProvider/vendor_qti/0         u:object_r:hal_camera_service:s0
+#Refer to b/236750094
+android.hardware.drm.IDrmFactory/widevine                             u:object_r:hal_drm_service:s0
+vendor.qti.hardware.wifi.supplicant.ISupplicantVendor/default         u:object_r:hal_wifi_supplicant_service:s0
+vendor.qti.hardware.display.color.IDisplayColor/default               u:object_r:vendor_hal_display_color_aidl_service:s0
+vendor.qti.hardware.display.postproc.IDisplayPostproc/default         u:object_r:vendor_hal_display_color_aidl_service:s0
+vendor.qti.hardware.display.demura.IDemuraFileFinder/default          u:object_r:vendor_hal_display_demura_aidl_service:s0
+vendor.qti.hardware.display.aiqe.IDisplayAiqe/default                 u:object_r:vendor_hal_display_aiqe_aidl_service:s0
+vendor.qti.hardware.camera.offlinecamera.IOfflineCameraService/default    u:object_r:vendor_hal_offlinecamera_service:s0
+vendor.qti.hardware.camera.aon.IAONService/default                    u:object_r:vendor_hal_camera_aon_service:s0
+vendor.qti.ims.datachannelservice.IDataChannelService/default         u:object_r:vendor_hal_imsdc_service:s0
+vendor.qti.ImsRtpService.IRTPService/ImsRtpService                    u:object_r:vendor_hal_imsrtp_service:s0
+vendor.qti.hardware.embmssl.IEmbms/default                            u:object_r:vendor_hal_embmsslaidl_service:s0
+vendor.qti.hardware.data.connectionaidl.IDataConnection/slot1         u:object_r:vendor_hal_dataconnection_aidl_service:s0
+vendor.qti.hardware.data.connectionaidl.IDataConnection/slot2         u:object_r:vendor_hal_dataconnection_aidl_service:s0
+vendor.qti.hardware.cacertaidlservice.IService/default                u:object_r:vendor_hal_cacert_aidlservice:s0
+vendor.qti.ims.factoryaidlservice.IImsFactory/default                 u:object_r:vendor_aidl_imsfactory_service:s0
+vendor.qti.hardware.data.iwlandata.IIWlan/slot1                       u:object_r:vendor_hal_iwlan_service:s0
+vendor.qti.hardware.data.iwlandata.IIWlan/slot2                       u:object_r:vendor_hal_iwlan_service:s0
+vendor.qti.hardware.trustedui.ITrustedUI/default                      u:object_r:vendor_hal_trustedui_aidl_service:s0
+vendor.qti.hardware.trustedui.ITrustedInput/default                   u:object_r:vendor_hal_trustedui_aidl_service:s0
+vendor.qti.hardware.agm.IAGM/default                                  u:object_r:hal_audio_service:s0
+vendor.qti.hardware.pal.IPAL/default                                  u:object_r:hal_audio_service:s0
+vendor.qti.hardware.qasr.IQasr/default                                 u:object_r:hal_audio_service:s0
+vendor.qti.hardware.paleventnotifier.IPALEventNotifier/default        u:object_r:hal_audio_service:s0
+vendor.qti.data.qmsservice.IQmsService                                u:object_r:vendor_qms_service:s0
+vendor.qti.hardware.capabilityconfigstore.ICapabilityConfigStore/default u:object_r:vendor_hal_capabilityconfigstore_service:s0
+vendor.qti.ims.uceaidlservice.IUceService/default                     u:object_r:vendor_aidl_rcsservice:s0
+vendor.qti.ims.imscmaidlservice.IImsCmService/default                 u:object_r:vendor_aidl_rcsservice:s0
+android.hardware.media.c2.IComponentStore/default2                    u:object_r:hal_codec2_service:s0
+vendor.qti.hardware.dsp.IDspService/default                           u:object_r:vendor_hal_dspmanager_aidlservice:s0
+mapper/qti                                                            u:object_r:hal_graphics_mapper_service:s0
+vendor.qti.hardware.c2pa.IC2PA/default                                u:object_r:vendor_hal_c2pa_aidl_service:s0
+android.hardware.security.sharedsecret.ISharedSecret/gatekeeper             u:object_r:hal_gatekeeper_service:s0
+vendor.qti.AvfQcvmManager.IAvfQcvmManager/default                     u:object_r:vendor_hal_avf_qcvm_service:s0
+vendor.qti.hardware.display.snapallocext.ISnapAllocExt/default        u:object_r:hal_graphics_allocator_service:s0

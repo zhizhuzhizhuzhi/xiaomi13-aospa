@@ -1,0 +1,11 @@
+# Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+type vendor_qt_service, domain;
+type vendor_qt_service_exec, exec_type, vendor_file_type, file_type;
+init_daemon_domain(vendor_qt_service)
+
+binder_call(vendor_qt_service, servicemanager)
+hal_client_domain(vendor_qt_service, vendor_hal_perf)
+
+unix_socket_connect(vendor_qt_service, vendor_thermal, vendor_thermal-engine)

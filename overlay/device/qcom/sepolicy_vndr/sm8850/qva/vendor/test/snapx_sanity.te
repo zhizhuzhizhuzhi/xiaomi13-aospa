@@ -1,0 +1,15 @@
+# Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# Define Domain
+type vendor_snapx_sanity_service, domain;
+type vendor_snapx_sanity_service_exec, exec_type, vendor_file_type, file_type;
+init_daemon_domain(vendor_snapx_sanity_service)
+
+binder_call(vendor_snapx_sanity_service, servicemanager)
+
+# allow access to snapdragon services aidl
+hal_client_domain(vendor_snapx_sanity_service, vendor_hal_snapx_service_qti)
+
+# allow sanity hal and 3-pty app binder call each other
+binder_call(vendor_snapx_sanity_service, untrusted_app_32)

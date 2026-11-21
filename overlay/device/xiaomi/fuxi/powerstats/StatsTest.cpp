@@ -35,3 +35,39 @@ TEST(FuxiSleepStats, LargeAndFractionalTicksDoNotOverflow) {
     ASSERT_TRUE(fuxi::ticksToMillis(UINT64_MAX, 19200000));
     EXPECT_FALSE(fuxi::ticksToMillis(UINT64_MAX, 1));
 }
+
+
+#include <array>
+#include <cstdio>
+#include <cstring>
+#include <fcntl.h>
+#include <sys/ioctl.h>
+#include <unistd.h>
+
+TEST(FuxiSleepStats, MissingProvidersDoNotHideIoOrPermissionErrors) {
+    for (const unsigned int command : {0U, 6U, 9U, 12U}) {
+        EXPECT_TRUE(fuxi::isSleepStatsProviderAbsent(command, ENOENT));
+        EXPECT_TRUE(fuxi::isSleepStatsProviderAbsent(command, ENXIO));
+        EXPECT_TRUE(fuxi::isSleepStatsProviderAbsent(command, ENODEV));
+        EXPECT_EQ(command == 12, fuxi::isSleepStatsProviderAbsent(command, EINVAL));
+        for (const int error : {EIO, EBADF, EACCES, EPERM, EFAULT, ENOTTY, EAGAIN}) {
+            EXPECT_FALSE(fuxi::isSleepStatsProviderAbsent(command, error));
+        }
+    }
+}
+
+TEST(FuxiSleepStats, RealKernelProviderInventory) {
+    const int fd = open("/dev/stats", O_RDONLY | O_CLOEXEC);
+    ASSERT_GE(fd, 0) << strerror(errno);
+    size_t providers = 0;
+    for (const unsigned int command : std::array<unsigned int, 12>{0, 1, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}) {
+        fuxi::KernelStats data{};
+        const int result = ioctl(fd, _IOC(_IOC_READ, 0x9d, command, sizeof(void*)), &data);
+        const int error = result == 0 ? 0 : errno;
+        printf("kernel_probe command=%u result=%d errno=%d count=%u\n", command, result, error, data.count);
+        if (result == 0) ++providers;
+        else EXPECT_TRUE(fuxi::isSleepStatsProviderAbsent(command, error)) << command << ": " << strerror(error);
+    }
+    close(fd);
+    EXPECT_GT(providers, 0U);
+}

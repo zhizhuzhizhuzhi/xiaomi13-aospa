@@ -1,3 +1,312 @@
+diff --git a/src/com/android/settings/biometrics/face/FaceEnrollEnrolling.java b/src/com/android/settings/biometrics/face/FaceEnrollEnrolling.java
+index d520cd6..f2b8554 100644
+--- a/src/com/android/settings/biometrics/face/FaceEnrollEnrolling.java
++++ b/src/com/android/settings/biometrics/face/FaceEnrollEnrolling.java
+@@ -23,6 +23,8 @@ import static android.hardware.biometrics.BiometricFaceConstants.FEATURE_REQUIRE
+ 
+ import android.app.settings.SettingsEnums;
+ import android.content.Intent;
++import android.hardware.face.FaceManager;
++import android.hardware.face.FaceSensorPropertiesInternal;
+ import android.os.Bundle;
+ import android.text.TextUtils;
+ import android.util.Log;
+@@ -32,6 +34,7 @@ import android.view.animation.Interpolator;
+ import android.widget.TextView;
+ 
+ import com.android.settings.R;
++import com.android.settings.Utils;
+ import com.android.settings.biometrics.BiometricEnrollBase;
+ import com.android.settings.biometrics.BiometricEnrollSidecar;
+ import com.android.settings.biometrics.BiometricErrorDialog;
+@@ -55,6 +58,7 @@ public class FaceEnrollEnrolling extends BiometricsEnrollEnrolling {
+     private TextView mErrorText;
+     private Interpolator mLinearOutSlowInInterpolator;
+     private FaceEnrollPreviewFragment mPreviewFragment;
++    private FaceSensorPropertiesInternal mFaceSensorProperties;
+ 
+     private ArrayList<Integer> mDisabledFeatures = new ArrayList<>();
+     private ParticleCollection.Listener mListener = new ParticleCollection.Listener() {
+@@ -120,6 +124,7 @@ public class FaceEnrollEnrolling extends BiometricsEnrollEnrolling {
+             mDisabledFeatures.add(FEATURE_REQUIRE_ATTENTION);
+         }
+ 
++        mFaceSensorProperties = findFaceSensorProperties();
+         startEnrollment();
+     }
+ 
+@@ -153,6 +158,31 @@ public class FaceEnrollEnrolling extends BiometricsEnrollEnrolling {
+                     .commitAllowingStateLoss();
+         }
+         mPreviewFragment.setListener(mListener);
++        mPreviewFragment.setSensorProperties(mFaceSensorProperties);
++        if (mFaceSensorProperties != null && mFaceSensorProperties.supportsSelfIllumination) {
++            mPreviewFragment.setPreviewSurfaceListener(surface -> {
++                if (mSidecar instanceof FaceEnrollSidecar) {
++                    final FaceEnrollSidecar sidecar = (FaceEnrollSidecar) mSidecar;
++                    sidecar.setListener(surface == null ? null : this);
++                    sidecar.setPreviewSurface(surface);
++                }
++            });
++        }
++    }
++
++    private FaceSensorPropertiesInternal findFaceSensorProperties() {
++        final FaceManager manager = Utils.getFaceManagerOrNull(this);
++        if (manager == null) {
++            return null;
++        }
++        final java.util.List<FaceSensorPropertiesInternal> sensors =
++                manager.getSensorPropertiesInternal();
++        for (FaceSensorPropertiesInternal sensor : sensors) {
++            if (sensor.sensorId == mSensorId) {
++                return sensor;
++            }
++        }
++        return sensors.size() == 1 ? sensors.get(0) : null;
+     }
+ 
+     @Override
+@@ -167,7 +197,8 @@ public class FaceEnrollEnrolling extends BiometricsEnrollEnrolling {
+             disabledFeatures[i] = mDisabledFeatures.get(i);
+         }
+ 
+-        return new FaceEnrollSidecar(disabledFeatures, getIntent());
++        return new FaceEnrollSidecar(disabledFeatures, getIntent(),
++                mFaceSensorProperties != null && mFaceSensorProperties.supportsSelfIllumination);
+     }
+ 
+     @Override
+diff --git a/src/com/android/settings/biometrics/face/FaceEnrollPreviewFragment.java b/src/com/android/settings/biometrics/face/FaceEnrollPreviewFragment.java
+index 853ca7c..65673cf 100644
+--- a/src/com/android/settings/biometrics/face/FaceEnrollPreviewFragment.java
++++ b/src/com/android/settings/biometrics/face/FaceEnrollPreviewFragment.java
+@@ -20,6 +20,7 @@ import android.app.settings.SettingsEnums;
+ import android.content.Context;
+ import android.graphics.Matrix;
+ import android.graphics.SurfaceTexture;
++import android.hardware.face.FaceSensorPropertiesInternal;
+ import android.hardware.camera2.CameraAccessException;
+ import android.hardware.camera2.CameraCaptureSession;
+ import android.hardware.camera2.CameraCharacteristics;
+@@ -43,6 +44,7 @@ import com.android.settings.biometrics.BiometricEnrollSidecar;
+ import com.android.settings.core.InstrumentedPreferenceFragment;
+ 
+ import java.util.Arrays;
++import java.util.function.Consumer;
+ 
+ /**
+  * Fragment that contains the logic for showing and controlling the camera preview, circular
+@@ -65,6 +67,9 @@ public class FaceEnrollPreviewFragment extends InstrumentedPreferenceFragment
+     private CaptureRequest mPreviewRequest;
+     private Size mPreviewSize;
+     private ParticleCollection.Listener mListener;
++    private FaceSensorPropertiesInternal mFaceSensorProperties;
++    private Consumer<Surface> mPreviewSurfaceListener;
++    private Surface mHalPreviewSurface;
+ 
+     // View used to contain the circular cutout and enrollment animation drawable
+     private ImageView mCircleView;
+@@ -102,6 +107,7 @@ public class FaceEnrollPreviewFragment extends InstrumentedPreferenceFragment
+ 
+         @Override
+         public boolean onSurfaceTextureDestroyed(SurfaceTexture surfaceTexture) {
++            closeCamera();
+             return true;
+         }
+ 
+@@ -239,6 +245,19 @@ public class FaceEnrollPreviewFragment extends InstrumentedPreferenceFragment
+         mListener = listener;
+     }
+ 
++    // The face AIDL provider maps SensorProps.halControlsPreview to
++    // FaceSensorPropertiesInternal.supportsSelfIllumination.
++    public void setSensorProperties(FaceSensorPropertiesInternal properties) {
++        mFaceSensorProperties = properties;
++    }
++
++    public void setPreviewSurfaceListener(Consumer<Surface> listener) {
++        mPreviewSurfaceListener = listener;
++        if (mHalPreviewSurface != null && mHalPreviewSurface.isValid()) {
++            listener.accept(mHalPreviewSurface);
++        }
++    }
++
+     /**
+      * Sets up member variables related to camera.
+      */
+@@ -272,6 +291,25 @@ public class FaceEnrollPreviewFragment extends InstrumentedPreferenceFragment
+      * @param height The height of the texture view
+      */
+     private void openCamera(int width, int height) {
++        if (mFaceSensorProperties != null && mFaceSensorProperties.supportsSelfIllumination) {
++            if (mHalPreviewSurface != null && mHalPreviewSurface.isValid()) {
++                return;
++            }
++            final SurfaceTexture texture = mTextureView.getSurfaceTexture();
++            if (texture == null) {
++                return;
++            }
++            mPreviewSize = new Size(getResources().getInteger(R.integer.face_hal_preview_width),
++                    getResources().getInteger(R.integer.face_hal_preview_height));
++            texture.setDefaultBufferSize(mPreviewSize.getWidth(), mPreviewSize.getHeight());
++            configureTransform(width, height);
++            mHalPreviewSurface = new Surface(texture);
++            if (mPreviewSurfaceListener != null) {
++                mPreviewSurfaceListener.accept(mHalPreviewSurface);
++            }
++            Log.i(TAG, "Face HAL owns the camera; enrollment preview surface is ready");
++            return;
++        }
+         try {
+             setUpCameraOutputs();
+             mCameraManager.openCamera(mCameraId, mCameraStateCallback, mHandler);
+@@ -333,6 +371,13 @@ public class FaceEnrollPreviewFragment extends InstrumentedPreferenceFragment
+     }
+ 
+     private void closeCamera() {
++        if (mHalPreviewSurface != null) {
++            if (mPreviewSurfaceListener != null) {
++                mPreviewSurfaceListener.accept(null);
++            }
++            mHalPreviewSurface.release();
++            mHalPreviewSurface = null;
++        }
+         if (mCaptureSession != null) {
+             mCaptureSession.close();
+             mCaptureSession = null;
+diff --git a/src/com/android/settings/biometrics/face/FaceEnrollSidecar.java b/src/com/android/settings/biometrics/face/FaceEnrollSidecar.java
+index b7ba1b5..c92dabb 100644
+--- a/src/com/android/settings/biometrics/face/FaceEnrollSidecar.java
++++ b/src/com/android/settings/biometrics/face/FaceEnrollSidecar.java
+@@ -20,6 +20,7 @@ import android.app.Activity;
+ import android.app.settings.SettingsEnums;
+ import android.content.Intent;
+ import android.hardware.face.FaceManager;
++import android.view.Surface;
+ 
+ import com.android.settings.biometrics.BiometricEnrollSidecar;
+ 
+@@ -35,8 +36,18 @@ public class FaceEnrollSidecar extends BiometricEnrollSidecar {
+     private FaceUpdater mFaceUpdater;
+ 
+     private Intent mIntent;
++    private final boolean mRequiresPreviewSurface;
++    private Surface mPreviewSurface;
++    private boolean mLifecycleStarted;
++    private boolean mEnrollmentStarted;
++    private int mEnrollmentGeneration;
+ 
+     public FaceEnrollSidecar(int[] disabledFeatures, Intent intent) {
++        this(disabledFeatures, intent, false);
++    }
++
++    public FaceEnrollSidecar(int[] disabledFeatures, Intent intent, boolean requiresPreviewSurface) {
++        mRequiresPreviewSurface = requiresPreviewSurface;
+         mDisabledFeatures = Arrays.copyOf(disabledFeatures, disabledFeatures.length);
+         mIntent = intent;
+     }
+@@ -47,31 +58,75 @@ public class FaceEnrollSidecar extends BiometricEnrollSidecar {
+         mFaceUpdater = new FaceUpdater(activity);
+     }
+ 
++    @Override
++    public void onStart() {
++        mLifecycleStarted = true;
++        super.onStart();
++    }
++
++    @Override
++    public void onStop() {
++        mLifecycleStarted = false;
++        super.onStop();
++    }
++
++    public void setPreviewSurface(Surface surface) {
++        mPreviewSurface = surface;
++        if (surface == null || !surface.isValid()) {
++            if (mEnrollmentStarted) {
++                cancelEnrollment();
++            }
++            return;
++        }
++        if (mLifecycleStarted && !mEnrollmentStarted) {
++            startEnrollment();
++        }
++    }
++
+     @Override
+     public void startEnrollment() {
++        if (mEnrollmentStarted || (mRequiresPreviewSurface
++                && (mPreviewSurface == null || !mPreviewSurface.isValid()))) {
++            return;
++        }
++        mEnrollmentStarted = true;
+         super.startEnrollment();
+         mFaceUpdater.enroll(mUserId, mToken, mEnrollmentCancel,
+-                mEnrollmentCallback, mDisabledFeatures, mIntent);
++                newEnrollmentCallback(++mEnrollmentGeneration), mDisabledFeatures,
++                mPreviewSurface, false, mIntent);
+     }
+ 
+-    private FaceManager.EnrollmentCallback mEnrollmentCallback
+-            = new FaceManager.EnrollmentCallback() {
++    @Override
++    public boolean cancelEnrollment() {
++        ++mEnrollmentGeneration;
++        mEnrollmentStarted = false;
++        return super.cancelEnrollment();
++    }
++
++    private FaceManager.EnrollmentCallback newEnrollmentCallback(int generation) {
++        return new FaceManager.EnrollmentCallback() {
+ 
+         @Override
+         public void onEnrollmentProgress(int remaining) {
++            if (generation != mEnrollmentGeneration) return;
++            if (remaining == 0) mEnrollmentStarted = false;
+             FaceEnrollSidecar.super.onEnrollmentProgress(remaining);
+         }
+ 
+         @Override
+         public void onEnrollmentHelp(int helpMsgId, CharSequence helpString) {
++            if (generation != mEnrollmentGeneration) return;
+             FaceEnrollSidecar.super.onEnrollmentHelp(helpMsgId, helpString);
+         }
+ 
+         @Override
+         public void onEnrollmentError(int errMsgId, CharSequence errString) {
++            if (generation != mEnrollmentGeneration) return;
++            mEnrollmentStarted = false;
+             FaceEnrollSidecar.super.onEnrollmentError(errMsgId, errString);
+         }
+-    };
++        };
++    }
+ 
+     @Override
+     public int getMetricsCategory() {
+diff --git a/src/com/android/settings/biometrics/fingerprint/UdfpsEnrollEnrollingView.java b/src/com/android/settings/biometrics/fingerprint/UdfpsEnrollEnrollingView.java
+index 9e595ac..4c3b15a 100644
+--- a/src/com/android/settings/biometrics/fingerprint/UdfpsEnrollEnrollingView.java
++++ b/src/com/android/settings/biometrics/fingerprint/UdfpsEnrollEnrollingView.java
+@@ -194,14 +194,12 @@ public class UdfpsEnrollEnrollingView extends GlifLayout {
+     }
+ 
+     void setFocusOnDescription() {
+-        final ScrollView headerScrollView = findViewById(R.id.sud_header_scroll_view);
+         final TextView descriptionView = getDescriptionTextView();
+         if (descriptionView != null && !descriptionView.getText().isEmpty()) {
+             descriptionView.post(
+                     () -> {
+-                    Rect scrollBounds = new Rect();
+-                    headerScrollView.getHitRect(scrollBounds);
+-                    boolean isVisible = descriptionView.getLocalVisibleRect(scrollBounds);
++                    Rect visibleBounds = new Rect();
++                    boolean isVisible = descriptionView.getLocalVisibleRect(visibleBounds);
+                     if (!isVisible) {
+                         descriptionView.setFocusable(true);
+                         descriptionView.setFocusableInTouchMode(true);
 diff --git a/src/com/android/settings/core/SettingsBaseActivity.java b/src/com/android/settings/core/SettingsBaseActivity.java
 index deed076..df4e328 100644
 --- a/src/com/android/settings/core/SettingsBaseActivity.java

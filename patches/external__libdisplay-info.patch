@@ -1,0 +1,12 @@
+diff --git a/Android.bp b/Android.bp
+index 17caed6..5c4a653 100644
+--- a/Android.bp
++++ b/Android.bp
+@@ -54,6 +54,7 @@ cc_library_static {
+         "//external/drm_hwcomposer:__subpackages__",
+         "//device/amlogic/yukawa/hal/gralloc",
+         "//device/linaro:__subpackages__",
++        "//device/xiaomi/pudding",
+         "//vendor:__subpackages__",
+     ],
+ 

@@ -393,11 +393,6 @@
 };
 
 &thermal_zones {
-        /* Bind the battery-depletion zone to its power-supply notifier sensor. */
-        socd {
-                thermal-sensors = <&bcl_soc>;
-        };
-
 	quiet_therm {
 		polling-delay-passive = <0>;
 		polling-delay = <0>;

@@ -1,0 +1,93 @@
+# Copyright (c) 2021, The Linux Foundation. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are
+# met:
+#     * Redistributions of source code must retain the above copyright
+#       notice, this list of conditions and the following disclaimer.
+#     * Redistributions in binary form must reproduce the above
+#       copyright notice, this list of conditions and the following
+#       disclaimer in the documentation and/or other materials provided
+#       with the distribution.
+#     * Neither the name of The Linux Foundation nor the names of its
+#       contributors may be used to endorse or promote products derived
+#       from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" AND ANY EXPRESS OR IMPLIED
+# WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+# MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT
+# ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS
+# BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
+# BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+# WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+# OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
+# IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+#
+# Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
+# Copyright (c) 2023 - 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+vendor.qti.hardware.dpmaidlservice.IDpmService/default                   u:object_r:vendor_hal_dpmaidl_service:s0
+vendor.qti.hardware.mwqemadapteraidlservice.IMwqemAdapter/MwqemAdapter        u:object_r:vendor_hal_mwqemadapter_aidlservice:s0
+vendor.qti.hardware.qxr.IQXRCoreService/default        u:object_r:vendor_hal_qvrd_service:s0
+vendor.qti.hardware.qxr.IQXRCamService/default         u:object_r:vendor_hal_qvrd_service:s0
+vendor.qti.hardware.qxr.IQXRModService/default         u:object_r:vendor_hal_qvrd_service:s0
+vendor.qti.hardware.qxr.IQXRSplitService/default        u:object_r:vendor_hal_sxrd_service:s0
+vendor.qti.hardware.qxr.IQXRAudioService/default        u:object_r:vendor_hal_sxrd_service:s0
+vendor.qti.hardware.qxr.IQXRCommService/default        u:object_r:vendor_hal_xrcommd_service:s0
+vendor.qti.hardware.data.connectionfactory.IFactory/slot0 u:object_r:vendor_hal_dataconnection_service:s0
+vendor.qti.hardware.data.connectionfactory.IFactory/slot1 u:object_r:vendor_hal_dataconnection_service:s0
+vendor.qti.data.txpwrservice.ITxPwrService/default     u:object_r:vendor_hal_qms_service:s0
+vendor.qti.data.dmapconsent.IService/default           u:object_r:vendor_hal_qms_service:s0
+vendor.qti.data.ntn.IQmsSatelliteService/default       u:object_r:vendor_hal_qms_service:s0
+vendor.qti.hardware.bttpi.IBtTpi/default               u:object_r:vendor_hal_bttpi_service:s0
+vendor.qti.hardware.alarm.IAlarm/default               u:object_r:vendor_hal_alarm_qti_aidl_service:s0
+vendor.qti.hardware.spu.ISPUManager/default            u:object_r:vendor_hal_spu_service:s0
+vendor.nxp.nxpnfc_aidl.INxpNfc/default                 u:object_r:vendor_hal_nxpnfc_service:s0
+
+vendor.qti.hardware.servicetrackeraidl.IServicetracker/default           u:object_r:vendor_hal_servicetrackeraidl_service:s0
+
+android.hardware.security.keymint.IKeyMintDevice/strongbox                u:object_r:hal_keymint_service:s0
+android.hardware.security.sharedsecret.ISharedSecret/strongbox            u:object_r:hal_sharedsecret_service:s0
+android.hardware.authsecret.qti.spu.IAuthSecret/default                   u:object_r:hal_authsecret_service:s0
+vendor.qti.qccvndhal_aidl.IQccvndhal/qccvndhal         u:object_r:vendor_hal_qccvndhal_service:s0
+android.hardware.security.keymint.IRemotelyProvisionedComponent/strongbox u:object_r:hal_keymint_service:s0
+vendor.qti.hardware.factory.IFactory/default                              u:object_r:vendor_hal_factory_service:s0
+vendor.qti.gnss.ILocAidlGnss/default                   u:object_r:hal_gnss_service:s0
+vendor.qti.hardware.bluetooth.xpanprovider.IXpanProvider/default          u:object_r:vendor_hal_xpanprovider_service:s0
+vendor.qti.hardware.bluetooth_sar.IBluetoothSar/default          u:object_r:vendor_hal_bluetooth_sar_service:s0
+vendor.qti.hardware.bluetooth.btavsprovider.IBtAVsProvider/default        u:object_r:hal_audio_service:s0
+vendor.qti.hardware.fm.IFmHci/default          u:object_r:vendor_hal_fm_aidl_service:s0
+vendor.qti.qesdhalaidl.IQesdhal/default                u:object_r:vendor_hal_qesdhalaidl_service:s0
+vendor.qti.hardware.sensorscalibrate.ISensorsCalibrate/default           u:object_r:vendor_hal_sensorscalibrateaidl_service:s0
+vendor.qti.qspmhal.IQspmhal/default                           u:object_r:vendor_hal_qspmhal_service:s0
+android.hardware.drm.IDrmFactory/wfdhdcp               u:object_r:hal_drm_service:s0
+vendor.qti.hardware.wifidisplaysession_aidl.IWifiDisplaySession/default               u:object_r:hal_wifidisplaysession_service:s0
+vendor.qti.hardware.wifidisplaysession_aidl.IWifiDisplaySessionVideoTrack/default     u:object_r:hal_wifidisplayvideo_service:s0
+vendor.qti.hardware.wifidisplaysession_aidl.IWifiDisplaySessionAudioTrack/default     u:object_r:hal_wifidisplayaudio_service:s0
+vendor.qti.hardware.wifidisplaysession_aidl.IWifiDisplaySessionImageTrack/default     u:object_r:hal_wifidisplayimage_service:s0
+vendor.qti.hardware.qconfig.IQConfig/default                          u:object_r:vendor_hal_qconfig_service:s0
+vendor.qti.hardware.perf2.IPerf/default                u:object_r:vendor_hal_perf2_service:s0
+vendor.qti.MemHal.IMemHal/default                u:object_r:vendor_hal_MemHal_service:s0
+vendor.qti.hardware.vpp.IVppService/default            u:object_r:vendor_hal_vpp_service:s0
+vendor.qti.hardware.hexlp.IHexlpService/default           u:object_r:vendor_hal_hexlp_service:s0
+vendor.qti.hardware.hexlp.IHexlpService/unsigned          u:object_r:vendor_hal_unsignedhexlp_service:s0
+vendor.qti.hardware.power.powermodule.IPowerModule/default     u:object_r:vendor_hal_poweroptservice_service:s0
+vendor.qti.qhcp.IQHDC/default                          u:object_r:vendor_qms_service:s0
+vendor.qti.hardware.qseecom.IQSEECom/default           u:object_r:vendor_hal_qseecom_service:s0
+vendor.qti.hardware.minkipcbinder.IMinkServer/default           u:object_r:vendor_hal_minkipcbinder_service:s0
+vendor.qti.hardware.minkipcbinder.IMinkTransact/default           u:object_r:vendor_hal_minkipcbinder_service:s0
+vendor.tsa.hdcp.IHDCPInterface/default                 u:object_r:vendor_tsa_hdcpvndservice:s0
+vendor.qti.hardware.wifi.wificfr.IWificfr/default                         u:object_r:hal_wificfr_service:s0
+vendor.qti.hardware.soter.ISoter/default               u:object_r:vendor_hal_soteraidl_service:s0
+vendor.qti.memory.pasrmanager.IPasrManager/default	u:object_r:vendor_aidl_hal_pasrmanager_memory_service:s0
+vendor.qti.hardware.secureprocessor.device.ISecureProcessor/qti-tee            u:object_r:vendor_hal_secureprocessor_aidl_service:s0
+vendor.qti.hardware.secureprocessor.device.ISecureProcessor/qti-tvm            u:object_r:vendor_hal_secureprocessor_aidl_service:s0
+vendor.qti.hardware.fingerprint.IQfpExtendedFingerprint/default u:object_r:vendor_hal_qfpextendedfingerprint_service:s0
+vendor.qti.hardware.qspa.IQspa/default                 u:object_r:vendor_hal_qspa_service:s0
+vendor.qti.hardware.wifi.wifilearner.IWifiStats/default  u:object_r:vendor_hal_wifilearner_service:s0
+vendor.qti.syshealthmon.ISysHealthMon/default          u:object_r:vendor_syshealthmon_service:s0
+vendor.qti.snapdragonServices.ISnapdragonServices/default           u:object_r:vendor_hal_snapx_service:s0
+vendor.qti.qvirtvendor.IVendorVM/default               u:object_r:vendor_hal_qvirtvendor_service:s0

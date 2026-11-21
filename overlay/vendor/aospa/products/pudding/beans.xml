@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Xiaomi 17 bring-up uses locally staged sources, pinned in
+     /home/zzq/android/pudding-bringup-20261022/port-prepared.json
+     and platform-archives/results.json. No repository sync is needed. -->
+<manifest />

@@ -1,0 +1,120 @@
+# Copyright (c) 2023, Qualcomm Innovation Center, Inc. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted (subject to the limitations in the
+# disclaimer below) provided that the following conditions are met:
+#
+#     * Redistributions of source code must retain the above copyright
+#       notice, this list of conditions and the following disclaimer.
+#
+#     * Redistributions in binary form must reproduce the above
+#       copyright notice, this list of conditions and the following
+#       disclaimer in the documentation and/or other materials provided
+#       with the distribution.
+#
+#     * Neither the name of Qualcomm Innovation Center, Inc. nor the names of its
+#       contributors may be used to endorse or promote products derived
+#       from this software without specific prior written permission.
+#
+# NO EXPRESS OR IMPLIED LICENSES TO ANY PARTY'S PATENT RIGHTS ARE
+# GRANTED BY THIS LICENSE. THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT
+# HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED
+# WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+# MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+# IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
+# ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+# GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
+# IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+# OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
+# IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+type vendor_ppat_stats, domain;
+type vendor_ppat_stats_exec, exec_type, vendor_file_type, file_type;
+
+init_daemon_domain(vendor_ppat_stats);
+qtr_sdk_use(vendor_ppat_stats)
+
+# access to /data/local/tmp/ps.sh
+#allow vendor_ppat_stats vendor_shell_exec:file execute_no_trans;
+#allow vendor_ppat_stats shell_data_file::dir create;
+
+
+allow vendor_ppat_stats vendor_ppat_stats_data_file:dir create_dir_perms;
+allow vendor_ppat_stats vendor_ppat_stats_data_file:file create_file_perms;
+
+#allow vendor_ppat_stats default_android_vndservice:service_manager find;
+
+#allow vendor_ppat_stats vendor_hal_poweroptservice_hwservice:hwservice_manager find;
+
+#mark as hal server domain
+hal_server_domain(vendor_ppat_stats, vendor_hal_poweroptservice);
+#allow service to be added to hwservice list
+hal_attribute_hwservice(vendor_hal_poweroptservice, vendor_hal_poweroptservice_hwservice)
+
+allow vendor_ppat_stats vendor_hal_perf_hwservice:hwservice_manager find;
+
+# access to /sys/class/power_supply/battery/uevent
+# access to /sys/class/power_supply/battery/current_now
+allow vendor_ppat_stats vendor_sysfs_battery_supply:{file lnk_file} r_file_perms;
+allow vendor_ppat_stats vendor_sysfs_battery_supply:dir r_dir_perms;
+
+allow vendor_ppat_stats vendor_hal_perf_default:binder call;
+
+get_prop(vendor_ppat_stats, vendor_crash_cnt_prop);
+
+# access to /data/vendor/qcc-trd/ppat_stats/*
+allow vendor_ppat_stats vendor_qcc_trd_data_file:file { create_file_perms };
+allow vendor_ppat_stats vendor_qcc_trd_data_file:dir { create_dir_perms };
+
+# access to /sys/class/kgsl/kgsl-3d0/devfreq/cur_freq
+# access to /sys/class/kgsl/kgsl-3d0/devfreq/trans_stat
+# access to /sys/class/kgsl/kgsl-3d0/gpubusy
+# access to /sys/class/kgsl/kgsl-3d0/gpuclk
+allow vendor_ppat_stats vendor_sysfs_kgsl_gpuclk:file r_file_perms;
+allow vendor_ppat_stats vendor_sysfs_kgsl:{file lnk_file} r_file_perms;
+allow vendor_ppat_stats vendor_sysfs_kgsl:dir r_dir_perms;
+
+# read ver_info.txt
+allow vendor_ppat_stats vendor_firmware_file:dir r_dir_perms;
+allow vendor_ppat_stats vendor_firmware_file:file r_file_perms;
+
+# allow vendor_ppat_stats debugfs_type:dir r_dir_perms;
+# allow vendor_ppat_stats debugfs:dir search;
+
+# access to /sys/kernel/debug/pm_genpd/*
+# allow vendor_ppat_stats debugfs_pm_genpd:file r_file_perms;
+# allow vendor_ppat_stats debugfs_pm_genpd:dir r_dir_perms;
+
+# access to /sys/kernel/debug/clk/*
+# allow vendor_ppat_stats debugfs_clk_measure:file r_file_perms;
+# allow vendor_ppat_stats debugfs_clk_measure:dir r_dir_perms;
+
+# access to /proc/stat
+allow vendor_ppat_stats proc_stat:file r_file_perms;
+allow vendor_ppat_stats proc_stat:dir r_dir_perms;
+
+# access to /sys/class/backlight/panel0-backlight/brightness
+allow vendor_ppat_stats vendor_sysfs_graphics:file r_file_perms;
+allow vendor_ppat_stats vendor_sysfs_graphics:dir r_dir_perms;
+
+# access to /sys/kernel/kiwi_v2/power_stats
+# allow vendor_ppat_stats sysfs_power_stats:file r_file_perms;
+
+# ppat_stats: type=1400 audit(0.0:2481): avc:  denied  { call } for  scontext=u:r:vendor_ppat_stats:s0 tcontext=u:r:servicemanager:s0 tclass=binder permissive=0
+binder_call(vendor_ppat_stats, servicemanager)
+
+# ppat_stats: type=1400 audit(0.0:2482): avc:  denied  { read } for  name="u:object_r:serialno_prop:s0" dev="tmpfs" ino=310 scontext=u:r:vendor_ppat_stats:s0 tcontext=u:object_r:serialno_prop:s0 tclass=file permissive=0
+# allow vendor_ppat_stats serialno_prop:file read;
+# get_prop(vendor_ppat_stats, serialno_prop);
+
+# ppat_stats: type=1400 audit(0.0:2483): avc:  denied  { read } for  name="u:object_r:default_prop:s0" dev="tmpfs" ino=170 scontext=u:r:vendor_ppat_stats:s0 tcontext=u:object_r:default_prop:s0 tclass=file permissive=0
+# allow vendor_ppat_stats default_prop:file read;
+
+# E SELinux : avc:  denied { find } for pid=14165 uid=1000
+# name=vendor.qti.hardware.perf2.IPerf/default
+# scontext=u:r:vendor_ppat_stats:s0 tcontext=u:object_r:vendor_hal_perf2_service:s0
+# tclass=service_manager permissive=0
+hal_client_domain(vendor_ppat_stats, vendor_hal_perf)
+

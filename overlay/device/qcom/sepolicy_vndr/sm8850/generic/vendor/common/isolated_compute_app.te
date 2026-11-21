@@ -1,0 +1,6 @@
+# Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# Allow isolated_compute_app to get SoC info (limited to vendor_sysfs_public)
+allow isolated_compute_app vendor_sysfs_soc:dir search;
+r_dir_file(isolated_compute_app, vendor_sysfs_public);

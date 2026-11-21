@@ -1,0 +1,10 @@
+# Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+allow hal_health vendor_sysfs_battery_supply:{file lnk_file} r_file_perms;
+allow hal_health vendor_sysfs_battery_supply:dir r_dir_perms;
+allow hal_health vendor_sysfs_usb_supply:{file lnk_file} r_file_perms;
+allow hal_health vendor_sysfs_usb_supply:dir r_dir_perms;
+
+get_prop(hal_health, vendor_display_prop)
+dontaudit hal_health default_prop:file {read};

@@ -1,39 +1,84 @@
-diff --git a/composer/Android.bp b/composer/Android.bp
-index 4dfa42d..7391bfe 100644
---- a/composer/Android.bp
-+++ b/composer/Android.bp
-@@ -1,9 +1,30 @@
-+// Stock-stack selection preserves the existing install behavior per device.
-+soong_config_module_type {
-+    name: "sm8550_composer_install_defaults_type",
-+    module_type: "cc_defaults",
-+    config_namespace: "sheng_display",
-+    bool_variables: ["stock_stack"],
-+    properties: ["installable"],
-+}
-+
-+sm8550_composer_install_defaults_type {
-+    name: "sm8550_composer_install_defaults",
-+    soong_config_variables: {
-+        stock_stack: {
-+            installable: true,
-+            conditions_default: {
-+                installable: false,
-+            },
-+        },
-+    },
-+}
-+
- composer_srcs = ["*.cpp"]
+diff --git a/config/display-product.mk b/config/display-product.mk
+index 04b5f19..7054134 100644
+--- a/config/display-product.mk
++++ b/config/display-product.mk
+@@ -50,7 +50,7 @@ PRODUCT_COPY_FILES += hardware/qcom/display/config/smomo_setting.xml:$(TARGET_CO
+ PRODUCT_PROPERTY_OVERRIDES += \
+     persist.demo.hdmirotationlock=false \
+     persist.sys.sf.color_saturation=1.0 \
+-    persist.sys.sf.color_mode=9 \
++    persist.sys.sf.color_mode?=9 \
+     debug.sf.hw=0 \
+     debug.egl.hw=0 \
+     debug.sf.latch_unsignaled=1 \
+@@ -63,21 +63,21 @@ PRODUCT_PROPERTY_OVERRIDES += \
+     vendor.display.disable_excl_rect_partial_fb=1 \
+     vendor.display.comp_mask=0 \
+     vendor.display.enable_optimize_refresh=0 \
+-    vendor.display.use_smooth_motion=1 \
++    vendor.display.use_smooth_motion?=1 \
+     vendor.display.disable_stc_dimming=1 \
+-    vendor.display.enable_dpps_dynamic_fps=1 \
++    vendor.display.enable_dpps_dynamic_fps?=1 \
+     debug.sf.disable_client_composition_cache=1 \
+-    debug.sf.enable_gl_backpressure=1 \
++    debug.sf.enable_gl_backpressure?=1 \
+     debug.sf.enable_hwc_vds=0 \
+     debug.sf.enable_advanced_sf_phase_offset=1 \
+     vendor.display.vds_allow_hwc=1 \
+-    debug.sf.use_phase_offsets_as_durations=1 \
++    debug.sf.use_phase_offsets_as_durations?=1 \
+     debug.sf.late.app.duration=13666666 \
+     debug.sf.early.app.duration=13666666 \
+     debug.sf.earlyGl.app.duration=13666666 \
+-    debug.sf.early.sf.duration=15666666 \
+-    debug.sf.earlyGl.sf.duration=15666666 \
+-    debug.sf.late.sf.duration=15666666 \
++    debug.sf.early.sf.duration?=15666666 \
++    debug.sf.earlyGl.sf.duration?=15666666 \
++    debug.sf.late.sf.duration?=15666666 \
+     vendor.display.enable_async_vds_creation=1 \
+     vendor.display.enable_rounded_corner=1 \
+     vendor.display.disable_3d_adaptive_tm=1 \
+@@ -119,7 +119,7 @@ PRODUCT_DEFAULT_PROPERTY_OVERRIDES += ro.surface_flinger.use_color_management=tr
+ PRODUCT_DEFAULT_PROPERTY_OVERRIDES += ro.surface_flinger.wcg_composition_dataspace=143261696
+ PRODUCT_DEFAULT_PROPERTY_OVERRIDES += ro.surface_flinger.protected_contents=true
+ PRODUCT_DEFAULT_PROPERTY_OVERRIDES += ro.surface_flinger.use_content_detection_for_refresh_rate=true
+-PRODUCT_DEFAULT_PROPERTY_OVERRIDES += ro.surface_flinger.set_touch_timer_ms=200
++PRODUCT_DEFAULT_PROPERTY_OVERRIDES += ro.surface_flinger.set_touch_timer_ms?=200
+ PRODUCT_DEFAULT_PROPERTY_OVERRIDES += ro.surface_flinger.force_hwc_copy_for_virtual_displays=true
+ PRODUCT_DEFAULT_PROPERTY_OVERRIDES += ro.surface_flinger.max_frame_buffer_acquired_buffers=3
+ PRODUCT_DEFAULT_PROPERTY_OVERRIDES += ro.surface_flinger.max_virtual_display_dimension=4096
+@@ -134,13 +134,13 @@ endif
+ ifneq (,$(filter userdebug eng, $(TARGET_BUILD_VARIANT)))
+ # Recovery is enabled, logging is enabled
+ PRODUCT_PROPERTY_OVERRIDES += \
+-    vendor.display.disable_hw_recovery_dump=0
++    vendor.display.disable_hw_recovery_dump?=0
+ PRODUCT_PROPERTY_OVERRIDES += \
+     vendor.display.hw_recovery_threshold=5
+ else
+ # Recovery is enabled, logging is disabled
+ PRODUCT_PROPERTY_OVERRIDES += \
+-    vendor.display.disable_hw_recovery_dump=1
++    vendor.display.disable_hw_recovery_dump?=1
+ endif
  
- cc_binary {
+ ifeq ($(TARGET_USES_QMAA),true)
+diff --git a/gralloc/gr_allocator.cpp b/gralloc/gr_allocator.cpp
+index b9c3491..c3ff06e 100644
+--- a/gralloc/gr_allocator.cpp
++++ b/gralloc/gr_allocator.cpp
+@@ -34,9 +34,6 @@
+ #include <vector>
+ #include <string>
  
-     name: "vendor.qti.hardware.display.composer-service",
--    defaults: ["qtidisplay_defaults"],
-+    defaults: ["qtidisplay_defaults", "sm8550_composer_install_defaults"],
-     sanitize: {
-         integer_overflow: true,
-     },
+-#ifndef QMAA
+-#include <linux/msm_ion.h>
+-#endif
+ #include "gr_allocator.h"
+ #include "gr_utils.h"
+ #include <QtiGralloc.h>
 diff --git a/init/init.qti.display_boot.sh b/init/init.qti.display_boot.sh
 index e29ba42..8d31a9e 100644
 --- a/init/init.qti.display_boot.sh

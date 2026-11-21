@@ -1,0 +1,48 @@
+# Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# vendor_hal_c2pa_qti - C2PA AIDL Service
+type vendor_hal_c2pa_qti, domain;
+type vendor_hal_c2pa_qti_exec, exec_type, vendor_file_type, file_type;
+type vendor_hal_c2pa_qti_tmpfs, file_type;
+
+init_daemon_domain(vendor_hal_c2pa_qti)
+hal_server_domain(vendor_hal_c2pa_qti, vendor_hal_c2pa)
+tmpfs_domain(vendor_hal_c2pa_qti)
+
+binder_use(vendor_hal_c2pa_qti)
+hal_attribute_service(vendor_hal_c2pa, vendor_hal_c2pa_aidl_service)
+
+binder_call(vendor_hal_c2pa_client, vendor_hal_c2pa_server)
+binder_call(vendor_hal_c2pa_server, vendor_hal_c2pa_client)
+
+allow vendor_hal_c2pa_qti vendor_dmabuf_system_heap_device:chr_file r_file_perms;
+allow vendor_hal_c2pa_qti self:qipcrtr_socket create_socket_perms_no_ioctl;
+allow vendor_hal_c2pa_qti vendor_membuf_dev:chr_file r_file_perms;
+allow vendor_hal_c2pa_qti vendor_vm_self_device:chr_file r_file_perms;
+allow vendor_hal_c2pa_qti vendor_vm_trusted_device:chr_file r_file_perms;
+allow vendor_hal_c2pa_client vendor_hal_c2pa_qti_tmpfs:file read;
+allow vendor_hal_c2pa_qti hal_graphics_allocator_default:fd use;
+
+# Allow read access to mink socket log files
+userdebug_or_eng(`
+  get_prop(vendor_hal_c2pa, vendor_mink_trace_prop)
+')
+
+# Allow access to HLOS Mink Daemon socket
+unix_socket_connect(vendor_hal_c2pa_qti, vendor_hlos_minkd_opener, vendor_hlosminkdaemon)
+
+# Allow HLOS Mink Daemon to access fd passed by c2pa
+allow vendor_hlosminkdaemon vendor_hal_c2pa_qti:fd use;
+
+# Allow following permission to access qvirt manager service
+get_prop(vendor_hal_c2pa_qti, vendor_vm_ssrenable_prop)
+hal_client_domain(vendor_hal_c2pa_qti, vendor_hal_qvirtservice)
+
+# Allow following permission to access AVF qvirt manager service
+hal_client_domain(vendor_hal_c2pa_qti, vendor_hal_avf_qcvm_qti)
+
+# Properties for configuring process startup
+set_prop(vendor_hal_c2pa_qti, vendor_c2pa_listener_enabled_prop)
+get_prop(vendor_hal_c2pa_qti, vendor_c2pa_listener_start_prop)
+get_prop(vendor_hal_c2pa_qti, vendor_c2pa_start_prop)

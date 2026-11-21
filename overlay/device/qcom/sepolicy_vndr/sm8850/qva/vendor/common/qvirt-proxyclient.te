@@ -1,0 +1,11 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+type vendor_qvirt_proxyclient, domain;
+type vendor_qvirt_proxyclient_exec, vendor_file_type, exec_type, file_type;
+
+init_daemon_domain(vendor_qvirt_proxyclient);
+hal_client_domain(vendor_qvirt_proxyclient, vendor_hal_avf_qcvm_qti);
+binder_use(vendor_qvirt_proxyclient);
+get_prop(vendor_qvirt_proxyclient, vendor_qtvm_autostart_prop)
+get_prop(vendor_qvirt_proxyclient, boot_status_prop)

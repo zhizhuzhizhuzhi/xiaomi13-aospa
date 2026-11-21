@@ -1,0 +1,21 @@
+# Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+#define the domain
+type vendor_hal_minkipcbinder_default, domain;
+hal_server_domain(vendor_hal_minkipcbinder_default, vendor_hal_minkipcbinder)
+type vendor_hal_minkipcbinder_default_exec, exec_type, file_type, vendor_file_type;
+
+init_daemon_domain(vendor_hal_minkipcbinder_default)
+
+#Allow hal_minkipcbinder client domain apps to find hwservice
+binder_call(vendor_hal_minkipcbinder_client, vendor_hal_minkipcbinder_server)
+binder_call(vendor_hal_minkipcbinder_server, vendor_hal_minkipcbinder_client)
+
+#Allow aidl based minkipcbinder_hal communication
+hal_attribute_service(vendor_hal_minkipcbinder, vendor_hal_minkipcbinder_service)
+binder_call(vendor_hal_minkipcbinder_server, servicemanager)
+
+#Allow aidl service to connect and write to ssgtzd socket
+unix_socket_connect(vendor_hal_minkipcbinder_default, vendor_ssgtzd, vendor_ssgtzd)
+allow vendor_hal_minkipcbinder_default vendor_hlosminkdaemon:unix_stream_socket connectto;

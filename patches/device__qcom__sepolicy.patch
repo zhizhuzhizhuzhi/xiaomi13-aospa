@@ -31,3 +31,58 @@ index 186d4fc..c8cc66e 100644
  # allow isolated_compute_app to be a client of DSP HAL
 -hal_client_domain(isolated_compute_app, vendor_hal_dspmanager)
 +# Android 17 isolated compute domains cannot discover vendor DSP services.
+diff --git a/generic/public/attributes b/generic/public/attributes
+index b70feb7..c610516 100644
+--- a/generic/public/attributes
++++ b/generic/public/attributes
+@@ -421,3 +421,50 @@ attribute vendor_hal_display_capture_service_qti_server;
+ attribute vendor_hal_ambient_data;
+ attribute vendor_hal_ambient_data_client;
+ attribute vendor_hal_ambient_data_server;
++
++# attribute for hal_nordic
++attribute vendor_hal_nordic_client;
++attribute vendor_hal_nordic_server;
++attribute vendor_hal_nordic;
++
++attribute vendor_calib_file_type;
++
++attribute vendor_hal_powerstateservice;
++attribute vendor_hal_powerstateservice_server;
++attribute vendor_hal_powerstateservice_client;
++
++attribute vendor_hal_powerstateutility;
++attribute vendor_hal_powerstateutility_client;
++attribute vendor_hal_powerstateutility_server;
++
++#attributes for aks gamepad hal
++attribute hal_gamepad;
++attribute hal_gamepad_client;
++attribute hal_gamepad_server;
++
++# For BluetoothFmd
++attribute vendor_hal_bluetooth_fmd;
++attribute vendor_hal_bluetooth_fmd_client;
++attribute vendor_hal_bluetooth_fmd_server;
++
++# for Aware QSEC services
++attribute vendor_hal_cloudagent;
++attribute vendor_hal_cloudagent_client;
++attribute vendor_hal_cloudagent_server;
++
++attribute vendor_hal_datamanager;
++attribute vendor_hal_datamanager_client;
++attribute vendor_hal_datamanager_server;
++
++attribute vendor_hal_featuremanager;
++attribute vendor_hal_featuremanager_client;
++attribute vendor_hal_featuremanager_server;
++
++attribute vendor_hal_provisioningmanager;
++attribute vendor_hal_provisioningmanager_client;
++attribute vendor_hal_provisioningmanager_server;
++
++# For QRS
++attribute vendor_hal_qrsloader;
++attribute vendor_hal_qrsloader_client;
++attribute vendor_hal_qrsloader_server;

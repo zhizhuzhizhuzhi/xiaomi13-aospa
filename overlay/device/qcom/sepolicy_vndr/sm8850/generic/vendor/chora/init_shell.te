@@ -1,0 +1,22 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+allow vendor_qti_init_shell vendor_sysfs_lru_gen:file rw_file_perms;
+
+# Required to bind kswapd to silver cores.
+# Permissions enable vendor_qti_init_shell to:
+# - Access kernel/init process details for kswapd and retrieve its PID.
+# - Modify kernel process scheduling so that kswapd runs exclusively on silver cores.
+
+allow vendor_qti_init_shell kernel:file { read open };
+allow vendor_qti_init_shell init:file { read open };
+allow vendor_qti_init_shell proc_pid_max:file { open read };
+allow vendor_qti_init_shell kernel:dir { getattr search };
+allow vendor_qti_init_shell init:dir { getattr search };
+allow vendor_qti_init_shell kernel:process { getsched setsched };
+
+# Suppress audit for vendor_qti_init_shell reading vendor_init files
+dontaudit vendor_qti_init_shell vendor_init:file read;
+
+# Suppress audit for vendor_qti_init_shell using sys_ptrace capability
+dontaudit vendor_qti_init_shell self:capability sys_ptrace;

@@ -1,0 +1,114 @@
+diff --git a/aidl/android.hardware.health-service.qti.xml b/aidl/android.hardware.health-service.qti.xml
+index 2fa9455..20f277d 100644
+--- a/aidl/android.hardware.health-service.qti.xml
++++ b/aidl/android.hardware.health-service.qti.xml
+@@ -1,12 +1,12 @@
+ <!--
+-  Copyright (c) 2022-2024 Qualcomm Innovation Center, Inc. All rights reserved.
++  Copyright (c) 2022-2025 Qualcomm Innovation Center, Inc. All rights reserved.
+   SPDX-License-Identifier: BSD-3-Clause-Clear
+ -->
+ 
+ <manifest version="1.0" type="device">
+     <hal format="aidl">
+         <name>android.hardware.health</name>
+-        <version>3</version>
++        <version>5</version>
+         <fqname>IHealth/default</fqname>
+     </hal>
+ </manifest>
+diff --git a/aidl/main.cpp b/aidl/main.cpp
+index 9f2f8ac..ce7a2ae 100644
+--- a/aidl/main.cpp
++++ b/aidl/main.cpp
+@@ -1,5 +1,5 @@
+ /*
+- * Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
++ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+  * SPDX-License-Identifier: BSD-3-Clause-Clear
+  */
+ 
+@@ -7,10 +7,29 @@
+ 
+ #include <android-base/logging.h>
+ #include <android/binder_interface_utils.h>
++#include <cutils/klog.h>
++#include <cutils/properties.h>
+ #include <health/utils.h>
+ #include <health-impl/ChargerUtils.h>
+ #include <health-impl/Health.h>
+-#include <cutils/klog.h>
++
++#define ARRAY_SIZE(x)     (sizeof(x) / sizeof((x)[0]))
++
++typedef enum soc_id {
++        MSM_NEO_LA = 554,
++        MSM_NEO_LE = 525,
++        MSM_NEO_LA_V2 = 579,
++        MSM_SERAPH = 673,
++        MSM_SERAPHP = 672,
++}soc_id_t;
++
++static const enum soc_id target_no_psy[] = {
++        MSM_NEO_LA,
++        MSM_NEO_LE,
++        MSM_NEO_LA_V2,
++        MSM_SERAPH,
++        MSM_SERAPHP,
++};
+ 
+ using aidl::android::hardware::health::HalHealthLoop;
+ using aidl::android::hardware::health::Health;
+@@ -30,18 +49,50 @@ class ChargerCallbackImpl : public ChargerCallback {
+ static constexpr const char* gInstanceName = "default";
+ static constexpr std::string_view gChargerArg{"--charger"};
+ 
+-constexpr char ucsiPSYName[]{"ucsi-source-psy-soc:qcom,pmic_glink:qcom,ucsi1"};
++static constexpr std::array<std::string_view, 3> ucsiPSYNames = {
++        "ucsi-source-psy-soc:qcom,pmic_glink:qcom,ucsi1",
++        "ucsi-source-psy-soc:qcom,pmic_glink:qcom,ucsi2",
++        "ucsi-source-psy-soc:pmic-glink:ucsi-glink1"
++};
+ 
+ #define RETRY_COUNT    100
+ 
+ void qti_healthd_board_init(struct healthd_config *hc)
+ {
++    FILE *fp = NULL;
+     int fd;
+     unsigned char retries = RETRY_COUNT;
+     int ret = 0;
+     unsigned char buf;
++    char prop_str[PROPERTY_VALUE_MAX];
++    int soc_id_prop = 0;
++    bool is_no_batt_psy;
++    int soc = property_get_int32("ro.vendor.qti.soc_id", -1);
++
++    hc->ignorePowerSupplyNames.push_back(android::String8(ucsiPSYNames[0]));
++    hc->ignorePowerSupplyNames.push_back(android::String8(ucsiPSYNames[1]));
++    hc->ignorePowerSupplyNames.push_back(android::String8(ucsiPSYNames[2]));
++
++    is_no_batt_psy = property_get_bool("persist.vendor.hal_health.no_batt_psy", false);
++
++    if (soc <= 0 && (fp = fopen("/sys/devices/soc0/soc_id", "r")) != NULL) {
++        fscanf(fp, "%u", &soc);
++        fclose(fp);
++    }
++    soc_id_prop = soc;
++
++    if (!is_no_batt_psy) {
++        for (int idx = 0; idx < ARRAY_SIZE(target_no_psy); idx++) {
++             if(soc_id_prop == target_no_psy[idx]) {
++                KLOG_INFO(LOG_TAG, "no support for batt_psy with socid:%d \n",soc_id_prop);
++                return;
++           }
++        }
++    } else {
++        KLOG_INFO(LOG_TAG, "no support for batt_psy\n");
++        return;
++    }
+ 
+-    hc->ignorePowerSupplyNames.push_back(android::String8(ucsiPSYName));
+ retry:
+     if (!retries) {
+         KLOG_ERROR(LOG_TAG, "Cannot open battery/capacity, fd=%d\n", fd);

@@ -1,3 +1,84 @@
+diff --git a/Android.bp b/Android.bp
+index 8da2db2..c631b24 100644
+--- a/Android.bp
++++ b/Android.bp
+@@ -520,8 +520,18 @@ android_app_import {
+     name: "EmergencyInfoGms",
+     owner: "google",
+     apk: "proprietary/system_ext/priv-app/EmergencyInfoGms/EmergencyInfoGms.apk",
+-    preprocessed: true,
+-    presigned: true,
++    preprocessed: select(soong_config_variable("ANDROID", "target_board_platform"), {
++        "canoe": false,
++        default: true,
++    }),
++    presigned: select(soong_config_variable("ANDROID", "target_board_platform"), {
++        "canoe": false,
++        default: true,
++    }),
++    certificate: select(soong_config_variable("ANDROID", "target_board_platform"), {
++        "canoe": "platform",
++        default: "",
++    }),
+     dex_preopt: {
+         enabled: false,
+     },
+@@ -579,3 +589,22 @@ dex_import {
+     ],
+     product_specific: true,
+ }
++
++// Device brightness policy uses the same permission template on every product.
++genrule {
++    name: "aospa_google_privapp_permissions_native",
++    defaults: ["aospa_native_brightness_permission_defaults"],
++    srcs: ["proprietary/product/etc/permissions/privapp-permissions-google-product.xml"],
++    out: ["privapp-permissions-google-product.xml"],
++}
++
++prebuilt_etc {
++    name: "aospa_google_privapp_permissions",
++    src: select(soong_config_variable("aospa_build", "native_brightness_policy"), {
++        true: ":aospa_google_privapp_permissions_native",
++        default: "proprietary/product/etc/permissions/privapp-permissions-google-product.xml",
++    }),
++    product_specific: true,
++    sub_dir: "permissions",
++    filename: "privapp-permissions-google-product.xml",
++}
+diff --git a/gms-vendor.mk b/gms-vendor.mk
+index 476b8e7..285ec4c 100644
+--- a/gms-vendor.mk
++++ b/gms-vendor.mk
+@@ -9,7 +9,6 @@ PRODUCT_COPY_FILES += \
+     vendor/google/gms/proprietary/product/etc/default-permissions/default-permissions-google.xml:$(TARGET_COPY_OUT_PRODUCT)/etc/default-permissions/default-permissions-google.xml \
+     vendor/google/gms/proprietary/product/etc/permissions/com.google.android.dialer.support.xml:$(TARGET_COPY_OUT_PRODUCT)/etc/permissions/com.google.android.dialer.support.xml \
+     vendor/google/gms/proprietary/product/etc/permissions/privapp-permissions-google-comms-suite.xml:$(TARGET_COPY_OUT_PRODUCT)/etc/permissions/privapp-permissions-google-comms-suite.xml \
+-    vendor/google/gms/proprietary/product/etc/permissions/privapp-permissions-google-product.xml:$(TARGET_COPY_OUT_PRODUCT)/etc/permissions/privapp-permissions-google-product.xml \
+     vendor/google/gms/proprietary/product/etc/permissions/split-permissions-google.xml:$(TARGET_COPY_OUT_PRODUCT)/etc/permissions/split-permissions-google.xml \
+     vendor/google/gms/proprietary/product/etc/preferred-apps/google.xml:$(TARGET_COPY_OUT_PRODUCT)/etc/preferred-apps/google.xml \
+     vendor/google/gms/proprietary/product/etc/security/fsverity/gms_fsverity_cert.der:$(TARGET_COPY_OUT_PRODUCT)/etc/security/fsverity/gms_fsverity_cert.der \
+@@ -122,10 +121,10 @@ PRODUCT_PACKAGES += \
+     FilesGoogle \
+     GWP \
+     AndroidPlatformServices \
+-    GoogleDialer \
++    $(if $(filter aospa_sheng,$(TARGET_PRODUCT)),,GoogleDialer) \
+     GooglePartnerSetup \
+     GoogleRestore \
+-    Messages \
++    $(if $(filter aospa_sheng,$(TARGET_PRODUCT)),,Messages) \
+     PersonalSafety \
+     Phonesky \
+     Turbo \
+@@ -135,4 +134,6 @@ PRODUCT_PACKAGES += \
+     GoogleFeedback \
+     GoogleServicesFramework \
+     SetupWizard \
+-    com.google.android.dialer.support
++    $(if $(filter aospa_sheng,$(TARGET_PRODUCT)),,com.google.android.dialer.support)
++
++PRODUCT_PACKAGES += aospa_google_privapp_permissions
 diff --git a/proprietary/product/etc/permissions/privapp-permissions-google-product.xml b/proprietary/product/etc/permissions/privapp-permissions-google-product.xml
 index 49b4bb8..aee714c 100644
 --- a/proprietary/product/etc/permissions/privapp-permissions-google-product.xml

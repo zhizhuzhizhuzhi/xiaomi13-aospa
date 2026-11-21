@@ -6,3 +6,7 @@ manifests/*.xml text eol=lf
 patches/** -whitespace
 device-tree-snapshot/** -whitespace
 licenses/** -whitespace
+
+patches/** -text -whitespace
+
+overlay/** -text -whitespace

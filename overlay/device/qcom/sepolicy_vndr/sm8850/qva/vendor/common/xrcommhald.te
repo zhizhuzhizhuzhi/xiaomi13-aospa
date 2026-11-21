@@ -1,0 +1,27 @@
+# Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+type vendor_xrcommhald, domain;
+type vendor_xrcommhald_exec, vendor_file_type, exec_type, file_type;
+
+init_daemon_domain(vendor_xrcommhald)
+
+hal_server_domain(vendor_xrcommhald, vendor_hal_xrcommservice_qti)
+
+binder_call(vendor_hal_xrcommservice_qti_client, vendor_hal_xrcommservice_qti_server)
+binder_call(vendor_hal_xrcommservice_qti_server, vendor_hal_xrcommservice_qti_client)
+
+binder_use(vendor_xrcommhald);
+
+hal_attribute_service(vendor_hal_xrcommservice_qti, vendor_hal_xrcommd_service)
+
+# File permissions for lock file
+allow vendor_xrcommhald vendor_xrcommd_vndr_data_file:dir { search write add_name };
+allow vendor_xrcommhald vendor_xrcommd_vndr_data_file:file create_file_perms;
+
+# Allow access for qxr to access xrcommhal
+allow vendor_xrcommhald vendor_hal_xrcommservice_qti_socket_client:unix_stream_socket { read write };
+
+# Allow access to xrcomm vendor service
+unix_socket_connect(vendor_xrcommhald, vendor_xrcommd, vendor_xrcommd)
+

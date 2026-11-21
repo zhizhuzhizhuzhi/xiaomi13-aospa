@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<!--
+    Copyright (c) 2025 Qualcomm Innovation Center, Inc. All rights reserved.
+    SPDX-License-Identifier: BSD-3-Clause-Clear
+-->
+<!--
+    This file is used by the Qspa framework to determine the list of applications that need to be
+    disabled based on the corresponding hardware subsystem enablement on device.
+    Developers are requested to add/remove entries along with the corresponding subsystem name
+    and the applications along with the qspa propertyValue to disable
+    applications. The application will be disabled if the provided
+    subsystem's corresponding qspa value on device matches with the propertyvalue mentioned.
+
+    Each <packageinfo> tag corresponds to one app and has the following attributes:
+
+    1. name: The package name as defined in the app's AndroidManifest.xml.
+             For duplicate entry of package name, add version number at the end.
+             e.g., com.qti.phone , com.qti.phone.2
+
+
+    2. path: The app's location on the file system.
+             a. For apps that have their own directory, e.g., /product/priv-app/Dialer/Dialer.apk,
+                this should point to the directory.
+             b. For apps that don't, e.g., /product/overlay/TelephonyResCommon_Sys.apk, this should
+                point to the apk.
+
+    Example:
+    <packages>
+        <propertyCheck subsystem="modem">
+            <propertyValue value="disabled">
+                <packageinfo name="com.android.phone" path="/system/priv-app/TeleService" />
+                <packageinfo name="com.android.phone.overlay.common" path="/product/overlay/TelephonyResCommon_Sys.apk" />
+                <Other packages if needed/>
+            </propertyValue>
+            <propertyValue value="enabled">
+                <packageinfo name="abc" path="xyz.apk" />
+                <Other packages if needed/>
+            </propertyValue>
+        </propertyCheck>
+        <propertyCheck subsystem="audio">
+            <propertyValue value="enabled">
+                <packageinfo name="abc1" path="xyz1.apk" />
+                <Other packages if needed/>
+            </propertyValue>
+            <propertyValue value="disabled">
+                <packageinfo name="abc2" path="xyz2.apk" />
+                <Other packages if needed/>
+            </propertyValue>
+        </propertyCheck>
+    This list of applications would be disabled based on ro.boot.vendor.qspa.<subsystem>value on device
+-->
+
+<packages>
+
+</packages>

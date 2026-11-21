@@ -9,11 +9,11 @@ cd "$tree"
 exec 9>.fuxi-build.lock
 flock -n 9 || { echo 'Another fuxi build is using this tree' >&2;exit 1; }
 python3 "$kit/scripts/apply.py" "$PWD" --verify-applied
-python3 "$kit/scripts/fetch-dependencies.py" "$PWD"
+python3 "$kit/scripts/fetch-dependencies.py" "$PWD" --verify
 test -s vendor/xiaomi/camera/proprietary/system/priv-app/MiuiCamera/MiuiCamera.apk
 test -s device/xiaomi/fuxi/overlays/SystemUI/res/drawable-nodpi/rounded_corner_top.png
 test -s vendor/xiaomi/sm8550-common/proprietary/vendor/app/SoterService/SoterService.apk
-export BUILD_NUMBER=${BUILD_NUMBER:-20261020}
+export BUILD_NUMBER=${BUILD_NUMBER:-20261121}
 if [ -z "${OUT_DIR:-}" ]; then
   if [ "$type" = user ]; then export OUT_DIR=out-user-release; else export OUT_DIR=out; fi
 else

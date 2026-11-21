@@ -1,0 +1,221 @@
+diff --git a/quickstep/src/com/android/launcher3/taskbar/TaskbarView.java b/quickstep/src/com/android/launcher3/taskbar/TaskbarView.java
+index 56ea8ec..4eaa6c3 100644
+--- a/quickstep/src/com/android/launcher3/taskbar/TaskbarView.java
++++ b/quickstep/src/com/android/launcher3/taskbar/TaskbarView.java
+@@ -266,6 +266,8 @@ public class TaskbarView extends FrameLayout implements FolderIcon.FolderIconPar
+ 
+         mAllAppsButtonContainer = (TaskbarAllAppsButtonContainer) inflate(
+                 R.layout.taskbar_all_apps_button_container);
++        mAllAppsButtonContainer.setLayoutParams(
++                new TaskbarLayoutParams(mIconTouchSize, mIconTouchSize));
+         mAllAppsButtonTranslationOffset = (int) getResources().getDimension(
+                 mAllAppsButtonContainer.getAllAppsButtonTranslationXOffset(
+                         mActivityContext.isTransientTaskbar()));
+@@ -274,6 +276,8 @@ public class TaskbarView extends FrameLayout implements FolderIcon.FolderIconPar
+ 
+         mTaskbarDividerContainer = (TaskbarDividerContainer) inflate(
+                 R.layout.taskbar_divider_button_container);
++        mTaskbarDividerContainer.setLayoutParams(
++                new TaskbarLayoutParams(mIconTouchSize, mIconTouchSize));
+ 
+         if (ENABLE_TASKBAR_OVERFLOW.isTrue()) {
+             mTaskbarRecentsOverflowView = TaskbarOverflowView.inflateIcon(OverflowType.RECENTS,
+diff --git a/quickstep/src/com/android/launcher3/taskbar/TaskbarViewController.java b/quickstep/src/com/android/launcher3/taskbar/TaskbarViewController.java
+index d2823bf..83ff99e 100644
+--- a/quickstep/src/com/android/launcher3/taskbar/TaskbarViewController.java
++++ b/quickstep/src/com/android/launcher3/taskbar/TaskbarViewController.java
+@@ -1123,7 +1123,8 @@ public class TaskbarViewController implements TaskbarControllers.LoggableTaskbar
+         // or fade in while already in in-app state.
+         Interpolator interpolator = mIsHotseatIconOnTopWhenAligned ? LINEAR : FINAL_FRAME;
+ 
+-        int offsetY = taskbarDp.getTaskbarOffsetY();
++        // Align with the launcher destination, whose icon size can differ from taskbar.
++        int offsetY = launcherDp.getTaskbarOffsetY();
+         setter.setFloat(mTaskbarIconTranslationYForHome, VALUE, -offsetY, interpolator);
+         setter.setFloat(mTaskbarNavButtonTranslationY, VALUE, -offsetY, interpolator);
+         setter.setFloat(mTaskbarNavButtonTranslationYForInAppDisplay, VALUE, offsetY, interpolator);
+diff --git a/quickstep/src/com/android/quickstep/util/ScalingWorkspaceRevealAnim.kt b/quickstep/src/com/android/quickstep/util/ScalingWorkspaceRevealAnim.kt
+index b138570..5731932 100644
+--- a/quickstep/src/com/android/quickstep/util/ScalingWorkspaceRevealAnim.kt
++++ b/quickstep/src/com/android/quickstep/util/ScalingWorkspaceRevealAnim.kt
+@@ -127,8 +127,12 @@ class ScalingWorkspaceRevealAnim(
+                 MIN_SIZE
+             }
+ 
+-        // Scale the Workspace and Hotseat around the same pivot.
+-        workspace.setPivotToScaleWithSelf(hotseat)
++        // Taskbar aligns its own icons with hotseat on large screens. Scaling the destination
++        // around the workspace pivot would move it while that alignment is in progress.
++        val hasTaskbar = launcher.deviceProfile.deviceProperties.taskbarConfiguration.isTaskbarPresent
++        if (!hasTaskbar) {
++            workspace.setPivotToScaleWithSelf(hotseat)
++        }
+         animation.addFloat(
+             workspace,
+             WORKSPACE_SCALE_PROPERTY_FACTORY[SCALE_INDEX_WORKSPACE_STATE],
+@@ -136,13 +140,15 @@ class ScalingWorkspaceRevealAnim(
+             MAX_SIZE,
+             SCALE_INTERPOLATOR,
+         )
+-        animation.addFloat(
+-            hotseat,
+-            HOTSEAT_SCALE_PROPERTY_FACTORY[SCALE_INDEX_WORKSPACE_STATE],
+-            fromSize,
+-            MAX_SIZE,
+-            SCALE_INTERPOLATOR,
+-        )
++        if (!hasTaskbar) {
++            animation.addFloat(
++                hotseat,
++                HOTSEAT_SCALE_PROPERTY_FACTORY[SCALE_INDEX_WORKSPACE_STATE],
++                fromSize,
++                MAX_SIZE,
++                SCALE_INTERPOLATOR,
++            )
++        }
+ 
+         if (playAlphaReveal) {
+             // Fade in quickly at the beginning of the animation, so the content doesn't look like
+diff --git a/res/xml/device_profiles.xml b/res/xml/device_profiles.xml
+index 19edb3e..dc261f8 100644
+--- a/res/xml/device_profiles.xml
++++ b/res/xml/device_profiles.xml
+@@ -226,6 +226,11 @@
+         launcher:deviceCategory="tablet" >
+ 
+         <display-option
++            launcher:minCellWidth="104"
++            launcher:minCellHeight="104"
++            launcher:allAppsCellWidth="104"
++            launcher:borderSpace="16"
++            launcher:horizontalMargin="16"
+             launcher:name="Pixel C"
+             launcher:minWidthDps="800"
+             launcher:minHeightDps="748"
+@@ -239,6 +244,11 @@
+             launcher:canBeDefault="true" />
+ 
+         <display-option
++            launcher:minCellWidth="104"
++            launcher:minCellHeight="104"
++            launcher:allAppsCellWidth="104"
++            launcher:borderSpace="16"
++            launcher:horizontalMargin="16"
+             launcher:name="Pixel C (display: small)"
+             launcher:minWidthDps="941"
+             launcher:minHeightDps="880"
+@@ -252,6 +262,11 @@
+             launcher:canBeDefault="true" />
+ 
+         <display-option
++            launcher:minCellWidth="104"
++            launcher:minCellHeight="104"
++            launcher:allAppsCellWidth="104"
++            launcher:borderSpace="16"
++            launcher:horizontalMargin="16"
+             launcher:name="Pixel C (display: large)"
+             launcher:minWidthDps="723"
+             launcher:minHeightDps="676"
+@@ -265,6 +280,11 @@
+             launcher:canBeDefault="true" />
+ 
+         <display-option
++            launcher:minCellWidth="104"
++            launcher:minCellHeight="104"
++            launcher:allAppsCellWidth="104"
++            launcher:borderSpace="16"
++            launcher:horizontalMargin="16"
+             launcher:name="Pixel C (display: larger)"
+             launcher:minWidthDps="656"
+             launcher:minHeightDps="613"
+@@ -278,6 +298,11 @@
+             launcher:canBeDefault="true" />
+ 
+         <display-option
++            launcher:minCellWidth="104"
++            launcher:minCellHeight="104"
++            launcher:allAppsCellWidth="104"
++            launcher:borderSpace="16"
++            launcher:horizontalMargin="16"
+             launcher:name="Pixel C (display: largest)"
+             launcher:minWidthDps="603"
+             launcher:minHeightDps="564"
+@@ -309,6 +334,11 @@
+         launcher:deviceCategory="tablet" >
+ 
+         <display-option
++            launcher:minCellWidth="104"
++            launcher:minCellHeight="104"
++            launcher:allAppsCellWidth="104"
++            launcher:borderSpace="16"
++            launcher:horizontalMargin="16"
+             launcher:name="Pixel C"
+             launcher:minWidthDps="800"
+             launcher:minHeightDps="748"
+@@ -322,6 +352,11 @@
+             launcher:canBeDefault="true" />
+ 
+         <display-option
++            launcher:minCellWidth="104"
++            launcher:minCellHeight="104"
++            launcher:allAppsCellWidth="104"
++            launcher:borderSpace="16"
++            launcher:horizontalMargin="16"
+             launcher:name="Pixel C (display: small)"
+             launcher:minWidthDps="941"
+             launcher:minHeightDps="880"
+@@ -335,6 +370,11 @@
+             launcher:canBeDefault="true" />
+ 
+         <display-option
++            launcher:minCellWidth="104"
++            launcher:minCellHeight="104"
++            launcher:allAppsCellWidth="104"
++            launcher:borderSpace="16"
++            launcher:horizontalMargin="16"
+             launcher:name="Pixel C (display: large)"
+             launcher:minWidthDps="723"
+             launcher:minHeightDps="676"
+@@ -348,6 +388,11 @@
+             launcher:canBeDefault="true" />
+ 
+         <display-option
++            launcher:minCellWidth="104"
++            launcher:minCellHeight="104"
++            launcher:allAppsCellWidth="104"
++            launcher:borderSpace="16"
++            launcher:horizontalMargin="16"
+             launcher:name="Pixel C (display: larger)"
+             launcher:minWidthDps="656"
+             launcher:minHeightDps="613"
+@@ -362,6 +407,11 @@
+             launcher:canBeDefault="true" />
+ 
+         <display-option
++            launcher:minCellWidth="104"
++            launcher:minCellHeight="104"
++            launcher:allAppsCellWidth="104"
++            launcher:borderSpace="16"
++            launcher:horizontalMargin="16"
+             launcher:name="Pixel C (display: largest)"
+             launcher:minWidthDps="603"
+             launcher:minHeightDps="564"
+diff --git a/src/com/android/launcher3/deviceprofile/parser/GridOption.kt b/src/com/android/launcher3/deviceprofile/parser/GridOption.kt
+index fceef01..aea0d03 100644
+--- a/src/com/android/launcher3/deviceprofile/parser/GridOption.kt
++++ b/src/com/android/launcher3/deviceprofile/parser/GridOption.kt
+@@ -432,7 +432,13 @@ class GridOption private constructor(ta: TypedArray, displayInfo: LauncherDispla
+             filter: (GridOption) -> Boolean = { true },
+             mapper: (GridOption, XmlElement) -> T,
+         ): List<T> {
+-            return context.resources.getXml(R.xml.device_profiles).use { xml ->
++            // Keep Sheng's landscape tablet layout isolated from other products.
++            val profiles = if (android.os.Build.DEVICE == "sheng") {
++                R.xml.device_profiles_sheng
++            } else {
++                R.xml.device_profiles
++            }
++            return context.resources.getXml(profiles).use { xml ->
+                 xml.getRootElement()
+                     .children(TAG_NAME)
+                     .mapNotNull { el ->

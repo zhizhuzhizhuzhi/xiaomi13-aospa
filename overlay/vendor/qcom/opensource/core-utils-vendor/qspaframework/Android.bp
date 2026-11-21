@@ -1,0 +1,12 @@
+prebuilt_etc {
+    name: "qspa_vendor.rc",
+    src: "qspa_vendor.rc",
+    relative_install_path: "init",
+    vendor: true,
+}
+
+prebuilt_etc {
+    name: "qspa_application_packages.xml",
+    src: "qspa_application_packages.xml",
+    vendor: true,
+}

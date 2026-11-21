@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+     SPDX-FileCopyrightText: The LineageOS Project
+     SPDX-License-Identifier: Apache-2.0
+-->
+<resources>
+    <string name="carrier_list_json" translatable="false"/>
+    <string name="transfer_carrier_list_json" translatable="false"/>
+
+    <string name="root_smds_address" translatable="false">lpa.live.esimdiscovery.com,lpa.ds.gsma.com</string>
+
+    <string name="sim_illustration_lottie_mappings_json" translatable="false"/>
+    <string name="sim_intro_illustration_lottie_mappings_json" translatable="false"/>
+    <string name="sim_intro_image_mappings_json" translatable="false"/>
+    <string name="sim_slot_mappings_json" translatable="false"/>
+</resources>

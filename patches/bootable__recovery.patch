@@ -1,0 +1,248 @@
+diff --git a/minui/graphics_drm.cpp b/minui/graphics_drm.cpp
+index 28c4bb3..b82e4d0 100644
+--- a/minui/graphics_drm.cpp
++++ b/minui/graphics_drm.cpp
+@@ -77,7 +77,7 @@
+     }                                                                                \
+     prop_count = (int)obj->props->count_props;                                       \
+     for (j = 0; j < prop_count; ++j)                                                 \
+-      if (!strcmp(obj->props_info[j]->name, (prop_name))) break;                     \
++      if (obj->props_info[j] && !strcmp(obj->props_info[j]->name, (prop_name))) break;                     \
+     (prop_id) = (j == prop_count) ? 0 : obj->props_info[j]->prop_id;                 \
+   } while (0)
+ 
+@@ -182,11 +182,11 @@ static int find_plane_prop_id(uint32_t obj_id, const char *prop_name,
+ 
+   for (i = 0; i < NUM_PLANES; ++i) {
+     obj = &plane_res[i];
+-    if (!obj || obj->plane->plane_id != obj_id)
++    if (!obj->plane || !obj->props || obj->plane->plane_id != obj_id)
+       continue;
+     prop_count = (int)obj->props->count_props;
+     for (j = 0; j < prop_count; ++j)
+-      if (!strcmp(obj->props_info[j]->name, prop_name))
++      if (obj->props_info[j] && !strcmp(obj->props_info[j]->name, prop_name))
+        return obj->props_info[j]->prop_id;
+     break;
+   }
+@@ -511,7 +511,7 @@ std::unique_ptr<GRSurfaceDrm> GRSurfaceDrm::Create(int drm_fd, int width, int he
+   auto surface = std::unique_ptr<GRSurfaceDrm>(new GRSurfaceDrm(
+       width, height, create_dumb.pitch, create_dumb.bpp / 8, drm_fd, create_dumb.handle));
+ 
+-  uint32_t handles[4], pitches[4], offsets[4];
++  uint32_t handles[4] = {}, pitches[4] = {}, offsets[4] = {};
+ 
+   handles[0] = surface->handle;
+   pitches[0] = create_dumb.pitch;
+@@ -552,10 +552,39 @@ void MinuiBackendDrm::Blank(bool blank) {
+   Blank(blank, DRM_MAIN);
+ }
+ 
++static void FreeProperties(drmModeObjectProperties*& props, drmModePropertyRes**& info) {
++  if (info && props) {
++    for (uint32_t i = 0; i < props->count_props; ++i)
++      if (info[i]) drmModeFreeProperty(info[i]);
++  }
++  free(info);
++  info = nullptr;
++  if (props) drmModeFreeObjectProperties(props);
++  props = nullptr;
++}
++
++static void FreePlane(Plane& plane) {
++  FreeProperties(plane.props, plane.props_info);
++  if (plane.plane) drmModeFreePlane(plane.plane);
++  plane.plane = nullptr;
++}
++
+ int MinuiBackendDrm::Initdisplay(DrmConnector index) {
++  FreeProperties(crtc_res.props, crtc_res.props_info);
++  FreeProperties(conn_res.props, conn_res.props_info);
++  for (auto& plane : plane_res) FreePlane(plane);
++  if (crtc_res.mode_blob_id) {
++    drmModeDestroyPropertyBlob(drm_fd, crtc_res.mode_blob_id);
++    crtc_res.mode_blob_id = 0;
++  }
++  // Standard KMS exposes a full-screen primary plane; split LMs are driver-internal.
++  number_of_lms = 1;
++  bool vendor_topology = false;
++
+   /* Get possible plane_ids */
+-  drmModePlaneRes* plane_options = drmModeGetPlaneResources(drm_fd);
+-  if (!plane_options || !plane_options->planes || (plane_options->count_planes < number_of_lms))
++  std::unique_ptr<drmModePlaneRes, decltype(&drmModeFreePlaneResources)> plane_options(
++      drmModeGetPlaneResources(drm_fd), drmModeFreePlaneResources);
++  if (!plane_options || !plane_options->planes || !plane_options->count_planes)
+     return -1;
+ 
+   /* Set crtc resources */
+@@ -570,6 +599,7 @@ int MinuiBackendDrm::Initdisplay(DrmConnector index) {
+   else
+     for (int j = 0; j < (int)crtc_res.props->count_props; ++j) {
+       crtc_res.props_info[j] = drmModeGetProperty(drm_fd, crtc_res.props->props[j]);
++      if (!crtc_res.props_info[j]) return -1;
+       /* Get spr property name */
+       if (!strcmp(crtc_res.props_info[j]->name, "SDE_SPR_INIT_CFG_V1") ||
+           !strcmp(crtc_res.props_info[j]->name, "SDE_SPR_INIT_CFG_V2")) {
+@@ -594,53 +624,73 @@ int MinuiBackendDrm::Initdisplay(DrmConnector index) {
+   else {
+     for (int j = 0; j < (int)conn_res.props->count_props; ++j) {
+       conn_res.props_info[j] = drmModeGetProperty(drm_fd, conn_res.props->props[j]);
++      if (!conn_res.props_info[j]) return -1;
+ 
+       /* Get preferred mode information and extract the
+        * number of layer mixers needed from the topology name.
+        */
+       if (!strcmp(conn_res.props_info[j]->name, "mode_properties")) {
++        vendor_topology = true;
+         number_of_lms = get_topology_lm_number(drm_fd, conn_res.props->prop_values[j]);
+         printf("number of lms in topology %d\n", number_of_lms);
+       }
+     }
+   }
+ 
+-  printf("plane count:%d\n",plane_options->count_planes);
+-  struct Plane *plane_all_res;
++  if (!number_of_lms || number_of_lms > NUM_PLANES ||
++      number_of_lms > plane_options->count_planes) return -1;
++
++  std::unique_ptr<drmModeRes, decltype(&drmModeFreeResources)> resources(
++      drmModeGetResources(drm_fd), drmModeFreeResources);
++  if (!resources) return -1;
++  uint32_t crtc_mask = 0;
++  for (int i = 0; i < resources->count_crtcs && i < 32; ++i)
++    if (resources->crtcs[i] == drm[index].monitor_crtc->crtc_id) crtc_mask = 1U << i;
++  if (!crtc_mask) return -1;
++
++  printf("plane count:%u, %s KMS, required planes:%u\n", plane_options->count_planes,
++         vendor_topology ? "vendor" : "standard", number_of_lms);
+   uint32_t counter = 0;
+-  plane_all_res = static_cast<struct Plane *>(
+-     calloc(plane_options->count_planes, sizeof(struct Plane)));
+-  /* Set plane resources */
+-  for (uint32_t i = 0; i < plane_options->count_planes; ++i) {
+-    plane_all_res[i].plane = drmModeGetPlane(drm_fd, plane_options->planes[i]);
+-    if (!plane_all_res[i].plane)return -1;
+-  }
+-
+-  for (uint32_t i = plane_options->count_planes - 1; i >= 0; i--) {
+-    struct Plane* obj = &plane_all_res[i];
+-    unsigned int j;
+-    obj->props = drmModeObjectGetProperties(drm_fd, obj->plane->plane_id, DRM_MODE_OBJECT_PLANE);
+-    if (!obj->props) continue;
+-    obj->props_info = static_cast<drmModePropertyRes**>(
+-        calloc(obj->props->count_props, sizeof(*obj->props_info)));
+-    if (!obj->props_info) continue;
+-    for (j = 0; j < obj->props->count_props; ++j) {
+-      obj->props_info[j] = drmModeGetProperty(drm_fd, obj->props->props[j]);
+-
+-      if (!strcmp(obj->props_info[j]->name, "capabilities")) {
+-        if(is_primary_plane(drm_fd, obj->props->prop_values[j])) {
+-          plane_res[counter] = plane_all_res[i];
+-          counter++;
+-      }
+-     }
+-   }
+-   if (counter == number_of_lms)
+-     break;
++  // Subtract only after the bound check: no vendor properties must not underflow i.
++  for (uint32_t i = plane_options->count_planes; i-- > 0 && counter < number_of_lms;) {
++    Plane plane = {};
++    plane.plane = drmModeGetPlane(drm_fd, plane_options->planes[i]);
++    if (!plane.plane || !(plane.plane->possible_crtcs & crtc_mask)) {
++      FreePlane(plane);
++      continue;
++    }
++    plane.props = drmModeObjectGetProperties(drm_fd, plane.plane->plane_id, DRM_MODE_OBJECT_PLANE);
++    if (!plane.props) { FreePlane(plane); continue; }
++    plane.props_info = static_cast<drmModePropertyRes**>(
++        calloc(plane.props->count_props, sizeof(*plane.props_info)));
++    if (!plane.props_info) { FreePlane(plane); return -1; }
++    bool primary = false;
++    bool valid = true;
++    for (uint32_t j = 0; j < plane.props->count_props; ++j) {
++      auto prop = drmModeGetProperty(drm_fd, plane.props->props[j]);
++      plane.props_info[j] = prop;
++      if (!prop) { valid = false; break; }
++      if (vendor_topology && !strcmp(prop->name, "capabilities"))
++        primary = is_primary_plane(drm_fd, plane.props->prop_values[j]);
++      else if (!vendor_topology && !strcmp(prop->name, "type"))
++        primary = plane.props->prop_values[j] == DRM_PLANE_TYPE_PRIMARY;
++    }
++    if (valid && primary) {
++      printf("Selected plane %u for CRTC %u\n", plane.plane->plane_id,
++             drm[index].monitor_crtc->crtc_id);
++      plane_res[counter++] = plane;
++    } else {
++      FreePlane(plane);
++    }
++  }
++  if (counter != number_of_lms) {
++    printf("No suitable primary plane for display %d\n", index);
++    return -1;
+   }
+ 
+-  drmModeFreePlaneResources(plane_options);
+-  plane_options = NULL;
+-
++  // Vendor properties can remain set in Recovery with a standard KMS driver.
++  // SPR is optional and must only be configured when the driver advertises it.
++  spr_enabled = spr_enabled && !spr_prop_name.empty();
+   /* Setup spr blob id if enabled */
+   if (spr_enabled) {
+     if (SetupSprBlob(drm_fd, spr_prop_name, &crtc_res.spr_blob_id)) {
+@@ -698,9 +748,11 @@ void MinuiBackendDrm::Blank(bool blank, DrmConnector index) {
+   if (blank)
+     ret = DrmDisableCrtc(atomic_req, index);
+   else {
+-    if (Initdisplay(index))
++    ret = Initdisplay(index);
++    if (ret)
+       printf("Failed to init display [%d]\n", index);
+-    ret = DrmEnableCrtc(atomic_req, index);
++    else
++      ret = DrmEnableCrtc(atomic_req, index);
+     active_display = index;
+   }
+   printf("[MID]MinuiBackendDrm::DrmEnableCrtc/DrmDisableCrtc[%d] err [%d]\n", blank, ret);
+@@ -1000,13 +1052,18 @@ GRSurface* MinuiBackendDrm::Flip() {
+ }
+ 
+ MinuiBackendDrm::~MinuiBackendDrm() {
++  if (drm_fd >= 0 && drm[DRM_MAIN].monitor_crtc) Blank(true);
++  for (auto& plane : plane_res) FreePlane(plane);
++  FreeProperties(crtc_res.props, crtc_res.props_info);
++  FreeProperties(conn_res.props, conn_res.props_info);
+   for (int i = 0; i < DRM_MAX; i++) {
++    drm[i].GRSurfaceDrms[0].reset();
++    drm[i].GRSurfaceDrms[1].reset();
+     if (drm[i].monitor_connector) {
+       drmModeFreeCrtc(drm[i].monitor_crtc);
+       drmModeFreeConnector(drm[i].monitor_connector);
+     }
+   }
+-  Blank(true);
+   drmModeDestroyPropertyBlob(drm_fd, crtc_res.mode_blob_id);
+   close(drm_fd);
+   drm_fd = -1;
+diff --git a/minui/graphics_drm.h b/minui/graphics_drm.h
+index 71c2e08..81a013a 100644
+--- a/minui/graphics_drm.h
++++ b/minui/graphics_drm.h
+@@ -241,11 +241,11 @@ class MinuiBackendDrm : public MinuiBackend {
+ 
+   int drm_fd{ -1 };
+   DrmConnector active_display = DRM_MAIN;
+-  bool current_blank_state[DRM_MAX];
+-  int fb_prop_id;
+-  struct Crtc crtc_res;
+-  struct Connector conn_res;
+-  struct Plane plane_res[NUM_PLANES];
++  bool current_blank_state[DRM_MAX] = { true, true };
++  int fb_prop_id = 0;
++  struct Crtc crtc_res = {};
++  struct Connector conn_res = {};
++  struct Plane plane_res[NUM_PLANES] = {};
+   uint32_t number_of_lms;
+   uint32_t spr_enabled;
+   std::string spr_prop_name;

@@ -1,0 +1,53 @@
+#
+# Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+#
+
+allow hal_uwb vendor_bt_device:chr_file rw_file_perms;
+allow hal_uwb vendor_q2spiuwb_device:chr_file rw_file_perms;
+allow hal_uwb vendor_spiuwb_device:chr_file rw_file_perms;
+
+wakelock_use(hal_uwb_default)
+
+# UWB properties
+set_prop(hal_uwb, vendor_uwb_prop)
+get_prop(hal_uwb, vendor_uwb_prop)
+
+#For UWB firmware files, which are present in same folder as BT FW files
+r_dir_file(hal_uwb_default, bt_firmware_file)
+
+allow hal_uwb_default vendor_persist_uwb_file:dir rw_dir_perms;
+allow hal_uwb_default vendor_persist_uwb_file:file create_file_perms;
+
+#allow access to find hal_thermal
+hal_client_domain(hal_uwb_default, hal_thermal)
+
+userdebug_or_eng(`
+  diag_use(hal_uwb)
+  allow hal_uwb vendor_ramdump_vendor_data_file:file create_file_perms;
+  allow hal_uwb vendor_ramdump_vendor_data_file:dir create_dir_perms;
+
+  allow hal_uwb proc_sysrq:file rw_file_perms;
+
+  allow hal_uwb vendor_uwb_data_file:dir rw_dir_perms;
+  allow hal_uwb vendor_uwb_data_file:file create_file_perms;
+  allow hal_uwb vendor_uwb_data_file:dir create_dir_perms;
+  allow hal_uwb vendor_bt_data_file:dir rw_dir_perms;
+  allow hal_uwb vendor_bt_data_file:file create_file_perms;
+  allow hal_uwb vendor_bt_data_file:dir create_dir_perms;
+  allow hal_uwb self:{ socket } create_socket_perms_no_ioctl;
+  allow hal_uwb vendor_debugfs_uwb_tracing:dir r_dir_perms;
+  allow hal_uwb vendor_debugfs_uwb_tracing:file r_file_perms;
+  allow hal_uwb debugfs_tracing_instances:dir search;
+
+  get_prop(hal_uwb, vendor_mink_trace_prop)
+')
+
+r_dir_file(hal_uwb_default, mnt_vendor_file)
+
+# Access lbsoc_helper to UWB
+use_libsoc_helper(hal_uwb)
+
+#allow UWB transport HAL to connect, write ssgtzd socket
+unix_socket_connect(hal_uwb, vendor_ssgtzd, vendor_ssgtzd)
+allow hal_uwb vendor_hlosminkdaemon:unix_stream_socket connectto;

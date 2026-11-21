@@ -1,0 +1,8 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+#Add sys_nice,pc_lock to the capabilities DMA heap creation
+allow vendor_modprobe self:capability { sys_nice ipc_lock };
+
+#Add setsched permission for the target thread
+allow vendor_modprobe kernel:process setsched;

@@ -1,11 +1,12 @@
 diff --git a/Android.bp b/Android.bp
-index 89d8f67..5f93a04 100644
+index 89d8f67..954d31c 100644
 --- a/Android.bp
 +++ b/Android.bp
-@@ -4,8 +4,9 @@
+@@ -4,53 +4,17 @@
  
  soong_namespace {
  	imports: [
++        "device/xiaomi/sm8550-platform-common",
 +        "hardware/xiaomi",
  		"vendor/qcom/common/system/telephony",
 -		"vendor/qcom/common/vendor/adreno-t",
@@ -13,7 +14,54 @@ index 89d8f67..5f93a04 100644
  		"vendor/qcom/common/vendor/display/5.15",
  	],
  }
-@@ -478,6 +479,7 @@ cc_prebuilt_library_shared {
+ 
+-cc_prebuilt_library_shared {
+-	name: "libqesdk2_0",
+-	owner: "xiaomi",
+-	strip: {
+-		none: true,
+-	},
+-	target: {
+-		android_arm: {
+-			srcs: ["proprietary/vendor/lib/libqesdk2_0.so"],
+-			shared_libs: ["liblog", "libjsoncpp", "libcutils", "libbase", "libutils", "libhidlbase", "libcrypto", "libnl", "libc++", "libc", "libm", "libdl", ],
+-		},
+-		android_arm64: {
+-			srcs: ["proprietary/vendor/lib64/libqesdk2_0.so"],
+-			shared_libs: ["liblog", "libjsoncpp", "libcutils", "libbase", "libutils", "libhidlbase", "libcrypto", "libnl", "libc++", "libc", "libm", "libdl", ],
+-		},
+-	},
+-	compile_multilib: "both",
+-	prefer: true,
+-	soc_specific: true,
+-}
+ 
+-cc_prebuilt_library_shared {
+-	name: "libqesdk_manager",
+-	owner: "xiaomi",
+-	strip: {
+-		none: true,
+-	},
+-	target: {
+-		android_arm: {
+-			srcs: ["proprietary/vendor/lib/libqesdk_manager.so"],
+-			shared_libs: ["libutils", "libcutils", "liblog", "libcrypto", "libjsoncpp", "libminkdescriptor", "libminksocket_vendor", "libqcbor", "libbinder", "libbinder_ndk", "vendor.qti.qesdsys-V3-ndk", "libprotobuf-cpp-lite-3.9.1-vendorcompat", "libc++", "libc", "libm", "libdl", ],
+-		},
+-		android_arm64: {
+-			srcs: ["proprietary/vendor/lib64/libqesdk_manager.so"],
+-			shared_libs: ["libutils", "libcutils", "liblog", "libcrypto", "libjsoncpp", "libminkdescriptor", "libminksocket_vendor", "libqcbor", "libbinder", "libbinder_ndk", "vendor.qti.qesdsys-V3-ndk", "libprotobuf-cpp-lite-3.9.1-vendorcompat", "libc++", "libc", "libm", "libdl", ],
+-		},
+-	},
+-	compile_multilib: "both",
+-	prefer: true,
+-	soc_specific: true,
+-}
++
++
+ 
+ cc_prebuilt_library_shared {
+ 	name: "android.hardware.secure_element@1.0-impl",
+@@ -478,6 +442,7 @@ cc_prebuilt_library_shared {
  
  cc_prebuilt_library_shared {
  	name: "android.hardware.gnss-aidl-impl-qti_sm8550",
@@ -21,7 +69,7 @@ index 89d8f67..5f93a04 100644
  	stem: "android.hardware.gnss-aidl-impl-qti",
  	owner: "xiaomi",
  	strip: {
-@@ -883,7 +885,7 @@ cc_prebuilt_library_shared {
+@@ -883,7 +848,7 @@ cc_prebuilt_library_shared {
  	target: {
  		android_arm64: {
  			srcs: ["proprietary/vendor/lib64/hw/vendor.xiaomi.hardware.displayfeature@1.0-impl.so"],
@@ -30,7 +78,7 @@ index 89d8f67..5f93a04 100644
  		},
  	},
  	compile_multilib: "64",
-@@ -3149,7 +3151,7 @@ cc_prebuilt_library_shared {
+@@ -3149,7 +3114,7 @@ cc_prebuilt_library_shared {
  	target: {
  		android_arm64: {
  			srcs: ["proprietary/vendor/lib64/libdisplayfeatureservice.so"],
@@ -39,7 +87,97 @@ index 89d8f67..5f93a04 100644
  		},
  	},
  	compile_multilib: "64",
-@@ -6798,6 +6800,7 @@ cc_prebuilt_library_shared {
+@@ -4586,39 +4551,9 @@ cc_prebuilt_library_shared {
+ 	soc_specific: true,
+ }
+ 
+-cc_prebuilt_library_shared {
+-	name: "libminkdescriptor",
+-	owner: "xiaomi",
+-	strip: {
+-		none: true,
+-	},
+-	target: {
+-		android_arm64: {
+-			srcs: ["proprietary/vendor/lib64/libminkdescriptor.so"],
+-			shared_libs: ["liblog", "libutils", "libqcbor", "libc++", "libc", "libm", "libdl", ],
+-		},
+-	},
+-	compile_multilib: "64",
+-	prefer: true,
+-	soc_specific: true,
+-}
+ 
+-cc_prebuilt_library_shared {
+-	name: "libminksocket_vendor",
+-	owner: "xiaomi",
+-	strip: {
+-		none: true,
+-	},
+-	target: {
+-		android_arm64: {
+-			srcs: ["proprietary/vendor/lib64/libminksocket_vendor.so"],
+-			shared_libs: ["libcutils", "liblog", "libqrtr", "libvmmem", "libc++", "libc", "libm", "libdl", ],
+-		},
+-	},
+-	compile_multilib: "64",
+-	prefer: true,
+-	soc_specific: true,
+-}
++
++
+ 
+ cc_prebuilt_library_shared {
+ 	name: "libmisfpsop",
+@@ -5334,22 +5269,7 @@ cc_prebuilt_library_shared {
+ 	soc_specific: true,
+ }
+ 
+-cc_prebuilt_library_shared {
+-	name: "libqcbor",
+-	owner: "xiaomi",
+-	strip: {
+-		none: true,
+-	},
+-	target: {
+-		android_arm64: {
+-			srcs: ["proprietary/vendor/lib64/libqcbor.so"],
+-			shared_libs: ["liblog", "libutils", "libcutils", "libc++", "libc", "libm", "libdl", ],
+-		},
+-	},
+-	compile_multilib: "64",
+-	prefer: true,
+-	soc_specific: true,
+-}
++
+ 
+ cc_prebuilt_library_shared {
+ 	name: "libqcc_file_agent",
+@@ -6252,22 +6172,7 @@ cc_prebuilt_library_shared {
+ 	soc_specific: true,
+ }
+ 
+-cc_prebuilt_library_shared {
+-	name: "libqrtr",
+-	owner: "xiaomi",
+-	strip: {
+-		none: true,
+-	},
+-	target: {
+-		android_arm64: {
+-			srcs: ["proprietary/vendor/lib64/libqrtr.so"],
+-			shared_libs: ["libc++", "libc", "libm", "libdl", ],
+-		},
+-	},
+-	compile_multilib: "64",
+-	prefer: true,
+-	soc_specific: true,
+-}
++
+ 
+ cc_prebuilt_library_shared {
+ 	name: "libqsocket",
+@@ -6798,6 +6703,7 @@ cc_prebuilt_library_shared {
  
  cc_prebuilt_library_shared {
  	name: "libsdm-color_sm8550",
@@ -47,7 +185,7 @@ index 89d8f67..5f93a04 100644
  	stem: "libsdm-color",
  	owner: "xiaomi",
  	strip: {
-@@ -6816,6 +6819,7 @@ cc_prebuilt_library_shared {
+@@ -6816,6 +6722,7 @@ cc_prebuilt_library_shared {
  
  cc_prebuilt_library_shared {
  	name: "libsdm-disp-vndapis_sm8550",
@@ -55,7 +193,7 @@ index 89d8f67..5f93a04 100644
  	stem: "libsdm-disp-vndapis",
  	owner: "xiaomi",
  	strip: {
-@@ -6841,7 +6845,7 @@ cc_prebuilt_library_shared {
+@@ -6841,7 +6748,7 @@ cc_prebuilt_library_shared {
  	target: {
  		android_arm64: {
  			srcs: ["proprietary/vendor/lib64/libsdmcore.so"],
@@ -64,7 +202,7 @@ index 89d8f67..5f93a04 100644
  		},
  	},
  	compile_multilib: "64",
-@@ -6858,7 +6862,7 @@ cc_prebuilt_library_shared {
+@@ -6858,7 +6765,7 @@ cc_prebuilt_library_shared {
  	target: {
  		android_arm64: {
  			srcs: ["proprietary/vendor/lib64/libsdmdal.so"],
@@ -73,7 +211,7 @@ index 89d8f67..5f93a04 100644
  		},
  	},
  	compile_multilib: "64",
-@@ -6868,6 +6872,7 @@ cc_prebuilt_library_shared {
+@@ -6868,6 +6775,7 @@ cc_prebuilt_library_shared {
  
  cc_prebuilt_library_shared {
  	name: "libsdmextension_sm8550",
@@ -81,7 +219,55 @@ index 89d8f67..5f93a04 100644
  	stem: "libsdmextension",
  	owner: "xiaomi",
  	strip: {
-@@ -11864,41 +11869,7 @@ cc_prebuilt_library_shared {
+@@ -7649,22 +7557,7 @@ cc_prebuilt_library_shared {
+ 	soc_specific: true,
+ }
+ 
+-cc_prebuilt_library_shared {
+-	name: "libvmmem",
+-	owner: "xiaomi",
+-	strip: {
+-		none: true,
+-	},
+-	target: {
+-		android_arm64: {
+-			srcs: ["proprietary/vendor/lib64/libvmmem.so"],
+-			shared_libs: ["liblog", "libbase", "libc++", "libc", "libm", "libdl", ],
+-		},
+-	},
+-	compile_multilib: "64",
+-	prefer: true,
+-	soc_specific: true,
+-}
++
+ 
+ cc_prebuilt_library_shared {
+ 	name: "libvppclient",
+@@ -11762,22 +11655,7 @@ cc_prebuilt_library_shared {
+ 	soc_specific: true,
+ }
+ 
+-cc_prebuilt_library_shared {
+-	name: "vendor.qti.qesdsys-V3-ndk",
+-	owner: "xiaomi",
+-	strip: {
+-		none: true,
+-	},
+-	target: {
+-		android_arm64: {
+-			srcs: ["proprietary/vendor/lib64/vendor.qti.qesdsys-V3-ndk.so"],
+-			shared_libs: ["libbinder_ndk", "libc++", "libc", "libm", "libdl", ],
+-		},
+-	},
+-	compile_multilib: "64",
+-	prefer: true,
+-	soc_specific: true,
+-}
++
+ 
+ cc_prebuilt_library_shared {
+ 	name: "vendor.qti.sla.service@1.0-impl",
+@@ -11864,41 +11742,7 @@ cc_prebuilt_library_shared {
  	soc_specific: true,
  }
  
@@ -123,7 +309,7 @@ index 89d8f67..5f93a04 100644
  
  cc_prebuilt_library_shared {
  	name: "vendor.xiaomi.hardware.micharge@1.0",
-@@ -12978,14 +12949,14 @@ android_app_import {
+@@ -12978,14 +12822,14 @@ android_app_import {
  }
  
  android_app_import {
@@ -146,7 +332,7 @@ index 89d8f67..5f93a04 100644
  }
  
  dex_import {
-@@ -14054,7 +14025,7 @@ cc_prebuilt_binary {
+@@ -14054,7 +13898,7 @@ cc_prebuilt_binary {
  	target: {
  		android_arm64: {
  			srcs: ["proprietary/vendor/bin/hw/vendor.qti.hardware.display.composer-service"],
@@ -155,7 +341,7 @@ index 89d8f67..5f93a04 100644
  		},
  	},
  	compile_multilib: "64",
-@@ -14324,7 +14295,7 @@ cc_prebuilt_binary {
+@@ -14324,7 +14168,7 @@ cc_prebuilt_binary {
  	target: {
  		android_arm64: {
  			srcs: ["proprietary/vendor/bin/hw/vendor.xiaomi.hardware.displayfeature@1.0-service"],
@@ -164,6 +350,18 @@ index 89d8f67..5f93a04 100644
  		},
  	},
  	compile_multilib: "64",
+diff --git a/proprietary/vendor/etc/audio/sku_kalama/resourcemanager_kalama_mtp.xml b/proprietary/vendor/etc/audio/sku_kalama/resourcemanager_kalama_mtp.xml
+index 4812e20..ce7c34f 100644
+--- a/proprietary/vendor/etc/audio/sku_kalama/resourcemanager_kalama_mtp.xml
++++ b/proprietary/vendor/etc/audio/sku_kalama/resourcemanager_kalama_mtp.xml
+@@ -104,7 +104,6 @@
+         <codec codec_format="CODEC_TYPE_APTX_AD_SPEECH" codec_type="enc|dec" codec_library="lib_bt_aptx.so" />
+         <codec codec_format="CODEC_TYPE_LC3" codec_type="enc|dec" codec_library="lib_bt_ble.so" />
+         <codec codec_format="CODEC_TYPE_APTX_AD_QLEA" codec_type="enc" codec_library="lib_bt_ble.so" />
+-        <codec codec_format="CODEC_TYPE_LHDC" codec_type="enc" codec_library="lib_bt_lhdc.so" />
+     </bt_codecs>
+     <gain_db_to_level_mapping>
+         <gain_level_map db="-59" level="5"/>
 diff --git a/proprietary/vendor/etc/init/hw/init.batterysecret.rc b/proprietary/vendor/etc/init/hw/init.batterysecret.rc
 index d0b9cf7..92e5162 100644
 --- a/proprietary/vendor/etc/init/hw/init.batterysecret.rc
@@ -177,11 +375,95 @@ index d0b9cf7..92e5162 100644
      disabled
      seclabel u:r:batterysecret:s0
  
+diff --git a/proprietary/vendor/etc/usecaseKvManager.xml b/proprietary/vendor/etc/usecaseKvManager.xml
+index fd4d08e..99b3a05 100644
+--- a/proprietary/vendor/etc/usecaseKvManager.xml
++++ b/proprietary/vendor/etc/usecaseKvManager.xml
+@@ -613,14 +613,6 @@
+                 <!-- BT_FORMAT - LDAC -->
+                 <graph_kv key="0xB5000000" value="0xB5000002"/>
+             </keys_and_values>
+-            <keys_and_values CodecFormat="CODEC_TYPE_LHDC" AbrEnabled="TRUE,FALSE" Hostless="TRUE,FALSE">
+-                <!-- DEVICERX - BT_RX -->
+-                <graph_kv key="0xA2000000" value="0xA2000003"/>
+-                <!-- BT_PROFILE - A2DP -->
+-                <graph_kv key="0xB4000000" value="0xB4000002"/>
+-                <!-- BT_FORMAT - LHDC -->
+-                <graph_kv key="0xB5000000" value="0xB5000008"/>
+-            </keys_and_values>
+             <!-- In APTX_AD ABR is always enabled -->
+             <keys_and_values CodecFormat="CODEC_TYPE_APTX_AD" AbrEnabled="TRUE,FALSE" Hostless="TRUE,FALSE">
+                 <!-- DEVICERX - BT_RX -->
+@@ -711,7 +703,7 @@
+         </device>
+         <!-- BT A2DP IN Device -->
+         <device id="PAL_DEVICE_IN_BLUETOOTH_A2DP">
+-            <keys_and_values CodecFormat="CODEC_TYPE_LDAC,CODEC_TYPE_LHDC,CODEC_TYPE_APTX_AD,CODEC_TYPE_AAC" Hostless="TRUE,FALSE">
++            <keys_and_values CodecFormat="CODEC_TYPE_LDAC,CODEC_TYPE_APTX_AD,CODEC_TYPE_AAC" Hostless="TRUE,FALSE">
+                 <!-- DEVICETX - BT_TX -->
+                 <graph_kv key="0xA3000000" value="0xA3000002"/>
+                </keys_and_values>
 diff --git a/sm8550-common-vendor.mk b/sm8550-common-vendor.mk
-index 1efdb35..5f60d09 100644
+index 1efdb35..284f294 100644
 --- a/sm8550-common-vendor.mk
 +++ b/sm8550-common-vendor.mk
-@@ -1093,8 +1093,8 @@ PRODUCT_PACKAGES += \
+@@ -407,8 +407,6 @@ PRODUCT_COPY_FILES += \
+     vendor/xiaomi/sm8550-common/proprietary/vendor/firmware/vpu33_4v_unsigned.mbn:$(TARGET_COPY_OUT_VENDOR)/firmware/vpu33_4v_unsigned.mbn
+ 
+ PRODUCT_PACKAGES += \
+-    libqesdk2_0 \
+-    libqesdk_manager \
+     android.hardware.secure_element@1.0-impl \
+     btaudio_offload_if \
+     c2.dolby.client \
+@@ -530,7 +528,6 @@ PRODUCT_PACKAGES += \
+     lib_bt_aptx \
+     lib_bt_ble \
+     lib_bt_bundle \
+-    lib_bt_lhdc \
+     lib_misound_asc \
+     libadm \
+     libadsp_default_listener \
+@@ -673,8 +670,6 @@ PRODUCT_PACKAGES += \
+     libmiam \
+     libmicuttlefish_fs \
+     libmilut \
+-    libminkdescriptor \
+-    libminksocket_vendor \
+     libmisfpsop \
+     libmisight \
+     libmisoundsa \
+@@ -717,7 +712,6 @@ PRODUCT_PACKAGES += \
+     libqc2colorconvertfilter \
+     libqc2filter \
+     libqc2vppfilter \
+-    libqcbor \
+     libqcc_file_agent \
+     libqcc_sdk \
+     libqcci_legacy \
+@@ -771,7 +765,6 @@ PRODUCT_PACKAGES += \
+     libqms_client \
+     libqms_xiaomi \
+     libqnnengine \
+-    libqrtr \
+     libqsocket \
+     libqtigefar \
+     libqtiidentitycredential \
+@@ -853,7 +846,6 @@ PRODUCT_PACKAGES += \
+     libtrustedapploader \
+     libvideotxr \
+     libvideoutils \
+-    libvmmem \
+     libvppclient \
+     libvppcommon \
+     libvpphcp \
+@@ -1087,14 +1079,13 @@ PRODUCT_PACKAGES += \
+     vendor.qti.qesdhal@1.2 \
+     vendor.qti.qesdhal@1.3-impl \
+     vendor.qti.qesdhal@1.3 \
+-    vendor.qti.qesdsys-V3-ndk \
+     vendor.qti.sla.service@1.0-impl \
+     vendor.qti.sla.service@1.0 \
      vendor.rongcard.hardware.eid@1.0 \
      vendor.xiaomi.hardware.bgservice@1.0 \
      vendor.xiaomi.hardware.campostproc@1.0 \
@@ -192,7 +474,7 @@ index 1efdb35..5f60d09 100644
      vendor.xiaomi.hardware.micharge@1.0 \
      vendor.xiaomi.hardware.miface@1.0 \
      vendor.xiaomi.hardware.quickcamera@1.0 \
-@@ -1160,7 +1160,7 @@ PRODUCT_PACKAGES += \
+@@ -1160,7 +1151,7 @@ PRODUCT_PACKAGES += \
      TrustZoneAccessService \
      HotwordEnrollmentXGoogleHEXAGON_WIDEBAND \
      HotwordEnrollmentYGoogleHEXAGON_WIDEBAND \
@@ -201,7 +483,7 @@ index 1efdb35..5f60d09 100644
      com.android.hotwordenrollment.common.util \
      android.hardware.radio.config.xml \
      android.hardware.radio.data.xml \
-@@ -1268,7 +1268,6 @@ PRODUCT_PACKAGES += \
+@@ -1268,7 +1259,6 @@ PRODUCT_PACKAGES += \
      init.qcom.sensors \
      init.qti.media \
      init.qti.qcv \

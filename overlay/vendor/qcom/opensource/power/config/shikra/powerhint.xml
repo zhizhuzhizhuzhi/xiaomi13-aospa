@@ -1,0 +1,358 @@
+<?xml version="1.0" encoding="utf-8" ?>
+
+<!--
+/*Copyright (c) 2016-2018, 2020 The Linux Foundation. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are
+ * met:
+ *     * Redistributions of source code must retain the above copyright
+ *       notice, this list of conditions and the following disclaimer.
+ *     * Redistributions in binary form must reproduce the above
+ *       copyright notice, this list of conditions and the following
+ *       disclaimer in the documentation and/or other materials provided
+ *       with the distribution.
+ *     * Neither the name of The Linux Foundation nor the names of its
+ *       contributors may be used to endorse or promote products derived
+ *       from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED "AS IS" AND ANY EXPRESS OR IMPLIED
+ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+ * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT
+ * ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS
+ * BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
+ * BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+ * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
+ * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Changes from Qualcomm Technologies, Inc. are provided under the following license:
+ *
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
+ *
+ */
+-->
+<HintConfigs>
+	<Powerhint>
+        <!--Camera preview boost-->
+        <!-- SCHEDBOOST resource opcode, value -->
+        <!-- SCHEDUTIL_HISPEED_FREQ LITTLE Core resource opcode, value -->
+        <!-- SCHEDUTIL_HISPEED_LOAD LITTLE Core resource opcode, value -->
+        <!-- SCHEDUTIL_HISPEED_LOAD BIG Core resource opcode, value -->
+        <!-- LLCC_DDR_BW_SAMPLE_MS resource opcode, value -->
+        <!-- LLCC_DDR_BW_IO_PERCENT resource opcode, value -->
+        <!-- LLCC_DDR_BW_UP_SCALE resource opcode, value -->
+        <!-- LLCC_DDR_BW_AB_SCALE resource opcode, value -->
+        <!-- CPUBOOST_MAX_FREQ BIG Core resource opcode, value -->
+        <!-- CPUBOOST_MIN_FREQ BIG Core resource opcode, value -->
+        <!-- CPUBOOST_MAX_FREQ LITTLE Core resource opcode, value -->
+        <!-- CPUBOOST_MIN_FREQ LITTLE Core resource opcode, value -->
+        <!-- MPCTLV3_BUS_DCVS_LLCC_DDR_BOOST_FREQ resource opcode, value -->
+        <!-- CLUSTR_1_CPUS_ON resource opcode, value -->
+        <!-- CPUCTL_FG_UCLAMP_LATENCY_SENSITIVE resource opcode, value -->
+
+        <Config
+            Id="0x00001330" Enable="true" Timeout="0" Target="shikra"
+            Resources=" " />
+
+        <!-- camera 30fps -->
+        <!-- SCHEDBOOST resource opcode, value -->
+        <!-- SCHEDUTIL_HISPEED_FREQ LITTLE Core resource opcode, value -->
+        <!-- SCHEDUTIL_HISPEED_LOAD LITTLE Core resource opcode, value -->
+        <!-- SCHEDUTIL_HISPEED_LOAD BIG Core resource opcode, value -->
+        <!-- LLCC_DDR_BW_SAMPLE_MS resource opcode, value -->
+        <!-- LLCC_DDR_BW_IO_PERCENT resource opcode, value -->
+        <!-- LLCC_DDR_BW_UP_SCALE resource opcode, value -->
+        <!-- LLCC_DDR_BW_AB_SCALE resource opcode, value -->
+        <!-- CPUBOOST_MAX_FREQ BIG Core resource opcode, value -->
+        <!-- CPUBOOST_MIN_FREQ BIG Core resource opcode, value -->
+        <!-- CPUBOOST_MAX_FREQ LITTLE Core resource opcode, value -->
+        <!-- CPUBOOST_MIN_FREQ LITTLE Core resource opcode, value -->
+        <!-- MPCTLV3_BUS_DCVS_LLCC_DDR_BOOST_FREQ resource opcode, value -->
+        <!-- CLUSTR_1_CPUS_ON resource opcode, value -->
+        <!-- CPUCTL_FG_UCLAMP_LATENCY_SENSITIVE resource opcode, value -->
+
+        <Config
+            Id="0x00001331" Enable="true" Timeout="0" Target="shikra"
+            Resources="0x40C00000, 0x1, 0x4143C100, 1094, 0x41440100, 0x63, 0x41440000, 0x63,
+            0x43034000, 0x30, 0x43020000, 0x64, 0x43014000, 0x0, 0x43048000, 0x32, 0x40804000, 1900, 0x40800000, 1900,
+            0x40804100, 1804, 0x40800100, 1804, 0x43498000, 1804000, 0x41000100, 0x1, 0x40CEC000, 0x1" />
+
+        <!-- camera 60 FPS -->
+        <!-- SCHEDBOOST resource opcode, value -->
+        <!-- SCHEDUTIL_HISPEED_FREQ LITTLE Core resource opcode, value -->
+        <!-- SCHEDUTIL_HISPEED_LOAD LITTLE Core resource opcode, value -->
+        <!-- SCHEDUTIL_HISPEED_LOAD BIG Core resource opcode, value -->
+        <!-- LLCC_DDR_BW_SAMPLE_MS resource opcode, value -->
+        <!-- LLCC_DDR_BW_IO_PERCENT resource opcode, value -->
+        <!-- LLCC_DDR_BW_UP_SCALE resource opcode, value -->
+        <!-- LLCC_DDR_BW_AB_SCALE resource opcode, value -->
+        <!-- CPUBOOST_MAX_FREQ BIG Core resource opcode, value -->
+        <!-- CPUBOOST_MIN_FREQ BIG Core resource opcode, value -->
+        <!-- CPUBOOST_MAX_FREQ LITTLE Core resource opcode, value -->
+        <!-- CPUBOOST_MIN_FREQ LITTLE Core resource opcode, value -->
+        <!-- MPCTLV3_BUS_DCVS_LLCC_DDR_BOOST_FREQ resource opcode, value -->
+        <!-- CLUSTR_1_CPUS_ON resource opcode, value -->
+        <!-- CPUCTL_FG_UCLAMP_LATENCY_SENSITIVE resource opcode, value -->
+
+        <Config
+            Id="0x00001332" Enable="true" Timeout="0" Target="shikra"
+            Resources="0x40C00000, 0x1, 0x4143C100, 1094, 0x41440100, 0x63, 0x41440000, 0x63,
+            0x43034000, 0x30, 0x43020000, 0x64, 0x43014000, 0x0, 0x43048000, 0x32, 0x40804000, 1900, 0x40800000, 1900,
+            0x40804100, 1804, 0x40800100, 1804, 0x43498000, 1804000, 0x41000100, 0x1, 0x40CEC000, 0x1" />
+
+        <!-- camera HFR -->
+        <!-- SCHEDBOOST resource opcode, value -->
+        <!-- SCHEDUTIL_HISPEED_FREQ LITTLE Core resource opcode, value -->
+        <!-- SCHEDUTIL_HISPEED_LOAD LITTLE Core resource opcode, value -->
+        <!-- SCHEDUTIL_HISPEED_LOAD BIG Core resource opcode, value -->
+        <!-- LLCC_DDR_BW_SAMPLE_MS resource opcode, value -->
+        <!-- LLCC_DDR_BW_IO_PERCENT resource opcode, value -->
+        <!-- LLCC_DDR_BW_UP_SCALE resource opcode, value -->
+        <!-- LLCC_DDR_BW_AB_SCALE resource opcode, value -->
+        <!-- CPUBOOST_MAX_FREQ BIG Core resource opcode, value -->
+        <!-- CPUBOOST_MIN_FREQ BIG Core resource opcode, value -->
+        <!-- CPUBOOST_MAX_FREQ LITTLE Core resource opcode, value -->
+        <!-- CPUBOOST_MIN_FREQ LITTLE Core resource opcode, value -->
+        <!-- MPCTLV3_BUS_DCVS_LLCC_DDR_BOOST_FREQ resource opcode, value -->
+        <!-- CLUSTR_1_CPUS_ON resource opcode, value -->
+        <!-- CPUCTL_FG_UCLAMP_LATENCY_SENSITIVE resource opcode, value -->
+
+        <Config
+            Id="0x00001333" Enable="true" Timeout="0" Target="shikra"
+            Resources="0x40C00000, 0x1, 0x4143C100, 1094, 0x41440100, 0x63, 0x41440000, 0x63,
+            0x43034000, 0x30, 0x43020000, 0x64, 0x43014000, 0x0, 0x43048000, 0x32, 0x40804000, 1900, 0x40800000, 1900,
+            0x40804100, 1804, 0x40800100, 1804, 0x43498000, 1804000, 0x41000100, 0x1, 0x40CEC000, 0x1" />
+
+        <!-- HFR 480fps -->
+        <!-- SCHEDBOOST resource opcode, value -->
+        <!-- SCHEDUTIL_HISPEED_FREQ LITTLE Core resource opcode, value -->
+        <!-- SCHEDUTIL_HISPEED_LOAD LITTLE Core resource opcode, value -->
+        <!-- SCHEDUTIL_HISPEED_LOAD BIG Core resource opcode, value -->
+        <!-- LLCC_DDR_BW_SAMPLE_MS resource opcode, value -->
+        <!-- LLCC_DDR_BW_IO_PERCENT resource opcode, value -->
+        <!-- LLCC_DDR_BW_UP_SCALE resource opcode, value -->
+        <!-- LLCC_DDR_BW_AB_SCALE resource opcode, value -->
+        <!-- CPUBOOST_MAX_FREQ BIG Core resource opcode, value -->
+        <!-- CPUBOOST_MIN_FREQ BIG Core resource opcode, value -->
+        <!-- CPUBOOST_MAX_FREQ LITTLE Core resource opcode, value -->
+        <!-- CPUBOOST_MIN_FREQ LITTLE Core resource opcode, value -->
+        <!-- MPCTLV3_BUS_DCVS_LLCC_DDR_BOOST_FREQ resource opcode, value -->
+        <!-- CLUSTR_1_CPUS_ON resource opcode, value -->
+        <!-- CPUCTL_FG_UCLAMP_LATENCY_SENSITIVE resource opcode, value -->
+
+        <Config
+            Id="0x00001334" Enable="true" Timeout="0" Target="shikra"
+            Resources="0x40C00000, 0x1, 0x4143C100, 1094, 0x41440100, 0x63, 0x41440000, 0x63,
+            0x43034000, 0x30, 0x43020000, 0x64, 0x43014000, 0x0, 0x43048000, 0x32, 0x40804000, 1900, 0x40800000, 1900,
+            0x40804100, 1804, 0x40800100, 1804, 0x43498000, 1804000, 0x41000100, 0x1, 0x40CEC000, 0x1" />
+
+        <!-- camera 8k_30fps -->
+        <!-- SCHEDBOOST resource opcode, value -->
+        <!-- SCHEDUTIL_HISPEED_FREQ LITTLE Core resource opcode, value -->
+        <!-- SCHEDUTIL_HISPEED_LOAD LITTLE Core resource opcode, value -->
+        <!-- SCHEDUTIL_HISPEED_LOAD BIG Core resource opcode, value -->
+        <!-- LLCC_DDR_BW_SAMPLE_MS resource opcode, value -->
+        <!-- LLCC_DDR_BW_IO_PERCENT resource opcode, value -->
+        <!-- LLCC_DDR_BW_UP_SCALE resource opcode, value -->
+        <!-- LLCC_DDR_BW_AB_SCALE resource opcode, value -->
+        <!-- CPUBOOST_MAX_FREQ BIG Core resource opcode, value -->
+        <!-- CPUBOOST_MIN_FREQ BIG Core resource opcode, value -->
+        <!-- CPUBOOST_MAX_FREQ LITTLE Core resource opcode, value -->
+        <!-- CPUBOOST_MIN_FREQ LITTLE Core resource opcode, value -->
+        <!-- MPCTLV3_BUS_DCVS_LLCC_DDR_BOOST_FREQ resource opcode, value -->
+        <!-- CLUSTR_1_CPUS_ON resource opcode, value -->
+        <!-- CPUCTL_FG_UCLAMP_LATENCY_SENSITIVE resource opcode, value -->
+
+        <Config
+            Id="0x00001335" Enable="true" Timeout="0" Target="shikra"
+            Resources="0x40C00000, 0x1, 0x4143C100, 1094, 0x41440100, 0x63, 0x41440000, 0x63,
+            0x43034000, 0x30, 0x43020000, 0x64, 0x43014000, 0x0, 0x43048000, 0x32, 0x40804000, 1900, 0x40800000, 1900,
+            0x40804100, 1804, 0x40800100, 1804, 0x43498000, 1804000, 0x41000100, 0x1, 0x40CEC000, 0x1" />
+
+        <!-- multi camera 30fps -->
+        <!-- SCHEDBOOST resource opcode, value -->
+        <!-- SCHEDUTIL_HISPEED_FREQ LITTLE Core resource opcode, value -->
+        <!-- SCHEDUTIL_HISPEED_LOAD LITTLE Core resource opcode, value -->
+        <!-- SCHEDUTIL_HISPEED_LOAD BIG Core resource opcode, value -->
+        <!-- LLCC_DDR_BW_SAMPLE_MS resource opcode, value -->
+        <!-- LLCC_DDR_BW_IO_PERCENT resource opcode, value -->
+        <!-- LLCC_DDR_BW_UP_SCALE resource opcode, value -->
+        <!-- LLCC_DDR_BW_AB_SCALE resource opcode, value -->
+        <!-- CPUBOOST_MAX_FREQ BIG Core resource opcode, value -->
+        <!-- CPUBOOST_MIN_FREQ BIG Core resource opcode, value -->
+        <!-- CPUBOOST_MAX_FREQ LITTLE Core resource opcode, value -->
+        <!-- CPUBOOST_MIN_FREQ LITTLE Core resource opcode, value -->
+        <!-- MPCTLV3_BUS_DCVS_LLCC_DDR_BOOST_FREQ resource opcode, value -->
+        <!-- CLUSTR_1_CPUS_ON resource opcode, value -->
+        <!-- CPUCTL_FG_UCLAMP_LATENCY_SENSITIVE resource opcode, value -->
+
+        <Config
+            Id="0x00001336" Enable="true" Timeout="0" Target="shikra"
+            Resources="0x40C00000, 0x1, 0x4143C100, 1094, 0x41440100, 0x63, 0x41440000, 0x63,
+            0x43034000, 0x30, 0x43020000, 0x64, 0x43014000, 0x0, 0x43048000, 0x32, 0x40804000, 1900, 0x40800000, 1900,
+            0x40804100, 1804, 0x40800100, 1804, 0x43498000, 1804000, 0x41000100, 0x1, 0x40CEC000, 0x1" />
+
+
+        <!-- same settings for all the qvr power levels intentionally -->
+        <!-- qvr level cpu1 gpu1 -->
+        <!-- Silver CPU - Cluster min freq ~.691 Ghz -->
+        <!-- Silver CPU - Cluster max freq ~2.2 Ghz -->
+        <!-- Gold CPU - Cluster min freq ~.576 Ghz -->
+        <!-- Gold CPU - Cluster max freq ~1.516 Ghz -->
+        <!-- GPU - min pwrlevel 6 (freq 180 Mhz) -->
+        <!-- GPU - max pwrlevel 0 (freq 825 Mhz) -->
+        <!-- Idefinite Duration -->
+        <Config
+            Id="0x0000130A" Enable="true" Target="shikra" Timeout="0"
+            Resources="0x40800000, 0x2B3, 0x40804000, 0x8A0, 0x40800100, 0x240, 0x40804100, 0x5EC,
+            0x42804000, 0x6, 0x42808000, 0x0"/>
+
+        <!-- qvr level cpu1 gpu2 -->
+        <!-- Silver CPU - Cluster min freq ~.691 Ghz -->
+        <!-- Silver CPU - Cluster max freq ~2.2 Ghz -->
+        <!-- Gold CPU - Cluster min freq ~.576 Ghz -->
+        <!-- Gold CPU - Cluster max freq ~1.516 Ghz -->
+        <!-- GPU - min pwrlevel 6 (freq 180 Mhz) -->
+        <!-- GPU - max pwrlevel 0 (freq 825 Mhz) -->
+        <!-- Idefinite Duration -->
+        <Config
+            Id="0x0000130B" Enable="true" Target="shikra" Timeout="0"
+            Resources="0x40800000, 0x2B3, 0x40804000, 0x8A0, 0x40800100, 0x240, 0x40804100, 0x5EC,
+            0x42804000, 0x6, 0x42808000, 0x0"/>
+
+        <!-- qvr level cpu1 gpu3 -->
+        <!-- Silver CPU - Cluster min freq ~.691 Ghz -->
+        <!-- Silver CPU - Cluster max freq ~2.2 Ghz -->
+        <!-- Gold CPU - Cluster min freq ~.576 Ghz -->
+        <!-- Gold CPU - Cluster max freq ~1.516 Ghz -->
+        <!-- GPU - min pwrlevel 6 (freq 180 Mhz) -->
+        <!-- GPU - max pwrlevel 0 (freq 825 Mhz) -->
+        <!-- Idefinite Duration -->
+        <Config
+            Id="0x0000130C" Enable="true" Target="shikra" Timeout="0"
+            Resources="0x40800000, 0x2B3, 0x40804000, 0x8A0, 0x40800100, 0x240, 0x40804100, 0x5EC,
+            0x42804000, 0x6, 0x42808000, 0x0"/>
+
+        <!-- qvr level cpu2 gpu1 -->
+        <!-- Silver CPU - Cluster min freq ~.691 Ghz -->
+        <!-- Silver CPU - Cluster max freq ~2.2 Ghz -->
+        <!-- Gold CPU - Cluster min freq ~.576 Ghz -->
+        <!-- Gold CPU - Cluster max freq ~1.516 Ghz -->
+        <!-- GPU - min pwrlevel 6 (freq 180 Mhz) -->
+        <!-- GPU - max pwrlevel 0 (freq 825 Mhz) -->
+        <!-- Idefinite Duration -->
+        <Config
+            Id="0x0000130D" Enable="true" Target="shikra" Timeout="0"
+            Resources="0x40800000, 0x2B3, 0x40804000, 0x8A0, 0x40800100, 0x240, 0x40804100, 0x5EC,
+            0x42804000, 0x6, 0x42808000, 0x0"/>
+
+        <!-- qvr level cpu2 gpu2 -->
+        <!-- Silver CPU - Cluster min freq ~.691 Ghz -->
+        <!-- Silver CPU - Cluster max freq ~2.2 Ghz -->
+        <!-- Gold CPU - Cluster min freq ~.576 Ghz -->
+        <!-- Gold CPU - Cluster max freq ~1.516 Ghz -->
+        <!-- GPU - min pwrlevel 6 (freq 180 Mhz) -->
+        <!-- GPU - max pwrlevel 0 (freq 825 Mhz) -->
+        <!-- Idefinite Duration -->
+        <Config
+            Id="0x0000130E" Enable="true" Target="shikra" Timeout="0"
+            Resources="0x40800000, 0x2B3, 0x40804000, 0x8A0, 0x40800100, 0x240, 0x40804100, 0x5EC,
+            0x42804000, 0x6, 0x42808000, 0x0"/>
+
+        <!-- qvr level cpu2 gpu3 -->
+        <!-- Silver CPU - Cluster min freq ~.691 Ghz -->
+        <!-- Silver CPU - Cluster max freq ~2.2 Ghz -->
+        <!-- Gold CPU - Cluster min freq ~.576 Ghz -->
+        <!-- Gold CPU - Cluster max freq ~1.516 Ghz -->
+        <!-- GPU - min pwrlevel 6 (freq 180 Mhz) -->
+        <!-- GPU - max pwrlevel 0 (freq 825 Mhz) -->
+        <!-- Idefinite Duration -->
+        <Config
+            Id="0x0000130F" Enable="true" Target="shikra" Timeout="0"
+            Resources="0x40800000, 0x2B3, 0x40804000, 0x8A0, 0x40800100, 0x240, 0x40804100, 0x5EC,
+            0x42804000, 0x6, 0x42808000, 0x0"/>
+
+        <!-- qvr level cpu3 gpu1 -->
+        <!-- Silver CPU - Cluster min freq ~.691 Ghz -->
+        <!-- Silver CPU - Cluster max freq ~2.2 Ghz -->
+        <!-- Gold CPU - Cluster min freq ~.576 Ghz -->
+        <!-- Gold CPU - Cluster max freq ~1.516 Ghz -->
+        <!-- GPU - min pwrlevel 6 (freq 180 Mhz) -->
+        <!-- GPU - max pwrlevel 0 (freq 825 Mhz) -->
+        <!-- Idefinite Duration -->
+        <Config
+            Id="0x00001310" Enable="true" Target="shikra" Timeout="0"
+            Resources="0x40800000, 0x2B3, 0x40804000, 0x8A0, 0x40800100, 0x240, 0x40804100, 0x5EC,
+            0x42804000, 0x6, 0x42808000, 0x0"/>
+
+        <!-- qvr level cpu3 gpu2 -->
+        <!-- Silver CPU - Cluster min freq ~.768 Ghz -->
+        <!-- Silver CPU - Cluster max freq ~2.2 Ghz -->
+        <!-- Gold CPU - Cluster min freq ~.576 Ghz -->
+        <!-- Gold CPU - Cluster max freq ~1.516 Ghz -->
+        <!-- GPU - min pwrlevel 6 (freq 180 Mhz) -->
+        <!-- GPU - max pwrlevel 0 (freq 825 Mhz) -->
+        <!-- Idefinite Duration -->
+        <Config
+            Id="0x00001311" Enable="true" Target="shikra" Timeout="0"
+            Resources="0x40800000, 0x2B3, 0x40804000, 0x8A0, 0x40800100, 0x240, 0x40804100, 0x5EC,
+            0x42804000, 0x6, 0x42808000, 0x0"/>
+
+        <!-- qvr level cpu3 gpu3 -->
+        <!-- Silver CPU - Cluster min freq ~.768 Ghz -->
+        <!-- Silver CPU - Cluster max freq ~2.2 Ghz -->
+        <!-- Gold CPU - Cluster min freq ~.576 Ghz -->
+        <!-- Gold CPU - Cluster max freq ~1.516 Ghz -->
+        <!-- GPU - min pwrlevel 6 (freq 180 Mhz) -->
+        <!-- GPU - max pwrlevel 0 (freq 825 Mhz) -->
+        <!-- Idefinite Duration -->
+        <Config
+            Id="0x00001312" Enable="true" Target="shikra" Timeout="0"
+            Resources="0x40800000, 0x2B3, 0x40804000, 0x8A0, 0x40800100, 0x240, 0x40804100, 0x5EC,
+            0x42804000, 0x6, 0x42808000, 0x0"/>
+
+         <!-- sustained performance -->
+         <!-- Silver CPU - Cluster min freq uncapped -->
+         <!-- Gold CPU - Cluster min freq uncapped -->
+         <!-- Silver CPU - Cluster max freq ~1.22 GHz -->
+         <!-- Gold CPU - Cluster max freq ~1.22 Ghz -->
+         <!-- GPU - min freq 275Mhz -->
+         <!-- GPU - max freq 400Mhz -->
+         <!-- GPUBW freq uncapped -->
+         <Config
+             Id="0x00001206" Enable="true" Timeout="0" Target="shikra"
+             Resources="0x40800000, 0x0, 0x40800100, 0x0, 0x40804000, 0x4CC, 0x40804100, 0x4CC,
+             0X4280C000, 0x113, 0X42810000, 0x190, 0x42814000, 0x0"/>
+
+         <!-- vr mode -->
+         <!-- Silver CPU - Cluster min freq ~1.22 Ghz -->
+         <!-- Gold CPU - Cluster min freq ~0.940 Ghz -->
+         <!-- Silver CPU - Cluster max freq ~1.90 Ghz -->
+         <!-- Gold CPU - Cluster max freq ~1.70 Ghz -->
+         <!-- GPU - min freq 275Mhz -->
+         <!-- GPU - max freq 625Mhz -->
+         <!-- GPUBW uncapped -->
+         <Config
+             Id="0x00001207" Enable="true" Timeout="0" Target="shikra"
+             Resources="0x40800000, 0x4CC, 0x40800100, 0x3AC, 0x40804000, 0x76C, 0x40804100, 0x6C0,
+             0X4280C000, 0x113, 0X4280C000, 0x271, 0x42814000, 0x0"/>
+
+         <!-- vr mode sustained performance -->
+         <!-- Silver CPU - Cluster min freq ~1.22 Ghz -->
+         <!-- Gold CPU - Cluster min freq ~1.22 Ghz -->
+         <!-- Silver CPU - Cluster max freq ~1.22 Ghz -->
+         <!-- Gold CPU - Cluster max freq ~1.22 Ghz -->
+         <!-- GPU - min freq 400Mhz -->
+         <!-- GPU - max freq 400Mhz -->
+         <!-- GPUBW uncapped -->
+         <Config
+             Id="0x00001301" Enable="true" Timeout="0" Target="shikra"
+             Resources="0x40800000, 0x4CC, 0x40800100, 0x4CC, 0x40804000, 0x4CC, 0x40804100, 0x4CC,
+             0X4280C000, 0x190, 0X42810000, 0x190, 0x42814000, 0x0"/>
+
+    </Powerhint>
+</HintConfigs>

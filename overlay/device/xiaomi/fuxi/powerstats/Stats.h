@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 #pragma once
 
+#include <cerrno>
 #include <cstdint>
 #include <limits>
 #include <optional>
@@ -17,6 +18,12 @@ struct KernelStats {
     uint64_t accumulated;
 };
 static_assert(sizeof(KernelStats) == 32);
+
+inline bool isSleepStatsProviderAbsent(unsigned int command, int error) {
+    return error == ENOENT || error == ENXIO || error == ENODEV
+            || (command == 12 && error == EINVAL);
+}
+
 
 inline std::optional<int64_t> ticksToMillis(uint64_t ticks, uint64_t frequency) {
     if (frequency == 0) return std::nullopt;

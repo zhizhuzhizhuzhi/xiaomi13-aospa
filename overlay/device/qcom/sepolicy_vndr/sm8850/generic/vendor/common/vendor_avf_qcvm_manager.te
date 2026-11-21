@@ -1,0 +1,92 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# Policy for vendor_avf_qcvm_manager
+type vendor_avf_qcvm_manager, domain;
+type vendor_avf_qcvm_manager_exec, vendor_file_type, exec_type, file_type;
+type vendor_avf_qcvm_manager_tmpfs, file_type;
+
+# Define avf qcvm manager as a daemon managed by init in the vendor partition
+init_daemon_domain(vendor_avf_qcvm_manager);
+binder_use(vendor_avf_qcvm_manager);
+hal_server_domain(vendor_avf_qcvm_manager,vendor_hal_avf_qcvm_qti);
+
+#Allow aidl based avf_qcvm communication
+hal_attribute_service(vendor_hal_avf_qcvm_qti,vendor_hal_avf_qcvm_service);
+binder_call(vendor_hal_avf_qcvm_qti_server, servicemanager)
+
+#Allow avf_qcvm client domain apps to find service
+binder_call(vendor_hal_avf_qcvm_qti_server, vendor_hal_avf_qcvm_qti_client);
+binder_call(vendor_hal_avf_qcvm_qti_client, vendor_hal_avf_qcvm_qti_server);
+
+allow vendor_avf_qcvm_manager self:netlink_kobject_uevent_socket create_socket_perms_no_ioctl;
+
+#allow vendor_avf_qcvm_manager to read the VM SSR flag
+get_prop(vendor_avf_qcvm_manager, vendor_vm_ssrenable_prop)
+
+#
+# Transition to virtualizationmanager when the client executes it.
+virtualizationservice_vendor_use(vendor_avf_qcvm_manager)
+
+# Allow piping console log to the client
+allow { virtualizationmanager_vendor crosvm_domain } vendor_avf_qcvm_manager:fifo_file { ioctl getattr read write };
+
+# Allow client to read/write vsock created by virtualizationmanager to communicate with the VM
+# that it created. Notice that we do not grant permission to create a vsock;
+# the client can only connect to VMs that it owns.
+allow vendor_avf_qcvm_manager virtualizationmanager_vendor:vsock_socket { getattr getopt read write };
+
+# Allow client to inspect hypervisor capabilities
+get_prop(vendor_avf_qcvm_manager, hypervisor_prop)
+
+# Provide access to the anon node
+gunyah_cma_use(vendor_avf_qcvm_manager)
+
+#Provide read access to the CMA FD nodes
+allow vendor_avf_qcvm_manager vendor_qcvm_device:chr_file r_file_perms;
+
+#Provide access to the vm files present under /vendor.
+#To revist when QTVM DTBO signing happens
+allow vendor_avf_qcvm_manager vendor_vm_file:dir r_dir_perms;
+allow vendor_avf_qcvm_manager vendor_vm_file:file r_file_perms;
+
+#Provide read and write access to the vm data files present under /data/vendor/qtvm_dtbo
+allow vendor_avf_qcvm_manager vendor_vm_data_file:dir rw_dir_perms;
+allow vendor_avf_qcvm_manager vendor_vm_data_file:file create_file_perms;
+
+allow vendor_avf_qcvm_manager block_device:dir search;
+allow vendor_avf_qcvm_manager vendor_custom_ab_block_device:blk_file r_file_perms;
+
+# Allow vendor_avf_qcvm_manager to inspect all hypervisor capabilities
+# and enable as an early virtmgr
+early_virtmgr_vendor_use(vendor_avf_qcvm_manager)
+
+allow { vendor_avf_qcvm_manager crosvm_domain virtualizationmanager_domain early_virtmgr_domain } mnt_vendor_vm_file:file rw_file_perms;
+allow { vendor_avf_qcvm_manager } mnt_vendor_vm_file:dir search;
+allow { vendor_avf_qcvm_manager } mnt_vendor_file:dir search;
+
+# provide vsock_socket perms to vendor_avf_qcvm_manager
+starting_at_board_api(202504, `
+typeattribute vendor_avf_qcvm_manager unconstrained_vsock_violators;
+')
+allow vendor_avf_qcvm_manager self:vsock_socket { connect create bind accept read write listen setopt };
+
+# Allow vendor_avf_qcvm_manager to talk to the HLOS Mink Daemon
+unix_socket_connect(vendor_avf_qcvm_manager,vendor_hlos_minkd_opener,vendor_hlosminkdaemon)
+
+# Provide access to Mink Trace Properties
+userdebug_or_eng(`
+   get_prop(vendor_avf_qcvm_manager, vendor_mink_trace_prop)
+ ')
+
+# Provide access to kmsg_debug_device
+userdebug_or_eng(`
+  allow vendor_avf_qcvm_manager kmsg_debug_device:chr_file { ioctl w_file_perms };
+ ')
+
+# Suppress harmless AVF-related denials that do not affect functionality.
+# early_virtmgr searches vendor partition mount points during VM boot;
+# these dir search denials are benign and do not affect VM operation.
+# Bug: CR 4491805
+dontaudit early_virtmgr_domain vendor_vm_file:dir search;
+dontaudit early_virtmgr_domain mnt_vendor_file:dir search;

@@ -1,0 +1,19 @@
+diff --git a/hal_adapter/Android.bp b/hal_adapter/Android.bp
+index 8ff557c..1705fcf 100644
+--- a/hal_adapter/Android.bp
++++ b/hal_adapter/Android.bp
+@@ -26,3 +26,14 @@ cc_library {
+         "-DBACKEND_NDK",
+     ],
+ }
++
++cc_binary {
++    name: "qtiaudiohalvendorextn",
++    system_ext_specific: true,
++    init_rc: ["qtiaudiohalvendorextn.rc"],
++    srcs: ["main.cpp"],
++    shared_libs: [
++        "libaudiohalvendorextn",
++        "libbinder_ndk",
++    ],
++}

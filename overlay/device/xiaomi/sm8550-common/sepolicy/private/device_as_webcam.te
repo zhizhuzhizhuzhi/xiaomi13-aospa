@@ -1,4 +1,0 @@
-
-
-# Camera streaming uses the existing Qualcomm performance HAL.
-hal_client_domain(device_as_webcam, vendor_hal_perf)

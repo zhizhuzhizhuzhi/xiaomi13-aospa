@@ -1,0 +1,39 @@
+# Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+type vendor_xrcommd, domain;
+type vendor_xrcommd_exec, vendor_file_type, exec_type, file_type;
+
+init_daemon_domain(vendor_xrcommd)
+
+# Allow access to our socket
+allow vendor_xrcommd vendor_xrcommd_socket:sock_file rw_file_perms;
+
+#Inherit base network permissions from netd
+net_domain(vendor_xrcommd)
+
+#Allow udp socket
+allow vendor_xrcommd self:udp_socket create_socket_perms_no_ioctl;
+allow vendor_xrcommd self:netlink_route_socket create_socket_perms_no_ioctl;
+
+#Allow hal graphics allocator permissions
+hal_client_domain(vendor_xrcommd, hal_graphics_allocator);
+
+#Allow hal graphics mapper permissions
+hal_client_domain(vendor_xrcommd, hal_graphics_composer);
+
+#Access to xrcomm properties
+set_prop(vendor_xrcommd, vendor_xrcomm_prop);
+
+#tsf node permission
+allow vendor_xrcommd sysfs_net:dir { read search };
+allow vendor_xrcommd sysfs_net:file { open read };
+
+# Allow interacting with vendor_xrcommd_vndr directory
+allow vendor_xrcommd vendor_xrcommd_vndr_data_file:dir create_dir_perms;
+allow vendor_xrcommd vendor_xrcommd_vndr_data_file:file create_file_perms;
+
+# Allow interaction with qxr service
+allow vendor_xrcommd vendor_hal_xrcommservice_qti_socket_client:fd use;
+allow vendor_xrcommd vendor_hal_xrcommservice_qti_socket_client:unix_stream_socket { read shutdown write };
+

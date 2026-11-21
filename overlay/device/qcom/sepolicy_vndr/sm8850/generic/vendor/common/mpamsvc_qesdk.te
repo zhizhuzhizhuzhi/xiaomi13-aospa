@@ -1,0 +1,22 @@
+# Copyright (c) 2025 Qualcomm Innovation Center, Inc. All rights reserved.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+type vendor_mpamsvc_qesdk, domain;
+type vendor_mpamsvc_qesdk_exec, exec_type, vendor_file_type, file_type;
+init_daemon_domain(vendor_mpamsvc_qesdk)
+
+#allow access to qesdk
+qesdk_access(vendor_mpamsvc_qesdk)
+vndbinder_use(vendor_mpamsvc_qesdk)
+binder_use(vendor_mpamsvc_qesdk)
+
+#allow access to perf-hal
+hal_client_domain(vendor_mpamsvc_qesdk, vendor_hal_perf)
+
+add_service(vendor_mpamsvc_qesdk, vendor_qsap_mpamsvc_service)
+
+allow vendor_mpamsvc_qesdk vendor_mpam_data_file:dir create_dir_perms;
+allow vendor_mpamsvc_qesdk vendor_mpam_data_file:file create_file_perms;
+
+allow vendor_mpamsvc_qesdk vendor_sysfs_mpam:dir {search};
+allow vendor_mpamsvc_qesdk vendor_sysfs_mpam:file rw_file_perms;

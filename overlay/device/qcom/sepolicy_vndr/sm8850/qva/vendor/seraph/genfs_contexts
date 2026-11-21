@@ -1,0 +1,23 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+genfscon sysfs /devices/platform/soc/soc:qcom,power-state/wakeup u:object_r:sysfs_wakeup:s0
+
+# Power-Disk sysfs node
+genfscon sysfs /power/disk  u:object_r:vendor_sysfs_power_disk:s0
+
+# cpu sleep disabled sysfs node
+genfscon sysfs /devices/system/cpu/qcom_lpm/parameters/sleep_disabled u:object_r:vendor_sysfs_cpu_sleep_disabled:s0
+
+# power state sysfs node
+#genfscon sysfs /power/state u:object_r:sysfs_power:s0
+
+#sysfs_net related path entries
+genfscon sysfs /devices/platform/1c00000.qcom,pcie/pci0000:00/0000:00:00.0/0000:01:00.0/net u:object_r:sysfs_net:s0
+
+# spmi wakeup node
+genfscon sysfs /devices/platform/soc/c42d000.qcom,spmi/spmi-0/0-00/c42d000.qcom,spmi:pmar2230@0:rtc@6400/rtc/rtc0/alarmtimer.1.auto/wakeup u:object_r:sysfs_wakeup:s0
+genfscon sysfs /devices/platform/soc/c42d000.qcom,spmi/spmi-0/0-00/c42d000.qcom,spmi:pmar2230@0:btn@2500/wakeup u:object_r:sysfs_wakeup:s0
+
+# uart wakeup node
+genfscon sysfs /devices/platform/soc/ac0000.qcom,qupv3_1_geni_se/a84000.serial/wakeup u:object_r:sysfs_wakeup:s0

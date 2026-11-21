@@ -1,0 +1,53 @@
+# Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# Define domain
+type vendor_hexlpservice, domain;
+type vendor_hexlpservice_exec, exec_type, vendor_file_type, file_type;
+
+init_daemon_domain(vendor_hexlpservice)
+
+hal_server_domain(vendor_hexlpservice, vendor_hal_hexlp)
+
+hal_attribute_service(vendor_hal_hexlp, vendor_hal_hexlp_service)
+
+binder_call(vendor_hal_hexlp_client, vendor_hal_hexlp_server)
+binder_call(vendor_hal_hexlp_server, vendor_hal_hexlp_client)
+binder_call(vendor_hexlpservice, servicemanager)
+
+# allow binder call/transfer between service manager and Hexlp service
+binder_use(vendor_hexlpservice)
+
+# allow hexlpservice to access adsprpcd
+r_dir_file(vendor_hexlpservice, adsprpcd_file);
+#get_prop(vendor_hexlpservice, adsprpc_prop)
+
+r_dir_file(vendor_hexlpservice, firmware_file);
+
+# allow access to hexlpservice (/data/vendor/hexlp)
+allow vendor_hexlpservice vendor_hexlp_data_file:dir create_dir_perms;
+allow vendor_hexlpservice vendor_hexlp_data_file:file create_file_perms;
+
+# allow access to hexlpservice (/persist/hexlp)
+r_dir_file(vendor_hexlpservice, vendor_persist_hexlp_file)
+allow vendor_hexlpservice mnt_vendor_file:dir search;
+
+# allow hexlpservice to access ion, video device, xdsp_device & qdsp_device
+allow vendor_hexlpservice video_device:chr_file rw_file_perms;
+allow vendor_hexlpservice vendor_xdsp_device:chr_file r_file_perms;
+allow vendor_hexlpservice vendor_qdsp_device:chr_file r_file_perms;
+allow vendor_hexlpservice gpu_device:chr_file rw_file_perms;
+allow vendor_hexlpservice vendor_dmabuf_system_heap_device:chr_file r_file_perms;
+allow vendor_hexlpservice dmabuf_system_heap_device:chr_file r_file_perms;
+allow vendor_hexlpservice vendor_membuf_dev:chr_file r_file_perms;
+allow vendor_hexlpservice vendor_vm_cp_pixel_device:chr_file r_file_perms;
+allow vendor_hexlpservice vendor_synx_device:chr_file rw_file_perms;
+
+# Allow hexlpservice to access sysfs
+allow vendor_hexlpservice sysfs:dir r_dir_perms;
+
+# allow hexlpservice to access dsp read_prop
+get_prop(vendor_hexlpservice, vendor_adsprpc_prop)
+
+hal_client_domain(vendor_hexlpservice, hal_graphics_allocator)
+hal_client_domain(vendor_hexlpservice, vendor_hal_capabilityconfigstore_qti)

@@ -1,0 +1,269 @@
+<?xml version="1.0" encoding="utf-8" ?>
+
+<!--
+/* Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
+ */
+-->
+
+<HintConfigs>
+    <Powerhint>
+        <!-- Camera profiles -->
+        <!-- camera preview -->
+        <!--L CPU CORE 0 SCHED LOAD BOOST -->
+        <!--L CPU CORE 6 SCHED LOAD BOOST -->
+        <!--L CPU Hispeed freq of 1094Mhz -->
+        <!--L CLUSTER_LITTLE - Set hispeed load 99 -->
+        <!--L CLUSTER_BIG - Set hispeed load 99 -->
+        <!--CPUBW HWMON - Set sample_ms 48 -->
+        <!--CPUBW HWMON - Set io_percent 100 -->
+        <!--CPUBW HWMON - Set up_scale 0 -->
+        <!-- AB scale 50 -->
+        <!--L CPU max freq 1286Mhz -->
+        <Config
+            Id="0x00001330" Enable="true" Timeout="0" Target="malabar"
+            Resources="0x40C68100, -15, 0x40C68000, -15,
+            0x4143C100, 1094, 0x41440100, 0x63, 0x41440000, 0x63, 0x43034000, 0x30, 0x43020000,
+            0x64, 0x43014000, 0x0, 0x43048000, 0x32, 0x40804100, 1286"/>
+
+        <!-- camera 30fps-->
+        <!--L CPU CORE 0 SCHED LOAD BOOST -->
+        <!--L CPU CORE 6 SCHED LOAD BOOST -->
+        <!--L CLUSTER_LITTLE - Set hispeed load 95 -->
+        <!--L CLUSTER_BIG - Set hispeed load 95 -->
+        <!--CPUBW HWMON - Set sample_ms 48 -->
+        <!--CPUBW HWMON - Set io_percent 100 -->
+        <!--CPUBW HWMON - Set up_scale 0 -->
+        <!--Set uclamp latency sensitivity to 1 -->
+        <!-- AB scale 50-->
+        <!--L CPU max freq 1286Mhz -->
+        <!-- GPU - min pwrlevel 8 (freq 326 Mhz) -->
+        <Config
+            Id="0x00001331" Enable="true" Timeout="0" Target="malabar"
+            Resources="0x40C68100, -10, 0x40C68000, -10,
+            0x41440100, 0x5F, 0x41440000, 0x5F, 0x43034000, 0x30, 0x43020000, 0x64, 0x43014000, 0x0,
+            0x40CEC000, 0x1, 0x43048000, 0x32, 0x40804100, 1286 , 0x42804000, 0x8"/>
+
+
+        <!-- camera 60 FPS -->
+        <!--L CPU CORE 0 SCHED LOAD BOOST -->
+        <!--L CPU CORE 6 SCHED LOAD BOOST -->
+        <!--L CLUSTER_LITTLE - Set hispeed load 95 -->
+        <!--L CLUSTER_BIG - Set hispeed load 95 -->
+        <!--CPUBW HWMON - Set sample_ms 20 -->
+        <!--Set uclamp latency sensitivity to 1 -->
+        <!-- AB scale 50-->
+        <!-- CPUBW HWMON - Set io_percent 100 -->
+        <!--L CPU max freq 1286Mhz -->
+        <!--MPCTLV3_SCHED_BG_UPDOWNMIGRATE - 60 55-->
+        <!--MPCTLV3_SCHED_FG_UPDOWNMIGRATE - 60 55-->
+        <!--MPCTLV3_SCHED_OT_UPDOWNMIGRATE - 60 55-->
+        <!--MPCTLV3_SCHED_TA_UPDOWNMIGRATE - 60 55-->
+        <Config
+            Id="0x00001332" Enable="true" Timeout="0" Target="malabar"
+            Resources="0x40C68100, -10, 0x40C68000, -10, 0x41440100, 0x5F, 0x41440000, 0x5F, 0x43034000, 0x14, 0x40CEC000, 0x1, 0x43048000, 0x32,
+            0x43020000, 0x64, 0x40804100, 1286 , 0x43C74100, 0x003C0037, 0x43C78100, 0x003C0037, 0x43C7C100, 0x003C0037, 0x43C80100, 0x003C0037"/>
+
+        <!-- camera HFR -->
+        <!--L CPU CORE 0 SCHED LOAD BOOST -->
+        <!--L CPU CORE 6 SCHED LOAD BOOST -->
+        <!--L CPU Hispeed freq of 1094Mhz -->
+        <!--L CLUSTER_LITTLE - Set hispeed load 95 -->
+        <!--L CLUSTER_BIG - Set hispeed load 95 -->
+        <!--CPUBW HWMON - Set sample_ms 20 -->
+        <!-- AB scale 50-->
+        <!--L CPU max freq 1094Mhz -->
+        <Config
+            Id="0x00001333" Enable="true" Timeout="0" Target="malabar"
+            Resources="0x40C68100, -10, 0x40C68000, -10, 0x4143C100, 1094, 0x41440100,
+            0x5F, 0x41440000, 0x5F, 0x43034000, 0x14, 0x43048000, 0x32, 0x40804100, 1094"/>
+
+
+        <!-- HFR 480fps -->
+        <!--L CPU CORE 0 SCHED LOAD BOOST -->
+        <!--L CPU CORE 6 SCHED LOAD BOOST -->
+        <!--L CPU Hispeed freq of 1094Mhz -->
+        <!--L CLUSTER_LITTLE - Set hispeed load 95 -->
+        <!--L CLUSTER_BIG - Set hispeed load 95 -->
+        <!--CPUBW HWMON - Set sample_ms 20 -->
+        <!--L CPU core ctl min cpus 6 -->
+        <Config
+            Id="0x00001334" Enable="true" Timeout="0" Target="malabar"
+            Resources="0x40C68100, 0xFFFFFFFA, 0x40C68000, 0xFFFFFFFA, 0x4143C100, 1094, 0x41440100,
+            0x5F, 0x41440000, 0x5F, 0x43034000, 0x14, 0x41000100, 6"/>
+
+        <!-- multi camera 30fps-->
+        <!--L CPU CORE 0 SCHED LOAD BOOST -->
+        <!--L CPU CORE 6 SCHED LOAD BOOST -->
+        <!--L CPU cluster min freq of 1094Mhz -->
+        <!--CPUBW HWMON - Set sample_ms 48 -->
+        <!--CPUBW HWMON - Set io_percent 100 -->
+        <!--CPUBW HWMON - Set up_scale 0 -->
+        <!--L CPU core ctl min cpus 6 -->
+        <!--Set uclamp latency sensitivity to 1 -->
+        <Config
+            Id="0x00001336" Enable="true" Timeout="0" Target="malabar"
+            Resources="0x40C68100, -10, 0x40C68000, -10,
+            0x40800100, 1094, 0x43034000, 0x30, 0x43020000, 0x64, 0x43014000, 0x0, 0x41000100, 6,
+            0x40CEC000, 0x1"/>
+
+        <!-- Generic profiles -->
+        <!-- same settings for all the qvr power levels intentionally -->
+        <!-- qvr level cpu1 gpu1 -->
+        <!-- B CPU - Cluster min freq ~.691 Ghz -->
+        <!-- B CPU - Cluster max freq ~2.2 Ghz -->
+        <!-- L CPU - Cluster min freq ~.576 Ghz -->
+        <!-- L CPU - Cluster max freq ~1.516 Ghz -->
+        <!-- GPU - min pwrlevel 6 (freq 180 Mhz) -->
+        <!-- GPU - max pwrlevel 0 (freq 825 Mhz) -->
+        <!-- Idefinite Duration -->
+        <Config
+            Id="0x0000130A" Enable="true" Target="malabar" Timeout="0"
+            Resources="0x40800000, 0x2B3, 0x40804000, 0x8A0, 0x40800100, 0x240, 0x40804100, 0x5EC,
+            0x42804000, 0x6, 0x42808000, 0x0"/>
+
+        <!-- qvr level cpu1 gpu2 -->
+        <!-- B CPU - Cluster min freq ~.691 Ghz -->
+        <!-- B CPU - Cluster max freq ~2.2 Ghz -->
+        <!-- L CPU - Cluster min freq ~.576 Ghz -->
+        <!-- L CPU - Cluster max freq ~1.516 Ghz -->
+        <!-- GPU - min pwrlevel 6 (freq 180 Mhz) -->
+        <!-- GPU - max pwrlevel 0 (freq 825 Mhz) -->
+        <!-- Idefinite Duration -->
+        <Config
+            Id="0x0000130B" Enable="true" Target="malabar" Timeout="0"
+            Resources="0x40800000, 0x2B3, 0x40804000, 0x8A0, 0x40800100, 0x240, 0x40804100, 0x5EC,
+            0x42804000, 0x6, 0x42808000, 0x0"/>
+
+        <!-- qvr level cpu1 gpu3 -->
+        <!-- B CPU - Cluster min freq ~.691 Ghz -->
+        <!-- B CPU - Cluster max freq ~2.2 Ghz -->
+        <!-- L CPU - Cluster min freq ~.576 Ghz -->
+        <!-- L CPU - Cluster max freq ~1.516 Ghz -->
+        <!-- GPU - min pwrlevel 6 (freq 180 Mhz) -->
+        <!-- GPU - max pwrlevel 0 (freq 825 Mhz) -->
+        <!-- Idefinite Duration -->
+        <Config
+            Id="0x0000130C" Enable="true" Target="malabar" Timeout="0"
+            Resources="0x40800000, 0x2B3, 0x40804000, 0x8A0, 0x40800100, 0x240, 0x40804100, 0x5EC,
+            0x42804000, 0x6, 0x42808000, 0x0"/>
+
+        <!-- qvr level cpu2 gpu1 -->
+        <!-- B CPU - Cluster min freq ~.691 Ghz -->
+        <!-- B CPU - Cluster max freq ~2.2 Ghz -->
+        <!-- L CPU - Cluster min freq ~.576 Ghz -->
+        <!-- L CPU - Cluster max freq ~1.516 Ghz -->
+        <!-- GPU - min pwrlevel 6 (freq 180 Mhz) -->
+        <!-- GPU - max pwrlevel 0 (freq 825 Mhz) -->
+        <!-- Idefinite Duration -->
+        <Config
+            Id="0x0000130D" Enable="true" Target="malabar" Timeout="0"
+            Resources="0x40800000, 0x2B3, 0x40804000, 0x8A0, 0x40800100, 0x240, 0x40804100, 0x5EC,
+            0x42804000, 0x6, 0x42808000, 0x0"/>
+
+        <!-- qvr level cpu2 gpu2 -->
+        <!-- B CPU - Cluster min freq ~.691 Ghz -->
+        <!-- B CPU - Cluster max freq ~2.2 Ghz -->
+        <!-- L CPU - Cluster min freq ~.576 Ghz -->
+        <!-- L CPU - Cluster max freq ~1.516 Ghz -->
+        <!-- GPU - min pwrlevel 6 (freq 180 Mhz) -->
+        <!-- GPU - max pwrlevel 0 (freq 825 Mhz) -->
+        <!-- Idefinite Duration -->
+        <Config
+            Id="0x0000130E" Enable="true" Target="malabar" Timeout="0"
+            Resources="0x40800000, 0x2B3, 0x40804000, 0x8A0, 0x40800100, 0x240, 0x40804100, 0x5EC,
+            0x42804000, 0x6, 0x42808000, 0x0"/>
+
+        <!-- qvr level cpu2 gpu3 -->
+        <!-- B CPU - Cluster min freq ~.691 Ghz -->
+        <!-- B CPU - Cluster max freq ~2.2 Ghz -->
+        <!-- L CPU - Cluster min freq ~.576 Ghz -->
+        <!-- L CPU - Cluster max freq ~1.516 Ghz -->
+        <!-- GPU - min pwrlevel 6 (freq 180 Mhz) -->
+        <!-- GPU - max pwrlevel 0 (freq 825 Mhz) -->
+        <!-- Idefinite Duration -->
+        <Config
+            Id="0x0000130F" Enable="true" Target="malabar" Timeout="0"
+            Resources="0x40800000, 0x2B3, 0x40804000, 0x8A0, 0x40800100, 0x240, 0x40804100, 0x5EC,
+            0x42804000, 0x6, 0x42808000, 0x0"/>
+
+        <!-- qvr level cpu3 gpu1 -->
+        <!-- B CPU - Cluster min freq ~.691 Ghz -->
+        <!-- B CPU - Cluster max freq ~2.2 Ghz -->
+        <!-- L CPU - Cluster min freq ~.576 Ghz -->
+        <!-- L CPU - Cluster max freq ~1.516 Ghz -->
+        <!-- GPU - min pwrlevel 6 (freq 180 Mhz) -->
+        <!-- GPU - max pwrlevel 0 (freq 825 Mhz) -->
+        <!-- Idefinite Duration -->
+        <Config
+            Id="0x00001310" Enable="true" Target="malabar" Timeout="0"
+            Resources="0x40800000, 0x2B3, 0x40804000, 0x8A0, 0x40800100, 0x240, 0x40804100, 0x5EC,
+            0x42804000, 0x6, 0x42808000, 0x0"/>
+
+        <!-- qvr level cpu3 gpu2 -->
+        <!-- B CPU - Cluster min freq ~.768 Ghz -->
+        <!-- B CPU - Cluster max freq ~2.2 Ghz -->
+        <!-- L CPU - Cluster min freq ~.576 Ghz -->
+        <!-- L CPU - Cluster max freq ~1.516 Ghz -->
+        <!-- GPU - min pwrlevel 6 (freq 180 Mhz) -->
+        <!-- GPU - max pwrlevel 0 (freq 825 Mhz) -->
+        <!-- Idefinite Duration -->
+        <Config
+            Id="0x00001311" Enable="true" Target="malabar" Timeout="0"
+            Resources="0x40800000, 0x2B3, 0x40804000, 0x8A0, 0x40800100, 0x240, 0x40804100, 0x5EC,
+            0x42804000, 0x6, 0x42808000, 0x0"/>
+
+        <!-- qvr level cpu3 gpu3 -->
+        <!-- B CPU - Cluster min freq ~.768 Ghz -->
+        <!-- B CPU - Cluster max freq ~2.2 Ghz -->
+        <!-- L CPU - Cluster min freq ~.576 Ghz -->
+        <!-- L CPU - Cluster max freq ~1.516 Ghz -->
+        <!-- GPU - min pwrlevel 6 (freq 180 Mhz) -->
+        <!-- GPU - max pwrlevel 0 (freq 825 Mhz) -->
+        <!-- Idefinite Duration -->
+        <Config
+            Id="0x00001312" Enable="true" Target="malabar" Timeout="0"
+            Resources="0x40800000, 0x2B3, 0x40804000, 0x8A0, 0x40800100, 0x240, 0x40804100, 0x5EC,
+            0x42804000, 0x6, 0x42808000, 0x0"/>
+
+         <!-- sustained performance -->
+         <!-- B CPU - Cluster min freq uncapped -->
+         <!-- L CPU - Cluster min freq uncapped -->
+         <!-- B CPU - Cluster max freq ~1.22 GHz -->
+         <!-- L CPU - Cluster max freq ~1.22 Ghz -->
+         <!-- GPU - min freq 275Mhz -->
+         <!-- GPU - max freq 400Mhz -->
+         <!-- GPUBW freq uncapped -->
+         <Config
+             Id="0x00001206" Enable="true" Timeout="0" Target="malabar"
+             Resources="0x40800000, 0x0, 0x40800100, 0x0, 0x40804000, 0x4CC, 0x40804100, 0x4CC,
+             0X4280C000, 0x113, 0X42810000, 0x190, 0x42814000, 0x0"/>
+
+         <!-- vr mode -->
+         <!-- B CPU - Cluster min freq ~1.22 Ghz -->
+         <!-- L CPU - Cluster min freq ~0.940 Ghz -->
+         <!-- B CPU - Cluster max freq ~1.90 Ghz -->
+         <!-- L CPU - Cluster max freq ~1.70 Ghz -->
+         <!-- GPU - min freq 275Mhz -->
+         <!-- GPU - max freq 625Mhz -->
+         <!-- GPUBW uncapped -->
+         <Config
+             Id="0x00001207" Enable="true" Timeout="0" Target="malabar"
+             Resources="0x40800000, 0x4CC, 0x40800100, 0x3AC, 0x40804000, 0x76C, 0x40804100, 0x6C0,
+             0X4280C000, 0x113, 0X4280C000, 0x271, 0x42814000, 0x0"/>
+
+         <!-- vr mode sustained performance -->
+         <!-- B CPU - Cluster min freq ~1.22 Ghz -->
+         <!-- L CPU - Cluster min freq ~1.22 Ghz -->
+         <!-- B CPU - Cluster max freq ~1.22 Ghz -->
+         <!-- L CPU - Cluster max freq ~1.22 Ghz -->
+         <!-- GPU - min freq 400Mhz -->
+         <!-- GPU - max freq 400Mhz -->
+         <!-- GPUBW uncapped  -->
+         <Config
+             Id="0x00001301" Enable="true" Timeout="0" Target="malabar"
+             Resources="0x40800000, 0x4CC, 0x40800100, 0x4CC, 0x40804000, 0x4CC, 0x40804100, 0x4CC,
+             0X4280C000, 0x190, 0X42810000, 0x190, 0x42814000, 0x0"/>
+
+    </Powerhint>
+</HintConfigs>

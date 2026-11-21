@@ -1,0 +1,6 @@
+vendor_fuzzer_bindings_test {
+    name: "vendor_fuzzer_bindings_test",
+    srcs: [":vendor_service_contexts"],
+    vendor: true,
+}
+

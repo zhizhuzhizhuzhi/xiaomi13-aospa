@@ -1,0 +1,78 @@
+# Copyright (c) 2018-2019, 2021 The Linux Foundation. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are
+# met:
+#     * Redistributions of source code must retain the above copyright
+#       notice, this list of conditions and the following disclaimer.
+#     * Redistributions in binary form must reproduce the above
+#       copyright notice, this list of conditions and the following
+#       disclaimer in the documentation and/or other materials provided
+#       with the distribution.
+#     * Neither the name of The Linux Foundation nor the names of its
+#       contributors may be used to endorse or promote products derived
+#       from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" AND ANY EXPRESS OR IMPLIED
+# WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+# MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT
+# ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS
+# BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
+# BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+# WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+# OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
+# IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+#
+# Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
+# Copyright (c) 2023 - 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+type vendor_dun_service,                 service_manager_type;
+type vendor_imsrcs_service,              service_manager_type;
+type vendor_hal_servicetrackeraidl_service,   hal_service_type,protected_service,service_manager_type;
+type vendor_hal_qvrd_service,            hal_service_type,protected_service,service_manager_type;
+type vendor_hal_sxrd_service,            hal_service_type,protected_service,service_manager_type;
+type vendor_hal_xrcommd_service,      hal_service_type,protected_service,service_manager_type;
+type vendor_hal_dataconnection_service,  hal_service_type, protected_service, service_manager_type;
+type vendor_hal_qccvndhal_service,       hal_service_type, protected_service, service_manager_type;
+type vendor_hal_qms_service,             hal_service_type, protected_service, service_manager_type;
+type vendor_hal_factory_service,         hal_service_type, protected_service, service_manager_type;
+type vendor_hal_bttpi_service,           hal_service_type, protected_service, service_manager_type;
+type vendor_hal_xpanprovider_service,    hal_service_type, protected_service, service_manager_type;
+type vendor_hal_bluetooth_sar_service,   hal_service_type, protected_service, service_manager_type;
+type vendor_hal_fm_aidl_service,         hal_service_type, protected_service, service_manager_type;
+type vendor_hal_qesdhalaidl_service,     hal_service_type, service_manager_type;
+type vendor_hal_sensorscalibrateaidl_service, hal_service_type, protected_service, service_manager_type;
+type vendor_hal_qspmhal_service,         hal_service_type, service_manager_type;
+type vendor_hal_spu_service,             hal_service_type, protected_service, service_manager_type;
+type vendor_hal_nxpnfc_service,          hal_service_type, service_manager_type;
+type vendor_hal_qconfig_service,         hal_service_type, protected_service, service_manager_type;
+type vendor_hal_perf2_service,           hal_service_type, protected_service, service_manager_type;
+type vendor_hal_vpp_service,             hal_service_type, protected_service, service_manager_type;
+type vendor_hal_hexlp_service,           hal_service_type, protected_service, service_manager_type;
+type vendor_hal_unsignedhexlp_service,   hal_service_type, service_manager_type;
+type vendor_hal_poweroptservice_service, hal_service_type, protected_service, service_manager_type;
+type vendor_hal_qseecom_service,         hal_service_type, protected_service, service_manager_type;
+type vendor_hal_minkipcbinder_service,         hal_service_type, protected_service, service_manager_type;
+type vendor_tsa_hdcpvndservice,          service_manager_type;
+type hal_wificfr_service,                hal_service_type, protected_service, service_manager_type;
+type vendor_hal_mwqemadapter_aidlservice,hal_service_type,protected_service,service_manager_type;
+type vendor_hal_dpmaidl_service,hal_service_type, protected_service, service_manager_type;
+# Public Soter AIDL capability and signing API; application access is intentional.
+type vendor_hal_soteraidl_service,       hal_service_type, service_manager_type;
+type vendor_aidl_hal_pasrmanager_memory_service,	service_manager_type, hal_service_type, protected_service;
+type vendor_hal_authsecret_service,      hal_service_type,protected_service,service_manager_type;
+type vendor_hal_secureprocessor_aidl_service, hal_service_type,  protected_service, service_manager_type;
+type vendor_hal_qfpextendedfingerprint_service, service_manager_type, hal_service_type, protected_service;
+type hal_wifidisplaysession_service,     hal_service_type, service_manager_type;
+type hal_wifidisplayvideo_service,     hal_service_type, service_manager_type;
+type hal_wifidisplayaudio_service,     hal_service_type, service_manager_type;
+type hal_wifidisplayimage_service,     hal_service_type, service_manager_type;
+type vendor_hal_qspa_service,            hal_service_type, protected_service, service_manager_type;
+type vendor_hal_wifilearner_service,     hal_service_type, protected_service, service_manager_type;
+type vendor_syshealthmon_service,        hal_service_type, protected_service, service_manager_type;
+type vendor_hal_MemHal_service,           hal_service_type, protected_service, service_manager_type;
+type vendor_hal_snapx_service,           hal_service_type, service_manager_type;
+type vendor_hal_qvirtvendor_service,     hal_service_type, protected_service, service_manager_type;

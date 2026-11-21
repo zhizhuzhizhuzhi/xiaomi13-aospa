@@ -1,0 +1,699 @@
+diff --git a/datatop/src/Android.mk b/datatop/src/Android.mk
+deleted file mode 100644
+index b1887a7..0000000
+--- a/datatop/src/Android.mk
++++ /dev/null
+@@ -1,36 +0,0 @@
+-LOCAL_PATH := $(call my-dir)
+-
+-include $(CLEAR_VARS)
+-
+-LOCAL_SRC_FILES := datatop.c
+-LOCAL_SRC_FILES += datatop_cpu_stats_poll.c
+-LOCAL_SRC_FILES += datatop_dev_poll.c
+-LOCAL_SRC_FILES += datatop_dual_line_poll.c
+-LOCAL_SRC_FILES += datatop_fileops.c
+-LOCAL_SRC_FILES += datatop_gen_poll.c
+-LOCAL_SRC_FILES += datatop_helpers.c
+-LOCAL_SRC_FILES += datatop_linked_list.c
+-LOCAL_SRC_FILES += datatop_meminfo_file_poll.c
+-LOCAL_SRC_FILES += datatop_opt.c
+-LOCAL_SRC_FILES += datatop_single_line_poll.c
+-LOCAL_SRC_FILES += datatop_stat_poll.c
+-LOCAL_SRC_FILES += datatop_str.c
+-LOCAL_SRC_FILES += datatop_sys_snap.c
+-LOCAL_SRC_FILES += datatop_value_only_poll.c
+-LOCAL_SRC_FILES += datatop_ip_table_poll.c
+-
+-LOCAL_CFLAGS := -Wall -Wextra -Werror -pedantic -std=c99
+-LOCAL_CFLAGS += -DVERSION="\"1.0.4"\"
+-LOCAL_CFLAGS += -DHAVE_STRL_FUNCTIONS
+-LOCAL_CFLAGS += -D _BSD_SOURCE
+-
+-LOCAL_C_INCLUDES := $(LOCAL_PATH)
+-
+-LOCAL_CLANG := true
+-LOCAL_MODULE := datatop
+-LOCAL_MODULE_TAGS := optional
+-
+-LOCAL_MODULE_PATH_32 := $(TARGET_OUT_VENDOR)/lib
+-LOCAL_MODULE_PATH_64 := $(TARGET_OUT_VENDOR)/lib64
+-
+-include $(BUILD_EXECUTABLE)
+diff --git a/datatop/src/datatop_ip_table_poll.c b/datatop/src/datatop_ip_table_poll.c
+index 09e504d..b1d1de4 100644
+--- a/datatop/src/datatop_ip_table_poll.c
++++ b/datatop/src/datatop_ip_table_poll.c
+@@ -150,7 +150,7 @@ void dtop_ip_table_register(struct dtop_data_point_gatherer *dpg)
+  *
+  * @param None
+  */
+-int dtop_ip_table_init_files()
++int dtop_ip_table_init_files(void)
+ {
+   struct dtop_data_point_gatherer *dpset;
+   struct dtop_linked_list *curr_ptr = ip_dpg_list;
+@@ -176,7 +176,7 @@ int dtop_ip_table_init_files()
+  *
+  * @param None
+  */
+-void dtop_ip_table_poll_cleanup()
++void dtop_ip_table_poll_cleanup(void)
+ {
+   pthread_mutex_lock(&dtop_ip_table_lock);
+   deconstruct_dpgs(ip_dpg_list);
+diff --git a/rmnetctl/Android.bp b/rmnetctl/Android.bp
+index a0516ad..cc0fef5 100644
+--- a/rmnetctl/Android.bp
++++ b/rmnetctl/Android.bp
+@@ -1,33 +1,19 @@
+-soong_config_module_type {
+-    name: "rmnetctl_cc_defaults",
+-    module_type: "cc_defaults",
+-    config_namespace: "rmnetctl",
+-    bool_variables: [
+-        "old_rmnet_data",
+-    ],
+-    properties: [
+-        "cflags",
+-    ],
+-}
+-
+ cc_library_headers {
+     name: "librmnetctl_headers",
+     export_include_dirs: ["inc"],
+     vendor: true,
+ }
+ 
+-rmnetctl_cc_defaults {
++cc_defaults {
+     name: "librmnetctl_defaults",
+     cflags: [
+         "-Wall",
+         "-Werror",
+-    ],
++    ] + select(soong_config_variable("rmnetctl", "old_rmnet_data"), {
++        "true": ["-DUSE_OLD_RMNET_DATA"],
++        default: [],
++    }),
+     header_libs: ["librmnetctl_headers"],
+-    soong_config_variables: {
+-        old_rmnet_data: {
+-            cflags: ["-DUSE_OLD_RMNET_DATA"],
+-        },
+-    },
+     vendor: true,
+ }
+ 
+diff --git a/rmnetctl/cli/rmnetcli.c b/rmnetctl/cli/rmnetcli.c
+index f10c718..284d36b 100644
+--- a/rmnetctl/cli/rmnetcli.c
++++ b/rmnetctl/cli/rmnetcli.c
+@@ -67,7 +67,7 @@ print_rmnet_api_status(RMNETCTL_INVALID_ARG, RMNETCTL_CFG_FAILURE_NO_COMMAND); \
+ #else
+ #define _RMNETCLI_CHECKNULL(X)		do { if (!X) {                         \
+ print_rmnet_api_status(RMNETCTL_INVALID_ARG, RMNETCTL_CFG_FAILURE_NO_COMMAND); \
+-				rtrmnet_ctl_deinit(handle);                    \
++				rtrmnet_ctl_deinit(handle);                      \
+ 				return RMNETCTL_INVALID_ARG;                   \
+ 		} } while (0);
+ #endif
+@@ -100,138 +100,22 @@ static void rmnet_api_usage(void)
+ 	printf("RmNet API Usage:\n\n");
+ 	printf("rmnetcli help                            Displays this help\n");
+ 	printf("\n");
+-	printf("rmnetcli assocnetdev <dev_name>          Registers the RmNet");
+-	printf(_5TABS" data driver on a particular");
+-	printf(_5TABS" device.dev_name cannot");
+-	printf(_5TABS" be larger than 15");
+-	printf(_5TABS" characters. Returns");
+-	printf(_5TABS" the status code.\n\n");
+-	printf("rmnetcli unassocnetdev <dev_name>        Unregisters the");
+-	printf(_5TABS" RmNet data driver on a particular");
+-	printf(_5TABS" device. dev_name cannot");
+-	printf(_5TABS" be larger than 15");
+-	printf(_5TABS" characters. Returns");
+-	printf(_5TABS" the status code.\n\n");
+-	printf("rmnetcli getnetdevassoc <dev_name>       Get if the RmNet");
+-	printf(_5TABS" data driver is registered on");
+-	printf(_5TABS" a particular device.");
+-	printf(_5TABS" dev_name cannot be");
+-	printf(_5TABS" larger than 15");
+-	printf(_5TABS" characters. Returns 1");
+-	printf(_5TABS" if is registered and");
+-	printf(_5TABS" 0 if it is not");
+-	printf(_5TABS" registered\n\n");
+-	printf("rmnetcli setledf <egress_flags>          Sets the egress data");
+-	printf(_2TABS" <agg_size>              format for a particular link.");
+-	printf(_2TABS" <agg_count>             dev_name cannot be larger");
+-	printf(_2TABS" <dev_name>              than 15 characters.");
+-	printf(_5TABS" Returns the status code\n\n");
+-	printf("rmnetcli getledf <dev_name>              Gets the egress data");
+-	printf(_5TABS" format for a particular link.");
+-	printf(_5TABS" dev_name cannot be larger");
+-	printf(_5TABS" than 15. Returns the 4");
+-	printf(_5TABS" byte unsigned integer");
+-	printf(_5TABS" egress_flags\n\n");
+-	printf("rmnetcli setlidf <ingress_flags>         Sets the ingress");
+-	printf(_2TABS" <tail_spacing>          data format for a particular");
+-	printf(_2TABS" <dev_name>              link. ingress_flags is 4");
+-	printf(_5TABS" byte unsigned integer.");
+-	printf(_5TABS" tail_spacing is a one.");
+-	printf(_5TABS" byte unsigned integer.");
+-	printf(_5TABS" dev_name cannot be");
+-	printf(_5TABS" larger than 15.");
+-	printf(_5TABS" characters. Returns");
+-	printf(_5TABS" the status code\n\n");
+-	printf("rmnetcli getlidf <dev_name>              Gets the ingress");
+-	printf(_5TABS" data format for a particular");
+-	printf(_5TABS" link. dev_name cannot be");
+-	printf(_5TABS" larger than 15. Returns");
+-	printf(_5TABS" the 4 byte unsigned");
+-	printf(_5TABS" integer ingress_flags\n\n");
+-	printf("rmnetcli setlepc <logical_ep_id>         Sets the logical");
+-	printf(_2TABS" <rmnet_mode>            endpoint configuration for");
+-	printf(_2TABS" <dev_name>              a particular link.");
+-	printf(_2TABS" <egress_dev_name>       logical_ep_id are 32bit");
+-	printf(_5TABS" integers from -1 to 31.");
+-	printf(_5TABS" rmnet_mode is a 1 byte");
+-	printf(_5TABS" unsigned integer of");
+-	printf(_5TABS" value none, vnd or");
+-	printf(_5TABS" bridged. dev_name");
+-	printf(_5TABS" and egress_dev_name");
+-	printf(_5TABS" cannot be larger");
+-	printf(_5TABS" than 15 characters");
+-	printf(_5TABS" Returns the status code\n\n");
+-	printf("rmnetcli unsetlepc <logical_ep_id>       Un-sets the logical");
+-	printf(_2TABS"  <dev_name>              endpoint configuration for");
+-	printf(_5TABS" a particular link.");
+-	printf(_5TABS" integers from -1 to 31.");
+-	printf(_5TABS" dev_name cannot be larger");
+-	printf(_5TABS" than 15 characters");
+-	printf(_5TABS" Returns the status code\n\n");
+-	printf("rmnetcli getlepc <logical_ep_id>         Sets the logical");
+-	printf(_2TABS" <dev_name>              endpoint configuration for a");
+-	printf(_5TABS" particular link.");
+-	printf(_5TABS" logical_ep_id are 32bit");
+-	printf(_5TABS" integers from -1 to 31.");
+-	printf(_5TABS" Returns the rmnet_mode");
+-	printf(_5TABS" and egress_dev_name.");
+-	printf(_5TABS" rmnet_mode is a 1");
+-	printf(_5TABS" byte unsigned integer");
+-	printf(_5TABS" of value none, vnd or");
+-	printf(_5TABS" bridged. dev_name and");
+-	printf(_5TABS" egress_dev_name cannot be");
+-	printf(_5TABS" larger than 15 ");
+-	printf(_5TABS" characters. Returns the");
+-	printf(_5TABS" status code\n\n");
+-	printf("rmnetcli newvnd <dev_id>                 Creates a new");
+-	printf(_5TABS" virtual network device node.");
+-	printf(_5TABS" dev_id is an int");
+-	printf(_5TABS" less than 32. Returns");
+-	printf(_5TABS" the status code\n\n");
+-	printf("rmnetcli newvndprefix <dev_id> <name_prefix>   Creates");
+-	printf(_5TABS" virtual network device node.");
+-	printf(_5TABS" dev_id is an int");
+-	printf(_5TABS" less than 32. Prefix");
+-	printf(_5TABS" must be less than");
+-	printf(_5TABS" 15 chars. Returns");
+-	printf(_5TABS" the status code\n\n");
+-	printf("rmnetcli newvndname <dev_id> <name_prefix>   Creates");
+-	printf(_5TABS" virtual network device node.");
+-	printf(_5TABS" dev_id is an int");
+-	printf(_5TABS" less than 32. Name");
+-	printf(_5TABS" must be less than");
+-	printf(_5TABS" 15 chars. Returns");
+-	printf(_5TABS" the status code\n\n");
+-	printf("rmnetcli getvndname <dev_id>              Get name of");
+-	printf(_5TABS" network device node from id\n\n");
+-	printf("rmnetcli freevnd <dev_id>              Removes virtual");
+-	printf(_5TABS" network device node. dev_name");
+-	printf(_5TABS" cannot be larger than 15.");
+-	printf(_5TABS" Returns the status code\n\n");
+-	printf("rmnetcli addvnctcflow <dev_id>            Add a modem flow");
+-	printf(_2TABS" <mdm_flow_hndl>         handle - tc flow handle");
+-	printf(_2TABS" <tc_flow_hndl>          mapping for a virtual network");
+-	printf(_2TABS" device node\n\n");
+-	printf("rmnetcli delvnctcflow <dev_id>            Delete a modem flow");
+-	printf(_2TABS" <mdm_flow_hndl>         handle - tc flow handle");
+-	printf(_2TABS" <tc_flow_hndl>          mapping for a virtual network");
+-	printf(_2TABS" device node\n\n");
+ 	printf("**************************\n");
+ 	printf("RmNet RTM_NETLINK API Usage:\n\n");
+-	printf("rmnetcli -n newlink  <dev_id>            Add a vnd w/ newlink");
++	printf("rmnetcli -n newlink  <real dev>            Add a vnd w/ newlink");
+ 	printf(_2TABS" <vnd>                   string - vnd device_name");
+ 	printf(_2TABS" <vnd id>                int - new vnd id");
+ 	printf(_2TABS" [flags]                 int - starting flag config\n\n");
+-	printf("rmnetcli -n changelink  <dev_id>         Change a vnd's flags");
++	printf("rmnetcli -n changelink  <real dev>         Change a vnd's flags");
+ 	printf(_2TABS" <vnd>                   string - vnd device_name");
+ 	printf(_2TABS" <vnd id>                int - new vnd id");
+ 	printf(_2TABS" <flags>                 int - new flag config\n\n");
+-	printf("rmnetcli -n getlink <dev_name>           Get device config\n\n");
+-	printf("rmnetcli -n dellink <dev_name>           Delete a vnd");
++	printf("rmnetcli -n getlink <real dev>           Get device config\n\n");
++	printf("rmnetcli -n dellink <real dev>           Delete a vnd");
+ 	printf(_2TABS"                         by inputting dev name\n\n");
+-	printf("rmnetcli -n bridgelink  <dev_name>       Bridge a vnd and a dev");
++	printf("rmnetcli -n bridgelink  <real dev>       Bridge a vnd and a dev");
+ 	printf(_2TABS" <vnd id>                by specifying dev id and vnd id\n\n");
+-	printf("rmnetcli -n uplinkparam <dev_name>   set uplink aggregation parameters");
++	printf("rmnetcli -n uplinkparam <real dev>   set uplink aggregation parameters");
+ 	printf(_2TABS" <vnd id>                string - vnd device_name");
+ 	printf(_2TABS" <packet count>          int - maximum packet count");
+ 	printf(_2TABS" <byte count>            int - maximum byte count");
+@@ -744,6 +628,7 @@ static int rmnet_api_call(int argc, char *argv[])
+ 		_STRTOI32(argv[1]), argv[2], &error_number);
+ #endif
+ 	}
++
+ end:
+ 	print_rmnet_api_status(return_code, error_number);
+ #ifdef USE_OLD_RMNET_DATA
+@@ -754,6 +639,7 @@ end:
+ #else
+ 	rtrmnet_ctl_deinit(handle);
+ #endif
++
+ 	return return_code;
+ }
+ 
+diff --git a/rmnetctl/inc/librmnetctl.h b/rmnetctl/inc/librmnetctl.h
+index 797a53b..8603fa5 100644
+--- a/rmnetctl/inc/librmnetctl.h
++++ b/rmnetctl/inc/librmnetctl.h
+@@ -724,7 +724,35 @@ int rtrmnet_delete_flow(rmnetctl_hndl_t *hndl,
+ 			  int ip_type,
+ 			  uint16_t *error_code);
+ 
+-
++int rtrmnet_set_legacy_mode(rmnetctl_hndl_t *hndl,
++                            char *devname,
++                            char *vndname,
++                            uint16_t *error_code);
++
++int rtrmnet_add_flow_mapping(rmnetctl_hndl_t *hndl,
++                              char *devname,
++                              char *vndname,
++                              uint32_t flow_id,
++                              uint32_t tcm_handle,
++                              uint16_t *error_code);
++
++int rtrmnet_enable_legacy_flow_control(rmnetctl_hndl_t *hndl,
++                                        char *devname,
++                                        char *vndname,
++                                        uint32_t flow_id,
++                                        uint16_t *error_code);
++
++int rtrmnet_disable_legacy_flow_control(rmnetctl_hndl_t *hndl,
++                                         char *devname,
++                                         char *vndname,
++                                         uint32_t flow_id,
++                                         uint16_t *error_code);
++
++int rtrmnet_remove_flow_mapping(rmnetctl_hndl_t *hndl,
++                                 char *devname,
++                                 char *vndname,
++                                 uint32_t flow_id,
++                                 uint16_t *error_code);
+ 
+ 
+ int rtrmnet_control_flow(rmnetctl_hndl_t *hndl,
+diff --git a/rmnetctl/src/librmnetctl.c b/rmnetctl/src/librmnetctl.c
+index af8386f..44d3635 100644
+--- a/rmnetctl/src/librmnetctl.c
++++ b/rmnetctl/src/librmnetctl.c
+@@ -121,16 +121,16 @@ enum {
+ 	RMNETCTL_IFLA_DFC_QOS,
+ 	RMNETCTL_IFLA_UPLINK_PARAMS,
+ 	RMNETCTL_IFLA_UPLINK_STATE_ID,
++	RMNETCTL_IFLA_RMNET_QUEUE,
+ 	__RMNETCTL_IFLA_MAX,
+ };
+ 
+-/* Flow message types sent to DFC driver */
++/* Flow message types sent to DFC driver and queue operations */
+ enum {
+ 	/* Activate flow */
+ 	RMNET_FLOW_MSG_ACTIVATE = 1,
+ 	/* Delete flow */
+ 	RMNET_FLOW_MSG_DEACTIVATE = 2,
+-	/* Legacy flow control */
+ 	RMNET_FLOW_MSG_CONTROL = 3,
+ 	/* Flow up */
+ 	RMNET_FLOW_MSG_UP = 4,
+@@ -142,6 +142,23 @@ enum {
+ 	RMNET_FLOW_MSG_WDA_FREQ = 7,
+ 	/* Change underlying transport channel */
+ 	RMNET_FLOW_MSG_CHANNEL_SWITCH = 8,
++	/* Add Queue mapping for legacy flow control */
++	RMNET_QUEUE_MAPPING_ADD = 9,
++	/*Remove Queue Mapping for legacy flow control*/
++	RMNET_QUEUE_MAPPING_REMOVE = 10,
++	/*Enable flow in legacy flow control*/
++	RMNET_QUEUE_ENABLE = 11,
++	/*Disable flow in legacy flow control*/
++	RMNET_QUEUE_DISABLE = 12,
++	/*Set legacy flow control*/
++	RMNET_QUEUE_SET_LEGACY_MODE = 13,
++};
++
++struct rmnet_queue_mapping {
++	uint8_t operation;
++	uint8_t txqueue;
++	uint16_t padding;
++	uint32_t mark;
+ };
+ 
+ /* 0 reserved, 1-15 for data, 16-30 for acks */
+@@ -1376,6 +1393,47 @@ static int rmnet_fill_flow_msg(struct nlmsg *req, size_t *reqsize,
+ 	return RMNETCTL_SUCCESS;
+ }
+ 
++static int queue_rmnet_fill_flow_msg(struct nlmsg *req, size_t *reqsize,
++                               unsigned int devindex, char *vndname,
++                               char *flowinfo, size_t flowlen)
++{
++        struct rtattr *linkinfo, *datainfo;
++        int rc;
++
++        /* Set up link attr with devindex as data */
++        rc = rta_put_u32(req, reqsize, IFLA_LINK, devindex);
++        if (rc != RMNETCTL_SUCCESS)
++                return rc;
++
++        rc = rta_put_string(req, reqsize, IFLA_IFNAME, vndname);
++        if (rc != RMNETCTL_SUCCESS)
++                return rc;
++
++        /* Set up IFLA info kind RMNET that has linkinfo and type */
++        rc = rta_nested_start(req, reqsize, IFLA_LINKINFO, &linkinfo);
++        if (rc != RMNETCTL_SUCCESS)
++                return rc;
++
++        rc = rta_put_string(req, reqsize, IFLA_INFO_KIND, "rmnet");
++        if (rc != RMNETCTL_SUCCESS)
++                return rc;
++
++        rc = rta_nested_start(req, reqsize, IFLA_INFO_DATA, &datainfo);
++        if (rc != RMNETCTL_SUCCESS)
++                return rc;
++
++        rc = rta_put(req, reqsize, RMNETCTL_IFLA_RMNET_QUEUE, flowlen,
++                     flowinfo);
++        if (rc != RMNETCTL_SUCCESS)
++                return rc;
++
++        rta_nested_end(req, datainfo);
++        rta_nested_end(req, linkinfo);
++
++        return RMNETCTL_SUCCESS;
++}
++
++
+ /* @brief Synchronous method to receive messages to and from the kernel
+  * using netlink sockets
+  * @details Receives the ack response from the kernel.
+@@ -1877,6 +1935,115 @@ int rtrmnet_set_ll_uplink_aggregation_params(rmnetctl_hndl_t *hndl,
+ 
+ }
+ 
++int rtrmnet_set_legacy_mode(rmnetctl_hndl_t *hndl,
++                            char *devname,
++                            char *vndname,
++                            uint16_t *error_code)
++{
++	struct rmnet_queue_mapping flowinfo;
++	struct nlmsg req;
++	unsigned int devindex = 0;
++	size_t reqsize;
++	int rc;
++
++	memset(&req, 0, sizeof(req));
++	memset(&flowinfo, 0, sizeof(flowinfo));
++
++	if (!hndl || !devname || !error_code || _rmnetctl_check_dev_name(devname) ||
++		_rmnetctl_check_dev_name(vndname))
++		return RMNETCTL_INVALID_ARG;
++
++	reqsize = NLMSG_DATA_SIZE - sizeof(struct rtattr);
++	req.nl_addr.nlmsg_type = RTM_NEWLINK;
++	req.nl_addr.nlmsg_len = NLMSG_LENGTH(sizeof(struct ifinfomsg));
++	req.nl_addr.nlmsg_flags = NLM_F_REQUEST | NLM_F_ACK;
++	req.nl_addr.nlmsg_seq = hndl->transaction_id;
++	hndl->transaction_id++;
++
++	/* Get index of devname*/
++	devindex = if_nametoindex(devname);
++	if (devindex == 0) {
++		*error_code = errno;
++		return RMNETCTL_KERNEL_ERR;
++	}
++
++	flowinfo.operation = RMNET_QUEUE_SET_LEGACY_MODE;
++	flowinfo.txqueue = 0;
++	flowinfo.padding = 0;
++	flowinfo.mark = 0;
++
++
++	rc = queue_rmnet_fill_flow_msg(&req, &reqsize, devindex, vndname,
++					 (char *)&flowinfo, sizeof(flowinfo));
++	if (rc != RMNETCTL_SUCCESS) {
++		*error_code = RMNETCTL_API_ERR_RTA_FAILURE;
++		return rc;
++	}
++
++	if (send(hndl->netlink_fd, &req, req.nl_addr.nlmsg_len, 0) < 0) {
++		*error_code = RMNETCTL_API_ERR_MESSAGE_SEND;
++		return RMNETCTL_LIB_ERR;
++	}
++
++	rc = rmnet_get_ack(hndl, error_code);
++	return rc;
++}
++
++int rtrmnet_add_flow_mapping(rmnetctl_hndl_t *hndl,
++			      char *devname,
++			      char *vndname,
++			      uint32_t flow_id,
++			      uint32_t tcm_handle,
++			      uint16_t *error_code)
++{
++	struct rmnet_queue_mapping flowinfo;
++	struct nlmsg req;
++	unsigned int devindex = 0;
++	size_t reqsize = 0;
++	int rc;
++
++	memset(&req, 0, sizeof(req));
++	memset(&flowinfo, 0, sizeof(flowinfo));
++
++	if (!hndl || !devname || !error_code ||_rmnetctl_check_dev_name(devname) ||
++		_rmnetctl_check_dev_name(vndname))
++		return RMNETCTL_INVALID_ARG;
++
++	reqsize = NLMSG_DATA_SIZE - sizeof(struct rtattr);
++	req.nl_addr.nlmsg_type = RTM_NEWLINK;
++	req.nl_addr.nlmsg_len = NLMSG_LENGTH(sizeof(struct ifinfomsg));
++	req.nl_addr.nlmsg_flags = NLM_F_REQUEST | NLM_F_ACK;
++	req.nl_addr.nlmsg_seq = hndl->transaction_id;
++	hndl->transaction_id++;
++
++	/* Get index of devname*/
++	devindex = if_nametoindex(devname);
++	if (devindex == 0) {
++		*error_code = errno;
++		return RMNETCTL_KERNEL_ERR;
++	}
++
++	flowinfo.operation = RMNET_QUEUE_MAPPING_ADD;
++	flowinfo.txqueue = tcm_handle;
++	flowinfo.mark = flow_id;
++
++
++	rc = queue_rmnet_fill_flow_msg(&req, &reqsize, devindex, vndname,
++					 (char *)&flowinfo, sizeof(flowinfo));
++	if (rc != RMNETCTL_SUCCESS) {
++		*error_code = RMNETCTL_API_ERR_RTA_FAILURE;
++		return rc;
++	}
++
++	if (send(hndl->netlink_fd, &req, req.nl_addr.nlmsg_len, 0) < 0) {
++		*error_code = RMNETCTL_API_ERR_MESSAGE_SEND;
++		return RMNETCTL_LIB_ERR;
++	}
++
++	rc = rmnet_get_ack(hndl, error_code);
++	return rc;
++}
++
+ int rtrmnet_activate_flow(rmnetctl_hndl_t *hndl,
+ 			  char *devname,
+ 			  char *vndname,
+@@ -1935,6 +2102,165 @@ int rtrmnet_activate_flow(rmnetctl_hndl_t *hndl,
+ 	return rmnet_get_ack(hndl, error_code);
+ }
+ 
++int rtrmnet_remove_flow_mapping(rmnetctl_hndl_t *hndl,
++				 char *devname,
++				 char *vndname,
++				 uint32_t flow_id,
++				 uint16_t *error_code)
++{
++	struct rmnet_queue_mapping flowinfo;
++	struct nlmsg req;
++	unsigned int devindex = 0;
++	size_t reqsize;
++	int rc;
++
++	memset(&req, 0, sizeof(req));
++	memset(&flowinfo, 0, sizeof(flowinfo));
++
++	if (!hndl || !devname || !error_code ||_rmnetctl_check_dev_name(devname) ||
++		_rmnetctl_check_dev_name(vndname))
++		return RMNETCTL_INVALID_ARG;
++
++	reqsize = NLMSG_DATA_SIZE - sizeof(struct rtattr);
++	req.nl_addr.nlmsg_type = RTM_NEWLINK;
++	req.nl_addr.nlmsg_len = NLMSG_LENGTH(sizeof(struct ifinfomsg));
++	req.nl_addr.nlmsg_flags = NLM_F_REQUEST | NLM_F_ACK;
++	req.nl_addr.nlmsg_seq = hndl->transaction_id;
++	hndl->transaction_id++;
++
++	/* Get index of devname*/
++	devindex = if_nametoindex(devname);
++	if (devindex == 0) {
++		*error_code = errno;
++		return RMNETCTL_KERNEL_ERR;
++	}
++
++	flowinfo.operation = RMNET_QUEUE_MAPPING_REMOVE;
++	flowinfo.txqueue = 0;
++	flowinfo.mark = flow_id;
++
++
++	rc = queue_rmnet_fill_flow_msg(&req, &reqsize, devindex, vndname,
++					 (char *)&flowinfo, sizeof(flowinfo));
++	if (rc != RMNETCTL_SUCCESS) {
++		*error_code = RMNETCTL_API_ERR_RTA_FAILURE;
++		return rc;
++	}
++
++	if (send(hndl->netlink_fd, &req, req.nl_addr.nlmsg_len, 0) < 0) {
++		*error_code = RMNETCTL_API_ERR_MESSAGE_SEND;
++		return RMNETCTL_LIB_ERR;
++	}
++
++	rc = rmnet_get_ack(hndl, error_code);
++	return rc;
++}
++
++int rtrmnet_enable_legacy_flow_control(rmnetctl_hndl_t *hndl,
++					char *devname,
++					char *vndname,
++					uint32_t flow_id,
++					uint16_t *error_code)
++{
++	struct rmnet_queue_mapping flowinfo;
++	struct nlmsg req;
++	unsigned int devindex = 0;
++	size_t reqsize;
++	int rc;
++
++	memset(&req, 0, sizeof(req));
++	memset(&flowinfo, 0, sizeof(flowinfo));
++
++	if (!hndl || !devname || !error_code ||_rmnetctl_check_dev_name(devname) ||
++		_rmnetctl_check_dev_name(vndname))
++		return RMNETCTL_INVALID_ARG;
++
++	reqsize = NLMSG_DATA_SIZE - sizeof(struct rtattr);
++	req.nl_addr.nlmsg_type = RTM_NEWLINK;
++	req.nl_addr.nlmsg_len = NLMSG_LENGTH(sizeof(struct ifinfomsg));
++	req.nl_addr.nlmsg_flags = NLM_F_REQUEST | NLM_F_ACK;
++	req.nl_addr.nlmsg_seq = hndl->transaction_id;
++	hndl->transaction_id++;
++
++	devindex = if_nametoindex(devname);
++	if (devindex == 0) {
++		*error_code = errno;
++		return RMNETCTL_KERNEL_ERR;
++	}
++
++	flowinfo.operation = RMNET_QUEUE_ENABLE;
++	flowinfo.txqueue = 0;
++	flowinfo.mark = flow_id;
++
++
++	rc = queue_rmnet_fill_flow_msg(&req, &reqsize, devindex, vndname,
++					 (char *)&flowinfo, sizeof(flowinfo));
++	if (rc != RMNETCTL_SUCCESS) {
++		*error_code = RMNETCTL_API_ERR_RTA_FAILURE;
++		return rc;
++	}
++
++	if (send(hndl->netlink_fd, &req, req.nl_addr.nlmsg_len, 0) < 0) {
++		*error_code = RMNETCTL_API_ERR_MESSAGE_SEND;
++		return RMNETCTL_LIB_ERR;
++	}
++
++	rc = rmnet_get_ack(hndl, error_code);
++	return rc;
++}
++
++int rtrmnet_disable_legacy_flow_control(rmnetctl_hndl_t *hndl,
++					 char *devname,
++					 char *vndname,
++					 uint32_t flow_id,
++					 uint16_t *error_code)
++{
++	struct rmnet_queue_mapping flowinfo;
++	struct nlmsg req;
++	unsigned int devindex = 0;
++	size_t reqsize;
++	int rc;
++
++	memset(&req, 0, sizeof(req));
++	memset(&flowinfo, 0, sizeof(flowinfo));
++
++	if (!hndl || !devname || !error_code ||_rmnetctl_check_dev_name(devname) ||
++		_rmnetctl_check_dev_name(vndname))
++		return RMNETCTL_INVALID_ARG;
++
++	reqsize = NLMSG_DATA_SIZE - sizeof(struct rtattr);
++	req.nl_addr.nlmsg_type = RTM_NEWLINK;
++	req.nl_addr.nlmsg_len = NLMSG_LENGTH(sizeof(struct ifinfomsg));
++	req.nl_addr.nlmsg_flags = NLM_F_REQUEST | NLM_F_ACK;
++	req.nl_addr.nlmsg_seq = hndl->transaction_id;
++	hndl->transaction_id++;
++
++	devindex = if_nametoindex(devname);
++	if (devindex == 0) {
++		*error_code = errno;
++		return RMNETCTL_KERNEL_ERR;
++	}
++
++	flowinfo.operation = RMNET_QUEUE_DISABLE;
++	flowinfo.txqueue = 0;
++	flowinfo.mark = flow_id;
++
++
++	rc = queue_rmnet_fill_flow_msg(&req, &reqsize, devindex, vndname,
++					 (char *)&flowinfo, sizeof(flowinfo));
++	if (rc != RMNETCTL_SUCCESS) {
++		*error_code = RMNETCTL_API_ERR_RTA_FAILURE;
++		return rc;
++	}
++
++	if (send(hndl->netlink_fd, &req, req.nl_addr.nlmsg_len, 0) < 0) {
++		*error_code = RMNETCTL_API_ERR_MESSAGE_SEND;
++		return RMNETCTL_LIB_ERR;
++	}
++
++	rc = rmnet_get_ack(hndl, error_code);
++	return rc;
++}
+ 
+ int rtrmnet_delete_flow(rmnetctl_hndl_t *hndl,
+ 			  char *devname,

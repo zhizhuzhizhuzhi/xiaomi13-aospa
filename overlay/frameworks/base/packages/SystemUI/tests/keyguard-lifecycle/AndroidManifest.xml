@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Copyright (C) 2026 The Android Open Source Project
+     SPDX-License-Identifier: Apache-2.0 -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    package="com.android.systemui.tests"
+    tools:remove="android:sharedUserId">
+    <!-- These mocked lifecycle tests run under their own UID on a user build. -->
+    <application android:debuggable="true" android:testOnly="true" />
+    <instrumentation android:name="android.testing.TestableInstrumentation"
+        android:targetPackage="com.android.systemui.tests" />
+</manifest>

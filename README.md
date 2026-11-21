@@ -32,12 +32,19 @@ python3 ../aospa-fuxi-kit/scripts/apply.py "$PWD"
 
 ## 编译和打包
 
-构建脚本自动从 [GitHub Releases](https://github.com/zhizhuzhizhuzhi/xiaomi13-aospa/releases/tag/build-deps-20261020) 下载依赖并准备内核。Java 和 Clang 使用源码树自带版本。
+准备与当前源码匹配的依赖，目录中保留 `dependencies.json` 所列相对路径：
+
+```bash
+python3 ../aospa-fuxi-kit/scripts/fetch-dependencies.py "$PWD" \
+  --source /path/to/prepared-fuxi-inputs --replace-stock-inputs
+```
+
+构建脚本检查依赖并准备内核。Java 和 Clang 使用源码树自带版本。
 
 ### userdebug
 
 ```bash
-BUILD_NUMBER=20261020 bash ../aospa-fuxi-kit/scripts/build.sh "$PWD" userdebug "$(nproc)"
+BUILD_NUMBER=20261121 bash ../aospa-fuxi-kit/scripts/build.sh "$PWD" userdebug "$(nproc)"
 python3 ../aospa-fuxi-kit/scripts/package.py "$PWD" \
   out/target/product/fuxi/obj/PACKAGING/target_files_intermediates/aospa_fuxi-target_files.zip \
   "$PWD/aospa_fuxi-fastboot-userdebug.zip"
@@ -46,7 +53,7 @@ python3 ../aospa-fuxi-kit/scripts/package.py "$PWD" \
 ### user
 
 ```bash
-BUILD_NUMBER=20261020 bash ../aospa-fuxi-kit/scripts/build.sh "$PWD" user "$(nproc)"
+BUILD_NUMBER=20261121 bash ../aospa-fuxi-kit/scripts/build.sh "$PWD" user "$(nproc)"
 OUT_DIR=out-user-release python3 ../aospa-fuxi-kit/scripts/package.py "$PWD" \
   out-user-release/target/product/fuxi/obj/PACKAGING/target_files_intermediates/aospa_fuxi-target_files.zip \
   "$PWD/aospa_fuxi-fastboot-user.zip"

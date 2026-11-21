@@ -1,0 +1,74 @@
+# Copyright (c) 2017-2020, The Linux Foundation. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are
+# met:
+#     * Redistributions of source code must retain the above copyright
+#       notice, this list of conditions and the following disclaimer.
+#     * Redistributions in binary form must reproduce the above
+#       copyright notice, this list of conditions and the following
+#       disclaimer in the documentation and/or other materials provided
+#       with the distribution.
+#     * Neither the name of The Linux Foundation nor the names of its
+#       contributors may be used to endorse or promote products derived
+#       from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" AND ANY EXPRESS OR IMPLIED
+# WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+# MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT
+# ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS
+# BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
+# BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+# WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+# OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
+# IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+#
+# Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
+# Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# vendor_hlosminkdaemon - HLOS Mink Daemon
+type vendor_hlosminkdaemon, domain, mlstrustedsubject;
+type vendor_hlosminkdaemon_exec, exec_type, vendor_file_type, file_type;
+
+init_daemon_domain(vendor_hlosminkdaemon)
+
+#Allow access to smcinvoke device
+allow vendor_hlosminkdaemon tee_device:chr_file rw_file_perms;
+
+#Allow access to firmware/image
+allow vendor_hlosminkdaemon vendor_firmware_file:dir r_dir_perms;
+allow vendor_hlosminkdaemon vendor_firmware_file:file r_file_perms;
+
+# Allow access to qipcrtr_socket
+# Remove this when QMI service moves to pfmd
+allow vendor_hlosminkdaemon self:{ socket qipcrtr_socket } create_socket_perms;
+allowxperm vendor_hlosminkdaemon self:{ socket qipcrtr_socket } ioctl msm_sock_ipc_ioctls;
+
+# Allow access to DMABUF
+allow vendor_hlosminkdaemon vendor_membuf_dev:chr_file r_file_perms;
+allow vendor_hlosminkdaemon vendor_vm_self_device:chr_file r_file_perms;
+allow vendor_hlosminkdaemon vendor_vm_trusted_device:chr_file r_file_perms;
+allow vendor_hlosminkdaemon vendor_vm_oem_device:chr_file r_file_perms;
+allow vendor_hlosminkdaemon hal_graphics_allocator_default:fd use;
+
+#Allow access to qseecom DMABUF device
+allow vendor_hlosminkdaemon vendor_dmabuf_qseecom_ta_heap_device:chr_file r_file_perms;
+vndbinder_use(vendor_hlosminkdaemon)
+
+# Allow access to qwes
+allow vendor_hlosminkdaemon vendor_qwes_data_file:dir { getattr setattr };
+
+# Allow to set capability to block suspend and resume from suspend/sleep to wake up
+# state using wake_alarm.
+allow vendor_hlosminkdaemon self:capability2 { block_suspend wake_alarm };
+
+# Allow access to write to wake_lock file under /sys/power/
+allow vendor_hlosminkdaemon sysfs_wake_lock:file { append open };
+
+# Allow hlosminkdaemon access to vendor_mink_trace_prop
+userdebug_or_eng(`
+  get_prop(vendor_hlosminkdaemon, vendor_mink_trace_prop)
+')

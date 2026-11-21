@@ -74,8 +74,7 @@ public class HealthInterface {
         IBinder b = ServiceManager.getService(LineageContextConstants.AOSPA_HEALTH_INTERFACE);
         sService = IHealthInterface.Stub.asInterface(b);
         if (sService == null) {
-            Log.e(TAG, "null health service, SAD!");
-            return null;
+            throw new IllegalStateException("AOSPA health service unavailable");
         }
         return sService;
     }
@@ -83,12 +82,8 @@ public class HealthInterface {
     /**
      * @return true if service is valid
      */
-    private boolean checkService() {
-        if (sService == null) {
-            Log.w(TAG, "not connected to LineageHardwareManagerService");
-            return false;
-        }
-        return true;
+    private IHealthInterface requireService() {
+        return getService();
     }
 
     /**
@@ -98,12 +93,10 @@ public class HealthInterface {
      */
     public boolean isChargingControlSupported() {
         try {
-            return checkService() && sService.isChargingControlSupported();
+            return requireService().isChargingControlSupported();
         } catch (RemoteException e) {
-            Log.e(TAG, e.getLocalizedMessage(), e);
+            throw e.rethrowFromSystemServer();
         }
-
-        return false;
     }
 
     /**
@@ -112,12 +105,7 @@ public class HealthInterface {
      * @return true if charging control is supported
      */
     public static boolean isChargingControlSupported(Context context) {
-        try {
-            return getInstance(context).isChargingControlSupported();
-        } catch (RuntimeException e) {
-            Log.e(TAG, e.getLocalizedMessage(), e);
-        }
-        return false;
+        return getInstance(context).isChargingControlSupported();
     }
 
     /**
@@ -127,9 +115,9 @@ public class HealthInterface {
      */
     public boolean getEnabled() {
         try {
-            return checkService() && sService.getChargingControlEnabled();
+            return requireService().getChargingControlEnabled();
         } catch (RemoteException e) {
-            return false;
+            throw e.rethrowFromSystemServer();
         }
     }
 
@@ -141,9 +129,9 @@ public class HealthInterface {
      */
     public boolean setEnabled(boolean enabled) {
         try {
-            return checkService() && sService.setChargingControlEnabled(enabled);
+            return requireService().setChargingControlEnabled(enabled);
         } catch (RemoteException e) {
-            return false;
+            throw e.rethrowFromSystemServer();
         }
     }
 
@@ -154,9 +142,9 @@ public class HealthInterface {
      */
     public int getMode() {
         try {
-            return checkService() ? sService.getChargingControlMode() : MODE_NONE;
+            return requireService().getChargingControlMode();
         } catch (RemoteException e) {
-            return MODE_NONE;
+            throw e.rethrowFromSystemServer();
         }
     }
 
@@ -168,9 +156,9 @@ public class HealthInterface {
      */
     public boolean setMode(int mode) {
         try {
-            return checkService() && sService.setChargingControlMode(mode);
+            return requireService().setChargingControlMode(mode);
         } catch (RemoteException e) {
-            return false;
+            throw e.rethrowFromSystemServer();
         }
     }
 
@@ -181,9 +169,9 @@ public class HealthInterface {
      */
     public int getStartTime() {
         try {
-            return checkService() ? sService.getChargingControlStartTime() : 0;
+            return requireService().getChargingControlStartTime();
         } catch (RemoteException e) {
-            return 0;
+            throw e.rethrowFromSystemServer();
         }
     }
 
@@ -195,9 +183,9 @@ public class HealthInterface {
      */
     public boolean setStartTime(int time) {
         try {
-            return checkService() && sService.setChargingControlStartTime(time);
+            return requireService().setChargingControlStartTime(time);
         } catch (RemoteException e) {
-            return false;
+            throw e.rethrowFromSystemServer();
         }
     }
 
@@ -208,9 +196,9 @@ public class HealthInterface {
      */
     public int getTargetTime() {
         try {
-            return checkService() ? sService.getChargingControlTargetTime() : 0;
+            return requireService().getChargingControlTargetTime();
         } catch (RemoteException e) {
-            return 0;
+            throw e.rethrowFromSystemServer();
         }
     }
 
@@ -222,9 +210,9 @@ public class HealthInterface {
      */
     public boolean setTargetTime(int time) {
         try {
-            return checkService() && sService.setChargingControlTargetTime(time);
+            return requireService().setChargingControlTargetTime(time);
         } catch (RemoteException e) {
-            return false;
+            throw e.rethrowFromSystemServer();
         }
     }
 
@@ -235,9 +223,9 @@ public class HealthInterface {
      */
     public int getLimit() {
         try {
-            return checkService() ? sService.getChargingControlLimit() : 100;
+            return requireService().getChargingControlLimit();
         } catch (RemoteException e) {
-            return 0;
+            throw e.rethrowFromSystemServer();
         }
     }
 
@@ -249,9 +237,9 @@ public class HealthInterface {
      */
     public boolean setLimit(int limit) {
         try {
-            return checkService() && sService.setChargingControlLimit(limit);
+            return requireService().setChargingControlLimit(limit);
         } catch (RemoteException e) {
-            return false;
+            throw e.rethrowFromSystemServer();
         }
     }
 
@@ -262,9 +250,9 @@ public class HealthInterface {
      */
     public boolean reset() {
         try {
-            return checkService() && sService.resetChargingControl();
+            return requireService().resetChargingControl();
         } catch (RemoteException e) {
-            return false;
+            throw e.rethrowFromSystemServer();
         }
     }
 
@@ -275,9 +263,9 @@ public class HealthInterface {
      */
     public boolean allowFineGrainedSettings() {
         try {
-            return checkService() && sService.allowFineGrainedSettings();
+            return requireService().allowFineGrainedSettings();
         } catch (RemoteException e) {
-            return false;
+            throw e.rethrowFromSystemServer();
         }
     }
 
@@ -288,12 +276,10 @@ public class HealthInterface {
      */
     public boolean isFastChargeSupported() {
         try {
-            return checkService() && sService.isFastChargeSupported();
+            return requireService().isFastChargeSupported();
         } catch (RemoteException e) {
-            Log.e(TAG, e.getLocalizedMessage(), e);
+            throw e.rethrowFromSystemServer();
         }
-
-        return false;
     }
 
     /**
@@ -303,12 +289,10 @@ public class HealthInterface {
      */
     public int[] getSupportedFastChargeModes() {
         try {
-            return checkService() ? sService.getSupportedFastChargeModes() : new int[0];
+            return requireService().getSupportedFastChargeModes();
         } catch (RemoteException e) {
-            Log.e(TAG, e.getLocalizedMessage(), e);
+            throw e.rethrowFromSystemServer();
         }
-
-        return new int[0];
     }
 
     /**
@@ -318,12 +302,10 @@ public class HealthInterface {
      */
     public int getFastChargeMode() {
         try {
-            return checkService() ? sService.getFastChargeMode() : 0;
+            return requireService().getFastChargeMode();
         } catch (RemoteException e) {
-            Log.e(TAG, e.getLocalizedMessage(), e);
+            throw e.rethrowFromSystemServer();
         }
-
-        return 0;
     }
 
     /**
@@ -334,11 +316,9 @@ public class HealthInterface {
      */
     public boolean setFastChargeMode(int mode) {
         try {
-            return checkService() && sService.setFastChargeMode(mode);
+            return requireService().setFastChargeMode(mode);
         } catch (RemoteException e) {
-            Log.e(TAG, e.getLocalizedMessage(), e);
+            throw e.rethrowFromSystemServer();
         }
-
-        return false;
     }
 }

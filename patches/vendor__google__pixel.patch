@@ -1,3 +1,48 @@
+diff --git a/Android.bp b/Android.bp
+index 500aae1..69fe0af 100644
+--- a/Android.bp
++++ b/Android.bp
+@@ -155,3 +155,22 @@ android_app_import {
+     privileged: true,
+     system_ext_specific: true,
+ }
++
++// Device brightness policy uses the same permission template on every product.
++genrule {
++    name: "aospa_pixel_privapp_permissions_native",
++    defaults: ["aospa_native_brightness_permission_defaults"],
++    srcs: ["proprietary/product/etc/permissions/privapp-permissions-google-p.xml"],
++    out: ["privapp-permissions-google-p.xml"],
++}
++
++prebuilt_etc {
++    name: "aospa_pixel_privapp_permissions",
++    src: select(soong_config_variable("aospa_build", "native_brightness_policy"), {
++        true: ":aospa_pixel_privapp_permissions_native",
++        default: "proprietary/product/etc/permissions/privapp-permissions-google-p.xml",
++    }),
++    product_specific: true,
++    sub_dir: "permissions",
++    filename: "privapp-permissions-google-p.xml",
++}
+diff --git a/pixel-vendor.mk b/pixel-vendor.mk
+index d33d0e6..f62ea0b 100644
+--- a/pixel-vendor.mk
++++ b/pixel-vendor.mk
+@@ -7,7 +7,6 @@ PRODUCT_SOONG_NAMESPACES += \
+ 
+ PRODUCT_COPY_FILES += \
+     vendor/google/pixel/proprietary/product/etc/default-permissions/default-permissions_pixelweather.xml:$(TARGET_COPY_OUT_PRODUCT)/etc/default-permissions/default-permissions_pixelweather.xml \
+-    vendor/google/pixel/proprietary/product/etc/permissions/privapp-permissions-google-p.xml:$(TARGET_COPY_OUT_PRODUCT)/etc/permissions/privapp-permissions-google-p.xml \
+     vendor/google/pixel/proprietary/product/etc/preferred-apps/pixel.xml:$(TARGET_COPY_OUT_PRODUCT)/etc/preferred-apps/pixel.xml \
+     vendor/google/pixel/proprietary/product/etc/sysconfig/contextual_search.xml:$(TARGET_COPY_OUT_PRODUCT)/etc/sysconfig/contextual_search.xml \
+     vendor/google/pixel/proprietary/product/etc/sysconfig/game_service.xml:$(TARGET_COPY_OUT_PRODUCT)/etc/sysconfig/game_service.xml \
+@@ -117,3 +116,5 @@ PRODUCT_PACKAGES += \
+     SystemUIClocks-Metro \
+     SystemUIClocks-NumOverlap \
+     SystemUIClocks-Weather
++
++PRODUCT_PACKAGES += aospa_pixel_privapp_permissions
 diff --git a/proprietary/product/etc/permissions/privapp-permissions-google-p.xml b/proprietary/product/etc/permissions/privapp-permissions-google-p.xml
 index 9e9ab6e..15afca4 100644
 --- a/proprietary/product/etc/permissions/privapp-permissions-google-p.xml

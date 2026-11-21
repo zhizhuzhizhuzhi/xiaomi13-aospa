@@ -1,0 +1,26 @@
+# Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+type vendor_qesdsect, domain;
+type vendor_qesdsect_exec, exec_type, vendor_file_type, file_type;
+
+init_daemon_domain(vendor_qesdsect)
+
+binder_call(vendor_qesdsect, vendor_hal_qesdhal_client)
+hal_client_domain(vendor_qesdsect, hal_allocator)
+
+allow vendor_qesdsect vendor_qesdk_service:service_manager find;
+
+binder_use(vendor_qesdsect);
+
+unix_socket_connect(vendor_qesdsect, vendor_ssgtzd, vendor_ssgtzd)
+allow vendor_qesdsect vendor_hlosminkdaemon:unix_stream_socket connectto;
+crash_dump_fallback(vendor_qesdsect);
+
+#allow qesdsec to read boot complete prop
+get_prop(vendor_qesdsect, boot_status_prop)
+
+#allow read access to mink socket log files
+userdebug_or_eng(`
+  get_prop(vendor_qesdsect, vendor_mink_trace_prop)
+')

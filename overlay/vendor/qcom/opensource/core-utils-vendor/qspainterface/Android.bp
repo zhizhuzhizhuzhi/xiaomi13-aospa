@@ -1,0 +1,17 @@
+cc_library {
+    name: "libqspainterface",
+    srcs:[
+        "QspaInterface.cpp"
+    ],
+    header_libs: [
+        "libqspa_headers",
+    ],
+    vendor: true,
+    shared_libs: [
+        "libbase",
+        "liblog",
+        "libcutils",
+        "libbinder_ndk",
+        "vendor.qti.hardware.qspa-V1-ndk",
+   ],
+}

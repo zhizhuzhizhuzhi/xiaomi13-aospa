@@ -1,0 +1,26 @@
+cc_library_shared {
+    name: "vendor.qti.hardware.vibratorOL.impl",
+    vendor: true,
+    cflags: Common_CFlags + select(soong_config_variable("qti_vibrator", "use_effect_stream"), {
+        true: ["-DUSE_EFFECT_STREAM"],
+        default: [],
+    }),
+    srcs: [
+        "Vibrator.cpp",
+        "VibratorOffload.cpp",
+    ],
+    shared_libs: [
+        "libcutils",
+        "libutils",
+        "liblog",
+        "libqtivibratoreffectoffload",
+        "libbinder_ndk",
+        "android.hardware.vibrator-V2-ndk",
+    ] + select(soong_config_variable("qti_vibrator", "effect_lib"), {
+        any @ value: [value],
+        default: ["libqtivibratoreffect"],
+    }),
+    header_libs: [
+        "libqtivibratoreffect_headers",
+    ],
+}

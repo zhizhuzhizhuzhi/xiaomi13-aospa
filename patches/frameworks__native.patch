@@ -139,6 +139,218 @@ index b8d9464..eb1de50 100644
  };
  
  } // namespace android
+diff --git a/opengl/libs/EGL/MultifileBlobCache.cpp b/opengl/libs/EGL/MultifileBlobCache.cpp
+index 2e22e0b..1115572 100644
+--- a/opengl/libs/EGL/MultifileBlobCache.cpp
++++ b/opengl/libs/EGL/MultifileBlobCache.cpp
+@@ -408,10 +408,12 @@ EGLsizeiANDROID MultifileBlobCache::get(const void* key, EGLsizeiANDROID keySize
+         return 0;
+     }
+ 
+-    // Ensure key and value are under their limits
+-    if (keySize > mMaxKeySize || valueSize > mMaxValueSize) {
+-        ALOGW("GET: keySize (%lu vs %zu) or valueSize (%lu vs %zu) too large", keySize, mMaxKeySize,
+-              valueSize, mMaxValueSize);
++    // valueSize is the caller's buffer capacity, not a value being stored.
++    // EGL_ANDROID_blob_cache allows any capacity large enough for the entry,
++    // including one greater than the cache's maximum stored value size.
++    if (keySize < 0 || valueSize < 0 || keySize > mMaxKeySize) {
++        ALOGW("GET: invalid keySize (%ld, limit %zu) or valueSize (%ld)", keySize, mMaxKeySize,
++              valueSize);
+         return 0;
+     }
+ 
+@@ -515,10 +517,10 @@ EGLsizeiANDROID MultifileBlobCache::get(const void* key, EGLsizeiANDROID keySize
+ 
+     // Ensure the header matches
+     MultifileHeader* header = reinterpret_cast<MultifileHeader*>(cacheEntry);
+-    if (header->keySize != keySize || header->valueSize != valueSize) {
+-        ALOGW("Mismatch on keySize(%ld vs. cached %ld) or valueSize(%ld vs. cached %ld) compared "
++    if (header->keySize != keySize || header->valueSize != cachedValueSize) {
++        ALOGW("Mismatch on keySize(%ld vs. cached %ld) or valueSize(%zu vs. cached %ld) compared "
+               "to cache header values for fullPath: %s",
+-              keySize, header->keySize, valueSize, header->valueSize, fullPath.c_str());
++              keySize, header->keySize, cachedValueSize, header->valueSize, fullPath.c_str());
+         removeFromHotCache(entryHash);
+         return 0;
+     }
+diff --git a/opengl/libs/EGL/MultifileBlobCache_test.cpp b/opengl/libs/EGL/MultifileBlobCache_test.cpp
+index e1bf539..b09aa4e 100644
+--- a/opengl/libs/EGL/MultifileBlobCache_test.cpp
++++ b/opengl/libs/EGL/MultifileBlobCache_test.cpp
+@@ -131,6 +131,35 @@ TEST_F(MultifileBlobCacheTest, GetOnlyWritesIfBufferIsLargeEnough) {
+     ASSERT_EQ(0xee, buf[2]);
+ }
+ 
++TEST_F(MultifileBlobCacheTest, GetAcceptsLargerBufferInHotCache) {
++    unsigned char buf[8];
++    memset(buf, 0xee, sizeof(buf));
++    mMBC->set("abcd", 4, "efgh", 4);
++    ASSERT_EQ(size_t(4), mMBC->get("abcd", 4, buf, sizeof(buf)));
++    ASSERT_EQ(0, memcmp(buf, "efgh", 4));
++    for (size_t i = 4; i < sizeof(buf); ++i) ASSERT_EQ(0xee, buf[i]);
++}
++
++TEST_F(MultifileBlobCacheTest, GetAcceptsLargerBufferAfterReopen) {
++    mMBC->set("abcd", 4, "efgh", 4);
++    mMBC->finish();
++    mMBC.reset(new MultifileBlobCache(kMaxKeySize, kMaxValueSize, kMaxTotalSize,
++                                      kMaxTotalEntries, &mTempFile->path[0]));
++    unsigned char buf[8];
++    memset(buf, 0xee, sizeof(buf));
++    ASSERT_EQ(size_t(4), mMBC->get("abcd", 4, buf, sizeof(buf)));
++    ASSERT_EQ(0, memcmp(buf, "efgh", 4));
++    for (size_t i = 4; i < sizeof(buf); ++i) ASSERT_EQ(0xee, buf[i]);
++}
++
++TEST_F(MultifileBlobCacheTest, GetAcceptsCapacityAboveStoredValueLimit) {
++    std::vector<unsigned char> buf(kMaxValueSize + 1, 0xee);
++    mMBC->set("abcd", 4, "efgh", 4);
++    ASSERT_EQ(size_t(4), mMBC->get("abcd", 4, buf.data(), buf.size()));
++    ASSERT_EQ(0, memcmp(buf.data(), "efgh", 4));
++    for (size_t i = 4; i < buf.size(); ++i) ASSERT_EQ(0xee, buf[i]);
++}
++
+ TEST_F(MultifileBlobCacheTest, GetDoesntAccessNullBuffer) {
+     mMBC->set("abcd", 4, "efgh", 4);
+     ASSERT_EQ(size_t(4), mMBC->get("abcd", 4, nullptr, 0));
+diff --git a/services/sensorservice/Android.bp b/services/sensorservice/Android.bp
+index f0eab38..b9a5134 100644
+--- a/services/sensorservice/Android.bp
++++ b/services/sensorservice/Android.bp
+@@ -45,7 +45,10 @@ cc_library {
+         "SensorRecord.cpp",
+         "SensorService.cpp",
+         "SensorServiceUtils.cpp",
+-    ],
++    ] + select(soong_config_variable("pudding_brightness", "stock_fov"), {
++        true: ["StockLightFov.cpp", "StockSensorCompat.cpp"],
++        default: [],
++    }),
+ 
+     cflags: [
+         "-DLOG_TAG=\"SensorService\"",
+@@ -53,8 +56,10 @@ cc_library {
+         "-Werror",
+         "-Wextra",
+         "-Wthread-safety",
+-        "-fvisibility=hidden",
+-    ],
++    ] + select(soong_config_variable("pudding_brightness", "stock_fov"), {
++        true: ["-fvisibility=default", "-DPUDDING_STOCK_FOV"],
++        default: ["-fvisibility=hidden"],
++    }),
+ 
+     header_libs: [
+         "android.hardware.sensors@2.X-shared-utils",
+@@ -86,7 +91,10 @@ cc_library {
+         "libutils",
+         "packagemanager_aidl-cpp",
+         "server_configurable_flags",
+-    ],
++    ] + select(soong_config_variable("pudding_brightness", "stock_fov"), {
++        true: ["libdl"],
++        default: [],
++    }),
+ 
+     static_libs: [
+         "android.hardware.sensors-V1-convert",
+diff --git a/services/sensorservice/SensorService.cpp b/services/sensorservice/SensorService.cpp
+index 912d5cb..1d1dc07 100644
+--- a/services/sensorservice/SensorService.cpp
++++ b/services/sensorservice/SensorService.cpp
+@@ -67,6 +67,9 @@
+ #include "SensorEventAckReceiver.h"
+ #include "SensorEventConnection.h"
+ #include "SensorFusion.h"
++#ifdef PUDDING_STOCK_FOV
++#include "StockLightFov.h"
++#endif
+ #include "SensorInterface.h"
+ #include "SensorRecord.h"
+ #include "SensorRegistrationInfo.h"
+@@ -374,6 +377,16 @@ void SensorService::onFirstRef() {
+             // registered)
+             SensorFusion::getInstance();
+ 
++#ifdef PUDDING_STOCK_FOV
++            if (auto fov = createStockLightFov(list, count, false)) {
++                registerVirtualSensor(std::move(fov), /* isDebug= */ false);
++            }
++            if (auto fov = createStockLightFov(list, count, true)) {
++                registerVirtualSensor(std::move(fov), /* isDebug= */ false);
++            }
++
++#endif
++
+             if ((hasGyro || hasGyroUncalibrated) && hasAccel && hasMag) {
+                 // Add Android virtual sensors if they're not already
+                 // available in the HAL
+diff --git a/services/surfaceflinger/DisplayHardware/HWComposer.cpp b/services/surfaceflinger/DisplayHardware/HWComposer.cpp
+index 96155ed..5f66ded 100644
+--- a/services/surfaceflinger/DisplayHardware/HWComposer.cpp
++++ b/services/surfaceflinger/DisplayHardware/HWComposer.cpp
+@@ -541,6 +541,12 @@ status_t HWComposer::setClientTarget(HalDisplayId displayId, uint32_t slot,
+     return NO_ERROR;
+ }
+ 
++void HWComposer::requestDisplayValidation(hal::HWDisplayId hwcDisplayId) {
++    if (const auto displayId = toPhysicalDisplayId(hwcDisplayId)) {
++        mDisplayData.at(*displayId).forceValidate = true;
++    }
++}
++
+ status_t HWComposer::getDeviceCompositionChanges(
+         HalDisplayId displayId, bool frameUsesClientComposition,
+         std::optional<std::chrono::steady_clock::time_point> earliestPresentTime,
+@@ -566,7 +572,7 @@ status_t HWComposer::getDeviceCompositionChanges(
+     // earliest time to present. Otherwise, we may present a frame too early.
+     // 2. There is no client composition. Otherwise, we first need to render the
+     // client target buffer.
+-    const bool canSkipValidate = [&] {
++    const bool canSkipValidate = !displayData.forceValidate.exchange(false) && [&] {
+         // We must call validate if we have client composition
+ // QTI_BEGIN: 2023-03-06: Display: SF: Squash commit of SF Extensions.
+         //        if (frameUsesClientComposition) {
+diff --git a/services/surfaceflinger/DisplayHardware/HWComposer.h b/services/surfaceflinger/DisplayHardware/HWComposer.h
+index 0e84fb3..6ddcde1 100644
+--- a/services/surfaceflinger/DisplayHardware/HWComposer.h
++++ b/services/surfaceflinger/DisplayHardware/HWComposer.h
+@@ -24,6 +24,7 @@
+ // QTI_END: 2023-01-17: Display: sf: Introduce QTI Extensions in AOSP
+ #pragma once
+ 
++#include <atomic>
+ #include <cstdint>
+ #include <memory>
+ #include <mutex>
+@@ -356,6 +357,9 @@ public:
+                                        const android::sp<android::Fence>& acquireFence) = 0;
+     virtual sp<Fence> getReadbackBufferFence(PhysicalDisplayId) = 0;
+     virtual std::optional<composer3::VsyncSample> getDisplayKnownVsyncSample(PhysicalDisplayId) = 0;
++
++    // Force the next physical-display frame through validate/present.
++    virtual void requestDisplayValidation(hal::HWDisplayId) {}
+ };
+ 
+ static inline bool operator==(const android::HWComposer::DeviceRequestedChanges& lhs,
+@@ -395,6 +399,8 @@ public:
+     // Attempts to create a new layer on this display
+     std::shared_ptr<HWC2::Layer> createLayer(HalDisplayId) override;
+ 
++    void requestDisplayValidation(hal::HWDisplayId) override;
++
+     status_t getDeviceCompositionChanges(
+             HalDisplayId, bool frameUsesClientComposition,
+             std::optional<std::chrono::steady_clock::time_point> earliestPresentTime,
+@@ -577,6 +583,7 @@ private:
+ 
+         std::unordered_map<HWC2::Layer*, sp<Fence>> releaseFences;
+ 
++        std::atomic_bool forceValidate = false;
+         bool validateWasSkipped;
+         hal::Error presentError;
+ 
 diff --git a/services/surfaceflinger/QtiExtension/QtiSurfaceFlingerExtension.cpp b/services/surfaceflinger/QtiExtension/QtiSurfaceFlingerExtension.cpp
 index a25744f..74bc130 100644
 --- a/services/surfaceflinger/QtiExtension/QtiSurfaceFlingerExtension.cpp
@@ -187,3 +399,315 @@ index a25744f..74bc130 100644
  
          const auto& display = displayOpt->get();
          const auto& snapshot = display.snapshot();
+diff --git a/services/surfaceflinger/Scheduler/RefreshRateSelector.cpp b/services/surfaceflinger/Scheduler/RefreshRateSelector.cpp
+index 0b11899..68621cd 100644
+--- a/services/surfaceflinger/Scheduler/RefreshRateSelector.cpp
++++ b/services/surfaceflinger/Scheduler/RefreshRateSelector.cpp
+@@ -794,7 +794,9 @@ auto RefreshRateSelector::getRankedFrameRatesLocked(const std::vector<LayerRequi
+     if (!signals.touch && signals.idle &&
+         !(policy->primaryRangeIsSingleRate() && hasExplicitVoteLayers)) {
+         ALOGV("Idle");
+-        const auto ranking = rankFrameRates(activeMode.getGroup(), RefreshRateOrder::Ascending);
++        const auto ranking = rankFrameRates(activeMode.getGroup(), RefreshRateOrder::Ascending,
++                                           std::nullopt, [](FrameRateMode) { return true; },
++                                           mIsVrrDisplay ? mConfig.vrrIdleMinFps : 60_Hz);
+         SFTRACE_FORMAT_INSTANT("%s (Idle)", to_string(ranking.front().frameRateMode.fps).c_str());
+         return {ranking, GlobalSignals{.idle = true}};
+     }
+@@ -1306,14 +1308,14 @@ const DisplayModePtr& RefreshRateSelector::getMaxRefreshRateByPolicyLocked(int a
+ }
+ 
+ auto RefreshRateSelector::getPreferredFpsForMode(std::optional<int> anchorGroupOpt,
+-                                                 RefreshRateOrder refreshRateOrder) const
++                                                 RefreshRateOrder refreshRateOrder, Fps minRenderFps) const
+         -> PreferredFpsForMode {
+     using namespace fps_approx_ops;
+ 
+     const bool ascending = (refreshRateOrder == RefreshRateOrder::Ascending);
+     if (!ascending) return {};
+ 
+-    // find the lowest >=60  frame rate for each display mode
++    // Find the lowest allowed render rate for each display mode.
+     PreferredFpsForMode preferredFpsForMode;
+     for (const auto& frameRateMode : mPrimaryFrameRates | std::views::reverse) {
+         if (anchorGroupOpt && frameRateMode.modePtr->getGroup() != anchorGroupOpt) {
+@@ -1322,7 +1324,7 @@ auto RefreshRateSelector::getPreferredFpsForMode(std::optional<int> anchorGroupO
+ 
+         const auto [iter, _] =
+                 preferredFpsForMode.try_emplace(frameRateMode.modePtr->getId(), frameRateMode.fps);
+-        if (frameRateMode.fps >= 60_Hz && frameRateMode.fps < iter->second) {
++        if (frameRateMode.fps >= minRenderFps && frameRateMode.fps < iter->second) {
+             iter->second = frameRateMode.fps;
+         }
+     }
+@@ -1333,13 +1335,13 @@ auto RefreshRateSelector::getPreferredFpsForMode(std::optional<int> anchorGroupO
+ auto RefreshRateSelector::rankFrameRates(std::optional<int> anchorGroupOpt,
+                                          RefreshRateOrder refreshRateOrder,
+                                          std::optional<DisplayModeId> preferredDisplayModeOpt,
+-                                         const RankFrameRatesPredicate& predicate) const
++                                         const RankFrameRatesPredicate& predicate, Fps minRenderFps) const
+         -> FrameRateRanking {
+     const char* const whence = __func__;
+ 
+     using namespace fps_approx_ops;
+     const bool ascending = (refreshRateOrder == RefreshRateOrder::Ascending);
+-    const auto preferredFpsForMode = getPreferredFpsForMode(anchorGroupOpt, refreshRateOrder);
++    const auto preferredFpsForMode = getPreferredFpsForMode(anchorGroupOpt, refreshRateOrder, minRenderFps);
+     std::deque<ScoredFrameRate> ranking;
+     const auto rankFrameRate = [&](const FrameRateMode& frameRateMode) REQUIRES(mLock) {
+         const auto& modePtr = frameRateMode.modePtr;
+@@ -1393,7 +1395,8 @@ auto RefreshRateSelector::rankFrameRates(std::optional<int> anchorGroupOpt,
+           refreshRateOrder == RefreshRateOrder::Ascending ? "min" : "max", anchorGroupOpt.value());
+ 
+     constexpr std::optional<int> kNoAnchorGroup = std::nullopt;
+-    return rankFrameRates(kNoAnchorGroup, refreshRateOrder, preferredDisplayModeOpt);
++    return rankFrameRates(kNoAnchorGroup, refreshRateOrder, preferredDisplayModeOpt,
++                          [](FrameRateMode) { return true; }, minRenderFps);
+ }
+ 
+ FrameRateMode RefreshRateSelector::getActiveMode() const {
+@@ -1432,13 +1435,25 @@ void RefreshRateSelector::createIdleTimer(std::chrono::milliseconds timeout) {
+                 "IdleTimer", timeout,
+                 [this] {
+                     std::scoped_lock lock(mIdleTimerCallbacksMutex);
+-                    if (const auto callbacks = getIdleTimerCallbacks()) {
++                    // The default ARR callback only updates the overlay. Opted-in panels need
++                    // the policy callback to send their lower idle frame interval to HWC.
++                    const auto callbacks = mIsVrrDisplay && mConfig.vrrIdleMinFps.getValue() < 60.f &&
++                                    mIdleTimerCallbacks
++                            ? std::make_optional(mIdleTimerCallbacks->platform)
++                            : getIdleTimerCallbacks();
++                    if (callbacks) {
+                         callbacks->onReset();
+                     }
+                 },
+                 [this] {
+                     std::scoped_lock lock(mIdleTimerCallbacksMutex);
+-                    if (const auto callbacks = getIdleTimerCallbacks()) {
++                    // The default ARR callback only updates the overlay. Opted-in panels need
++                    // the policy callback to send their lower idle frame interval to HWC.
++                    const auto callbacks = mIsVrrDisplay && mConfig.vrrIdleMinFps.getValue() < 60.f &&
++                                    mIdleTimerCallbacks
++                            ? std::make_optional(mIdleTimerCallbacks->platform)
++                            : getIdleTimerCallbacks();
++                    if (callbacks) {
+                         callbacks->onExpired();
+                     }
+                 });
+@@ -1804,6 +1819,7 @@ void RefreshRateSelector::dump(utils::Dumper& dumper) const {
+ 
+     dumper.dump("enableFrameRateOverride"sv, mConfig.enableFrameRateOverride);
+ 
++    dumper.dump("vrrIdleMinFps", mConfig.vrrIdleMinFps.getValue());
+     dumper.dump("idleTimer"sv);
+     {
+         utils::Dumper::Indent indent(dumper);
+diff --git a/services/surfaceflinger/Scheduler/RefreshRateSelector.h b/services/surfaceflinger/Scheduler/RefreshRateSelector.h
+index 2d1415c..3f3a46d 100644
+--- a/services/surfaceflinger/Scheduler/RefreshRateSelector.h
++++ b/services/surfaceflinger/Scheduler/RefreshRateSelector.h
+@@ -308,6 +308,9 @@ public:
+         // The Idle Timer timeout. 0 timeout means no idle timer.
+         std::chrono::milliseconds legacyIdleTimerTimeout = 0ms;
+ 
++        // Device opt-in for lower ARR render rates while idle; MRR retains its 60 Hz floor.
++        Fps vrrIdleMinFps = 60_Hz;
++
+         // The controller representing how the kernel idle timer will be configured
+         // either on the HWC api or sysprop.
+         ftl::Optional<KernelIdleTimerController> kernelIdleTimerController;
+@@ -317,6 +320,7 @@ public:
+                         Config config = {.enableFrameRateOverride = false,
+                                          .frameRateMultipleThreshold = 0,
+                                          .legacyIdleTimerTimeout = 0ms,
++                                         .vrrIdleMinFps = 60_Hz,
+                                          .kernelIdleTimerController = {}});
+ 
+     RefreshRateSelector(const RefreshRateSelector&) = delete;
+@@ -477,7 +481,8 @@ private:
+     FrameRateRanking rankFrameRates(
+             std::optional<int> anchorGroupOpt, RefreshRateOrder refreshRateOrder,
+             std::optional<DisplayModeId> preferredDisplayModeOpt = std::nullopt,
+-            const RankFrameRatesPredicate& predicate = [](FrameRateMode) { return true; }) const
++            const RankFrameRatesPredicate& predicate = [](FrameRateMode) { return true; },
++            Fps minRenderFps = 60_Hz) const
+             REQUIRES(mLock);
+ 
+     const Policy* getCurrentPolicyLocked() const REQUIRES(mLock);
+@@ -523,7 +528,7 @@ private:
+ 
+     using PreferredFpsForMode = ftl::SmallMap<DisplayModeId, Fps, 8>;
+     PreferredFpsForMode getPreferredFpsForMode(std::optional<int> anchorGroupOpt,
+-                                               RefreshRateOrder) const REQUIRES(mLock);
++                                               RefreshRateOrder, Fps minRenderFps) const REQUIRES(mLock);
+ 
+     // The display modes of the active display. The DisplayModeIterators below are pointers into
+     // this container, so must be invalidated whenever the DisplayModes change. The Policy below
+diff --git a/services/surfaceflinger/SurfaceFlinger.cpp b/services/surfaceflinger/SurfaceFlinger.cpp
+index 04c7080..73cc1d6 100644
+--- a/services/surfaceflinger/SurfaceFlinger.cpp
++++ b/services/surfaceflinger/SurfaceFlinger.cpp
+@@ -1482,9 +1482,32 @@ void SurfaceFlinger::setDesiredMode(display::DisplayModeRequest desiredMode) {
+ // QTI_END: 2024-04-24: Display: sf: Disallow SF from setting the mode for external displays
+     const bool emitEvent = desiredMode.emitEvent;
+ 
++    // A low-rate ARR callback can already be armed far in the future. When waking,
++    // explicitly schedule composition so the dispatch queue recomputes pending wakeups.
++    static const bool lowVrrIdleEnabled =
++            base::GetIntProperty("debug.sf.vrr_idle_min_fps"s, 60) < 60;
++    bool wakeFromLowVrrRate = false;
++    if (lowVrrIdleEnabled) {
++        if (const auto selector = mDisplayModeController.selectorPtrFor(displayId)) {
++            const auto previous = selector->getActiveMode();
++            wakeFromLowVrrRate = previous.modePtr->getVrrConfig().has_value() &&
++                    previous.fps.getValue() < 60.f && mode.fps.getValue() > previous.fps.getValue();
++        }
++    }
++
+     if (mQtiSFExtnIntf->qtiIsFpsDeferNeeded(mode.fps.getValue())) {
+         return;
+     }
++    if (wakeFromLowVrrRate) {
++        // Cancel the old long-cadence deadline in QSYNC before the first new commit.
++        // Re-arming SF alone leaves DRM atomic commit waiting for the idle deadline.
++        const auto expectedPresent = TimePoint::fromNs(systemTime() + mode.fps.getPeriodNsecs());
++        const auto status = getHwComposer().notifyExpectedPresent(displayId, expectedPresent, mode.fps);
++        if (status != NO_ERROR) {
++            ALOGW("ARR idle wake notifyExpectedPresent failed: %d", status);
++        }
++    }
++
+     using DesiredModeAction = display::DisplayModeController::DesiredModeAction;
+     using ResyncToModeOpts = scheduler::Scheduler::ResyncToModeOpts;
+ 
+@@ -1524,6 +1547,10 @@ void SurfaceFlinger::setDesiredMode(display::DisplayModeRequest desiredMode) {
+         case DesiredModeAction::InitiateRenderRateSwitch:
+             mScheduler->setRenderRate(displayId, mode.fps, /*applyImmediately*/ false);
+             mScheduler->updatePhaseConfiguration(displayId, mode.fps);
++            if (wakeFromLowVrrRate) {
++                SFTRACE_INSTANT("VRR idle wake: reschedule pending frame");
++                scheduleComposite(FrameHint::kNone);
++            }
+ 
+             if (emitEvent) {
+                 mScheduler->onDisplayModeChanged(displayId, mode,
+@@ -2703,9 +2730,23 @@ void SurfaceFlinger::onComposerHalSeamlessPossible(hal::HWDisplayId) {
+     // use this callback to know when to retry in case of SEAMLESS_NOT_POSSIBLE.
+ }
+ 
+-void SurfaceFlinger::onComposerHalRefresh(hal::HWDisplayId) {
++void SurfaceFlinger::onComposerHalRefresh(hal::HWDisplayId hwcDisplayId) {
++    SFTRACE_CALL();
+     Mutex::Autolock lock(mStateLock);
+     REQUIRE_SCHEDULER;
++    static const bool usesStockSensorCwb =
++            base::GetProperty("ro.product.vendor.device", "") == "pudding";
++    if (usesStockSensorCwb) {
++        // Stock CWB needs validate/present after configuring its capture buffer.
++        // Serialize the request with display hotplug and the current composition.
++        static_cast<void>(mScheduler->schedule([this, hwcDisplayId] {
++            Mutex::Autolock lock(mStateLock);
++            getHwComposer().requestDisplayValidation(hwcDisplayId);
++            mQtiSFExtnIntf->qtiOnComposerHalRefresh();
++            scheduleComposite(FrameHint::kNone);
++        }));
++        return;
++    }
+ // QTI_BEGIN: 2024-02-26: Display: sfext: add support for idle content fps hint
+     mQtiSFExtnIntf->qtiOnComposerHalRefresh();
+ // QTI_END: 2024-02-26: Display: sfext: add support for idle content fps hint
+@@ -3408,6 +3449,23 @@ bool SurfaceFlinger::commit(PhysicalDisplayId pacesetterId,
+         }
+     }
+ 
++    // A frame can start under idle cadence and then select a higher render rate above.
++    // Ask the normal no-composite path to reschedule instead of submitting its old deadline.
++    static const bool lowVrrIdleEnabled =
++            base::GetIntProperty("debug.sf.vrr_idle_min_fps"s, 60) < 60;
++    if (mustComposite && lowVrrIdleEnabled) {
++        if (const auto selector = mDisplayModeController.selectorPtrFor(pacesetterId)) {
++            const auto mode = selector->getActiveMode();
++            if (mode.modePtr->getVrrConfig().has_value() && mode.fps.getValue() >= 60.f &&
++                pacesetterFrameTargetPtr->expectedPresentTime() >
++                        TimePoint::now() + 4 * mode.fps.getPeriod()) {
++                SFTRACE_INSTANT("ARR wake: reschedule stale idle deadline before composite");
++                scheduleComposite(FrameHint::kNone);
++                mustComposite = false;
++            }
++        }
++    }
++
+     updateCursorAsync();
+     if (!mustComposite) {
+         updateInputFlinger(vsyncId, pacesetterFrameTargetPtr->frameBeginTime());
+@@ -4518,6 +4576,9 @@ bool SurfaceFlinger::configureLocked() {
+                          .frameRateMultipleThreshold =
+                                  base::GetIntProperty("debug.sf.frame_rate_multiple_threshold"s, 0),
+                          .legacyIdleTimerTimeout = idleTimerTimeoutMs,
++                         .vrrIdleMinFps = Fps::fromValue(std::clamp(
++                                 base::GetIntProperty("debug.sf.vrr_idle_min_fps"s, 60),
++                                 1, 60)),
+                          .kernelIdleTimerController = kernelIdleTimerController};
+ 
+                 mDisplayModeController.registerDisplay(*snapshotOpt, *activeModeIdOpt, config);
+diff --git a/services/surfaceflinger/tests/unittests/RefreshRateSelectorTest.cpp b/services/surfaceflinger/tests/unittests/RefreshRateSelectorTest.cpp
+index 21295a5..2f4d846 100644
+--- a/services/surfaceflinger/tests/unittests/RefreshRateSelectorTest.cpp
++++ b/services/surfaceflinger/tests/unittests/RefreshRateSelectorTest.cpp
+@@ -19,6 +19,7 @@
+ 
+ #include <algorithm>
+ #include <array>
++#include <future>
+ 
+ #include <ftl/enum.h>
+ #include <ftl/fake_guard.h>
+@@ -4427,6 +4428,48 @@ TEST_P(RefreshRateSelectorTest, frameRateOverrideInBlockingZone60_90_NonDivisor)
+ }
+ 
+ // VRR tests
++TEST_P(RefreshRateSelectorTest, vrrIdleCallbackRoutesToOptedInPolicy) {
++    if (!GetParam().enableFrameRateOverride) GTEST_SKIP();
++    for (const Fps floor : {60_Hz, 1_Hz}) {
++        std::promise<bool> result;
++        auto ready = result.get_future();
++        auto selector = createSelector(kVrrMode_120, kModeId120,
++                                      {.legacyIdleTimerTimeout = 10ms, .vrrIdleMinFps = floor});
++        selector.setIdleTimerCallbacks(
++                {.platform = {.onReset = [] {}, .onExpired = [&] { result.set_value(true); }},
++                 .vrr = {.onReset = [] {}, .onExpired = [&] { result.set_value(false); }}});
++        selector.startIdleTimer();
++        const auto status = ready.wait_for(1s);
++        selector.stopIdleTimer();
++        ASSERT_EQ(std::future_status::ready, status);
++        EXPECT_EQ(floor.getValue() < 60.f, ready.get());
++    }
++}
++
++TEST_P(RefreshRateSelectorTest, vrrIdleLowRateRespectsTouchAndPolicy) {
++    if (!GetParam().enableFrameRateOverride) return;
++
++    auto legacy = createSelector(kVrrMode_120, kModeId120);
++    const FpsRange physical = {120_Hz, 120_Hz};
++    const FpsRange render = {0_Hz, 120_Hz};
++    legacy.setDisplayManagerPolicy({kModeId120, {physical, render}, {physical, render}});
++    EXPECT_FRAME_RATE_MODE(kVrrMode120TE240, 60_Hz,
++                          legacy.getBestFrameRateMode({}, {.idle = true}));
++
++    auto selector = createSelector(kVrrMode_120, kModeId120, {.vrrIdleMinFps = 1_Hz});
++    selector.setDisplayManagerPolicy({kModeId120, {physical, render}, {physical, render}});
++    EXPECT_FRAME_RATE_MODE(kVrrMode120TE240, 1_Hz,
++                          selector.getBestFrameRateMode({}, {.idle = true}));
++    EXPECT_FRAME_RATE_MODE(kVrrMode120TE240, 120_Hz,
++                          selector.getBestFrameRateMode({}, {.touch = true, .idle = true}));
++
++    const FpsRange restrictedRender = {30_Hz, 120_Hz};
++    selector.setDisplayManagerPolicy(
++            {kModeId120, {physical, restrictedRender}, {physical, restrictedRender}});
++    EXPECT_FRAME_RATE_MODE(kVrrMode120TE240, 30_Hz,
++                          selector.getBestFrameRateMode({}, {.idle = true}));
++}
++
+ TEST_P(RefreshRateSelectorTest, singleMinMaxRateForVrr) {
+     const bool enableFrameRateOverride = GetParam().enableFrameRateOverride;
+     if (!enableFrameRateOverride) {

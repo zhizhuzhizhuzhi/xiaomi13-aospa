@@ -1,5 +1,20 @@
+diff --git a/core/config.mk b/core/config.mk
+index 75d5bedc6..fbc8b90ce 100644
+--- a/core/config.mk
++++ b/core/config.mk
+@@ -1366,6 +1366,10 @@ endif
+ # when the target-files is signed in a post-build step.
+ ifeq ($(DEFAULT_SYSTEM_DEV_CERTIFICATE),build/make/target/product/security/testkey)
+ BUILD_KEYS := test-keys
++else ifneq (,$(filter BuildKeys=release-keys,$(PRODUCT_BUILD_PROP_OVERRIDES)))
++# Products signed directly with release certificates must use the same key tag
++# in fingerprint files, image AVB metadata and generated build properties.
++BUILD_KEYS := release-keys
+ else
+ BUILD_KEYS := dev-keys
+ endif
 diff --git a/core/packaging/flags.mk b/core/packaging/flags.mk
-index a9538b8..0c9eb2b 100644
+index a9538b872..0c9eb2b89 100644
 --- a/core/packaging/flags.mk
 +++ b/core/packaging/flags.mk
 @@ -37,6 +37,7 @@ $(strip $(1)): $(ACONFIG) $(strip $(4))
@@ -10,8 +25,21 @@ index a9538b8..0c9eb2b 100644
  			$$(addprefix --cache ,$$(PRIVATE_IN)), \
  		echo -n > $$(PRIVATE_OUT) \
  	)
+diff --git a/target/product/base_system.mk b/target/product/base_system.mk
+index 5b2d26a24..5ddae0577 100644
+--- a/target/product/base_system.mk
++++ b/target/product/base_system.mk
+@@ -559,7 +559,7 @@ PRODUCT_PACKAGES += init.zygote32.rc
+ 
+ PRODUCT_SYSTEM_PROPERTIES += debug.atrace.tags.enableflags=0
+ PRODUCT_SYSTEM_PROPERTIES += persist.traced.enable=1
+-PRODUCT_SYSTEM_PROPERTIES += ro.surface_flinger.game_default_frame_rate_override=60
++PRODUCT_SYSTEM_PROPERTIES += ro.surface_flinger.game_default_frame_rate_override?=60
+ PRODUCT_SYSTEM_PROPERTIES += persist.pcc.audit_mode.enabled=0
+ PRODUCT_SYSTEM_PROPERTIES += persist.pcc.audit_mode.max_log_files=10
+ PRODUCT_SYSTEM_PROPERTIES += persist.pcc.audit_mode.max_log_file_size_kb=10240
 diff --git a/tools/aconfig/aconfig/src/commands.rs b/tools/aconfig/aconfig/src/commands.rs
-index a983e3c..1156ae0 100644
+index a983e3cb4..1156ae08a 100644
 --- a/tools/aconfig/aconfig/src/commands.rs
 +++ b/tools/aconfig/aconfig/src/commands.rs
 @@ -587,7 +587,8 @@ pub fn should_include_flag(pf: &ProtoParsedFlag) -> bool {

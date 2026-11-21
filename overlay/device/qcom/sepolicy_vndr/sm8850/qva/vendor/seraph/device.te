@@ -1,0 +1,23 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# define power_state device
+type vendor_power_state_device, dev_type;
+
+# block device for swap
+type vendor_hibernate_swap, dev_type;
+
+#define sensors glink character device
+type vendor_glink_lmcu_qsh_device, dev_type;
+
+#Allow sensors hal to interact with powerStateService
+hal_client_domain(hal_sensors_default, vendor_hal_powerstateservice);
+
+#allow sensors hal to open glink dev node
+allow hal_sensors_default vendor_glink_lmcu_qsh_device:chr_file rw_file_perms;
+
+userdebug_or_eng(`
+  dontaudit vendor_usta_app default_prop:file { getattr open map };
+  allow vendor_usta_app vendor_glink_lmcu_qsh_device:chr_file rw_file_perms;
+  get_prop(vendor_usta_app, vendor_qc_aon_prop)
+')

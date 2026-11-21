@@ -1,0 +1,27 @@
+#Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+##SPDX-License-Identifier: BSD-3-Clause-Clear
+
+type vendor_hal_qvirtvendor_default, domain;
+type vendor_hal_qvirtvendor_default_exec, vendor_file_type, exec_type, file_type;
+
+##Define qvirtvendor as a daemon managed by init in the vendor partition
+init_daemon_domain(vendor_hal_qvirtvendor_default)
+binder_use(vendor_hal_qvirtvendor_default)
+
+#Setting the vendor VM hAL service and client
+hal_server_domain(vendor_hal_qvirtvendor_default, vendor_hal_qvirtvendor)
+hal_client_domain(vendor_hal_qvirtvendor_default, vendor_hal_qvirtservice)
+
+#allow qvirtvendor to interact with qvirtmgtr on the system partition
+binder_call(vendor_hal_qvirtvendor_client, vendor_hal_qvirtvendor_server)
+binder_call(vendor_hal_qvirtvendor_server,vendor_hal_qvirtvendor_client)
+hal_attribute_service(vendor_hal_qvirtvendor,vendor_hal_qvirtvendor_service)
+
+#Allow qvirtvendor to communicate with the VM
+userdebug_or_eng(`
+  get_prop(vendor_hal_qvirtvendor_default,vendor_mink_trace_prop)
+')
+
+unix_socket_connect(vendor_hal_qvirtvendor_default,vendor_hlos_minkd_opener,vendor_hlosminkdaemon)
+
+get_prop(vendor_hal_qvirtvendor_default, vendor_vm_ssrenable_prop)

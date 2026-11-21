@@ -66,6 +66,34 @@ index 7648c21..2a8aef2 100644
  bool SetTaskProfiles(pid_t tid, std::initializer_list<std::string_view> profiles,
                       bool use_fd_cache) {
      return TaskProfiles::GetInstance().SetTaskProfiles(
+diff --git a/rootdir/Android.bp b/rootdir/Android.bp
+index 27c4506..7312293 100644
+--- a/rootdir/Android.bp
++++ b/rootdir/Android.bp
+@@ -35,7 +35,10 @@ prebuilt_etc {
+ 
+ prebuilt_etc {
+     name: "init.rc",
+-    src: "init.rc",
++    src: select(soong_config_variable("aospa_build", "disable_serial_console"), {
++        true: ":aospa_init_without_serial_console",
++        default: "init.rc",
++    }),
+     sub_dir: "init/hw",
+     required: [
+         "platform-bootclasspath",
+@@ -273,3 +276,11 @@ filegroup {
+     srcs: ["ramdisk_node_list"],
+     export_to_make_var: "RAMDISK_NODE_LIST",
+ }
++
++// Generate the device console policy from the single common init template.
++genrule {
++    name: "aospa_init_without_serial_console",
++    srcs: ["init.rc"],
++    out: ["init.no-console.rc"],
++    cmd: "sed '/^on init && property:ro\\.debuggable=1$$/,+1d' $(in) > $(out)",
++}
 diff --git a/rootdir/init.rc b/rootdir/init.rc
 index d35afff..a713b13 100644
 --- a/rootdir/init.rc

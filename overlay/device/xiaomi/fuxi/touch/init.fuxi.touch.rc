@@ -1,0 +1,3 @@
+on boot
+    chown system system /sys/class/touch/touch_dev/bump_sample_rate
+    chmod 0660 /sys/class/touch/touch_dev/bump_sample_rate

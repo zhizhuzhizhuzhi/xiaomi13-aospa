@@ -1,0 +1,61 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# Define domain
+type vendor_unsignedhexlpservice, domain;
+
+# Allow domain transition from init to vendor_unsignedhexlpservice when
+# executing vendor_hexlpservice_exec
+domain_trans(init, vendor_hexlpservice_exec, vendor_unsignedhexlpservice)
+
+hal_server_domain(vendor_unsignedhexlpservice, vendor_hal_unsignedhexlp)
+
+hal_attribute_service(vendor_hal_unsignedhexlp, vendor_hal_unsignedhexlp_service)
+
+binder_call(vendor_hal_unsignedhexlp_client, vendor_hal_unsignedhexlp_server)
+binder_call(vendor_hal_unsignedhexlp_server, vendor_hal_unsignedhexlp_client)
+binder_call(vendor_unsignedhexlpservice, servicemanager)
+
+# allow binder call/transfer between service manager and unsigned Hexlp service
+binder_use(vendor_unsignedhexlpservice)
+
+# Allow access to /data/vendor/unsignedhexlp/
+allow vendor_unsignedhexlpservice vendor_unsignedhexlp_data_file:dir create_dir_perms;
+allow vendor_unsignedhexlpservice vendor_unsignedhexlp_data_file:file create_file_perms;
+
+# Allow access to /dev/dma_heap/system
+allow vendor_unsignedhexlpservice dmabuf_system_heap_device:chr_file r_file_perms;
+
+# Allow access to /dev/dma_heap/qcom,system
+allow vendor_unsignedhexlpservice vendor_dmabuf_system_heap_device:chr_file r_file_perms;
+
+# Allow access to /dev/synx_device
+allow vendor_unsignedhexlpservice vendor_synx_device:chr_file rw_file_perms;
+
+# Unsigned hexlpservice's access to QDSP is limited to ioctl and read operations.
+# This is required for a proper access to DSP HAL
+allow vendor_unsignedhexlpservice vendor_qdsp_device:chr_file {ioctl read};
+
+# Allow unsigned hexlpservice to access sysfs
+allow vendor_unsignedhexlpservice sysfs:dir r_dir_perms;
+
+# Need to get boot status props for proper boot up during device start up
+get_prop(vendor_unsignedhexlpservice, boot_status_prop)
+
+# Allow unsigned hexlpservice to access DSP read_prop
+get_prop(vendor_unsignedhexlpservice, vendor_adsprpc_prop)
+
+# Allow unsigned hexlpservice to use fallback crash dump mechanisms in case
+# standard crash_dump execution is blocked (e.g., due to seccomp restrictions).
+crash_dump_fallback(vendor_unsignedhexlpservice);
+
+# Allow unsigned hexlpservice to access DSP hal
+hal_client_domain(vendor_unsignedhexlpservice, vendor_hal_dspmanager);
+
+# Allow unsigned hexlpservice to access Graphic allocator HAL to be able to handle HardwareBuffer
+hal_client_domain(vendor_unsignedhexlpservice, hal_graphics_allocator);
+
+# Do not audit following denials as they are expected.
+dontaudit vendor_unsignedhexlpservice vendor_xdsp_device:chr_file { getattr open read map };
+dontaudit vendor_unsignedhexlpservice vendor_qdsp_device:chr_file {open};
+

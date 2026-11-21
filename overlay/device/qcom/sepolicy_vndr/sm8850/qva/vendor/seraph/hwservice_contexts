@@ -1,0 +1,10 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# hal nordic hwservice
+vendor.kineticsxr.hardware.nordic::INordic    u:object_r:vendor_hal_nordic_hwservice:s0
+
+vendor.qti.hardware.power.powerstateservice::IPowerStateService          u:object_r:vendor_hal_powerstateservice_hwservice:s0
+vendor.qti.hardware.power.powerstateservice::IPowerStateUtility          u:object_r:vendor_hal_powerstateutility_hwservice:s0
+
+vendor.qti.hardware.paleventnotifier::IPALEventNotifier      u:object_r:hal_audio_hwservice:s0

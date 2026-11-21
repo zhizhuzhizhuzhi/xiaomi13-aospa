@@ -1,0 +1,7 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+vendor.qti.hardware.powerstateservice.IPowerStateService/default		u:object_r:vendor_hal_powerstateservice_service:s0
+vendor.qti.hardware.powerstateservice.IPowerStateUtility/default		u:object_r:vendor_hal_powerstateutility_service:s0
+vendor.qti.hardware.bluetooth.gatt.IBluetoothGatt/default           u:object_r:vendor_hal_bluetooth_gatt_service:s0
+vendor.qti.hardware.agm.ICodecIpc/default                           u:object_r:vendor_agm_codec_ipc_service:s0

@@ -1,0 +1,7 @@
+diff --git a/Android.mk b/Android.mk
+deleted file mode 100644
+index 5053e7d..0000000
+--- a/Android.mk
++++ /dev/null
+@@ -1 +0,0 @@
+-include $(call all-subdir-makefiles)

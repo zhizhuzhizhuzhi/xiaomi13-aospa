@@ -1,0 +1,6 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+#Allow dumpstate access to dcp files
+allow dumpstate vendor_dcp_file:dir getattr;
+allow dumpstate vendor_dcp_file:filesystem getattr;

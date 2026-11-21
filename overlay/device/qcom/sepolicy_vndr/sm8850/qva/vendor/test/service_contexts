@@ -1,0 +1,8 @@
+#Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+#SPDX-License-Identifier: BSD-3-Clause-Clear
+
+vendor.qti.hardware.debugutils.IDebugUtils/default              u:object_r:hal_debugutils_aidlservice:s0
+vendor.qti.hardware.wifi.wifimyftm.IWifiMyFtm/default           u:object_r:vendor_hal_wifimyftm_service:s0
+
+vendor.qti.qepi.IQEPI/qepi                             u:object_r:vendor_hal_qms_service:s0
+

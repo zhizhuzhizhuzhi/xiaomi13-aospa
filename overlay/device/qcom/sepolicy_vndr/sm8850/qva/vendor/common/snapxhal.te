@@ -1,0 +1,21 @@
+# Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+type vendor_hal_snapx_default, domain;
+type vendor_hal_snapx_default_exec, exec_type, vendor_file_type, file_type;
+
+init_daemon_domain(vendor_hal_snapx_default)
+hal_server_domain(vendor_hal_snapx_default, vendor_hal_snapx_service_qti)
+
+binder_call(vendor_hal_snapx_service_qti_client, vendor_hal_snapx_service_qti_server)
+binder_call(vendor_hal_snapx_service_qti_server, vendor_hal_snapx_service_qti_client)
+
+hal_attribute_service(vendor_hal_snapx_service_qti, vendor_hal_snapx_service)
+
+binder_call(vendor_hal_snapx_default, servicemanager)
+
+# allow access to FrameworksUtilsSysService
+binder_call(vendor_hal_snapx_default, vendor_hal_qesdhal_client)
+allow vendor_hal_snapx_default vendor_qesdk_service:service_manager find;
+
+binder_use(vendor_hal_snapx_default);

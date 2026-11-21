@@ -1,0 +1,9 @@
+# Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+#allow access to ion device
+allow vendor_hal_qteeconnector ion_device:chr_file rw_file_perms;
+
+#allow aidl based qteeconnector communication
+hal_attribute_service(vendor_hal_qteeconnector, vendor_hal_qteeconnector_service)
+binder_call(vendor_hal_qteeconnector_server, servicemanager)

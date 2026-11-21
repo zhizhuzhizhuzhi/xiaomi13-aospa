@@ -1,0 +1,116 @@
+diff --git a/fwk-detect/Android.bp b/fwk-detect/Android.bp
+index db821be..55e5adb 100755
+--- a/fwk-detect/Android.bp
++++ b/fwk-detect/Android.bp
+@@ -52,3 +52,11 @@ java_library_static {
+     srcs: ["src/**/*.java"],
+     sdk_version: "current",
+ }
++
++install_symlink {
++    name: "CneApp.libvndfwk_detect_jni.qti_vendor_symlink",
++    vendor: true,
++    installed_location: "app/CneApp/lib/arm64/libvndfwk_detect_jni.qti_vendor.so",
++    symlink_target: "/vendor/lib64/libvndfwk_detect_jni.qti_vendor.so",
++    required: ["libvndfwk_detect_jni.qti_vendor"],
++}
+diff --git a/qspaframework/Android.mk b/qspaframework/Android.mk
+deleted file mode 100644
+index 9bf4ad6..0000000
+--- a/qspaframework/Android.mk
++++ /dev/null
+@@ -1,9 +0,0 @@
+-LOCAL_PATH := $(call my-dir)
+-
+-include $(CLEAR_VARS)
+-LOCAL_MODULE       := qspa_vendor.rc
+-LOCAL_MODULE_TAGS  := optional
+-LOCAL_MODULE_CLASS := ETC
+-LOCAL_SRC_FILES    := $(LOCAL_MODULE)
+-LOCAL_MODULE_PATH  := $(TARGET_OUT_VENDOR_ETC)/init
+-include $(BUILD_PREBUILT)
+\ No newline at end of file
+diff --git a/qspaservice/src/Qspa.cpp b/qspaservice/src/Qspa.cpp
+index 7313040..105a8e4 100644
+--- a/qspaservice/src/Qspa.cpp
++++ b/qspaservice/src/Qspa.cpp
+@@ -49,6 +49,7 @@ ndk::ScopedAStatus Qspa::get_all_subparts(std::vector<PartInfo>* _aidl_return) {
+         }
+         partinfo.subpart_data = tokens;
+         partinfo_return.push_back(partinfo);
++        fin.close();
+     }
+     *_aidl_return = partinfo_return;
+     return ndk::ScopedAStatus::ok();
+@@ -73,6 +74,7 @@ ndk::ScopedAStatus Qspa::get_available_parts(std::vector<std::string>* _aidl_ret
+         }
+         ALOGI("part is: %s", defective_parts[i].c_str());
+         parts.push_back(defective_parts[i].c_str());
++        fin.close();
+     }
+     *_aidl_return = parts;
+     return ndk::ScopedAStatus::ok();
+@@ -90,6 +92,7 @@ ndk::ScopedAStatus Qspa::get_subpart_info(const std::string& in_part,
+         ALOGE("Unable to open or read file: %s", subpart_path.c_str());
+         return ndk::ScopedAStatus::fromExceptionCode(EX_SERVICE_SPECIFIC);
+     }
++    fin.close();
+     stringstream data(line);
+     string intermediate;
+     std::vector<int32_t> tokens;
+@@ -111,6 +114,7 @@ ndk::ScopedAStatus Qspa::get_num_available_cpus(int32_t* _aidl_return) {
+         ALOGE("Unable to open or read file: %s", CPU_INFO_PATH);
+         return ndk::ScopedAStatus::fromExceptionCode(EX_SERVICE_SPECIFIC);
+     }
++    fin.close();
+     ALOGI("cpus Range: %s",line.c_str());
+     int32_t cpu = 0;
+     cpu = stoi(std::regex_replace(line, std::regex("0-"), ""));
+@@ -136,6 +140,7 @@ ndk::ScopedAStatus Qspa::get_num_available_clusters(int32_t* _aidl_return) {
+             clusters++;
+         }
+     }
++    closedir(clusters_dir);
+     ALOGI("Number of clusters: %d",clusters);
+     *_aidl_return = clusters;
+     return ndk::ScopedAStatus::ok();
+@@ -158,6 +163,7 @@ ndk::ScopedAStatus Qspa::get_num_physical_clusters(int32_t* _aidl_return) {
+         }
+         cout<<endl;
+     }
++    closedir(clusters_dir);
+     ALOGI("Number of clusters: %d",clusters);
+     *_aidl_return = clusters;
+     return ndk::ScopedAStatus::ok();
+@@ -173,6 +179,7 @@ ndk::ScopedAStatus Qspa::get_cpus_of_physical_clusters(int32_t in_physical_clust
+         ALOGE("Unable to open or read file: %s", CPU_INFO_PATH);
+         return ndk::ScopedAStatus::fromExceptionCode(EX_SERVICE_SPECIFIC);
+     }
++    fin.close();
+     ALOGI("cpus Range: %s",line.c_str());
+     int cpus = 0;
+     cpus = stoi(std::regex_replace(line, std::regex("0-"), "")) + 1;
+@@ -196,6 +203,7 @@ ndk::ScopedAStatus Qspa::get_cpus_of_physical_clusters(int32_t in_physical_clust
+                 first_cpu_in_cluster = i;
+                 break;
+             }
++            fin.close();
+         }
+         else if (stat(path2.c_str(), &sb) == 0 && !(sb.st_mode & S_IFDIR)) {
+             fstream fin;
+@@ -209,6 +217,7 @@ ndk::ScopedAStatus Qspa::get_cpus_of_physical_clusters(int32_t in_physical_clust
+                 first_cpu_in_cluster = i;
+                 break;
+             }
++            fin.close();
+         }
+     }
+     ALOGI("First cpu in cluster is: %d", first_cpu_in_cluster);
+@@ -230,6 +239,7 @@ ndk::ScopedAStatus Qspa::get_cpus_of_physical_clusters(int32_t in_physical_clust
+             ALOGI("data is %s", intermediate.c_str());
+             tokens.push_back(stoi(intermediate,0,16));
+         }
++        fi.close();
+     }
+     else {
+         tokens.push_back(-1);

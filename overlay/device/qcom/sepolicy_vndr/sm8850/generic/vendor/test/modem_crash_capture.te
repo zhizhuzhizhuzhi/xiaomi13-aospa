@@ -1,0 +1,16 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+type vendor_modem_crash_capture, domain;
+type vendor_modem_crash_capture_exec, exec_type, vendor_file_type, file_type;
+
+init_daemon_domain(vendor_modem_crash_capture);
+
+allow vendor_modem_crash_capture self:netlink_kobject_uevent_socket create_socket_perms_no_ioctl;
+allow vendor_modem_crash_capture self:capability2 syslog;
+allow vendor_modem_crash_capture kernel:system syslog_read;
+allow vendor_modem_crash_capture kmsg_device:chr_file r_file_perms;
+
+allow vendor_modem_crash_capture vendor_ramdump_vendor_data_file:dir rw_dir_perms;
+allow vendor_modem_crash_capture vendor_ramdump_vendor_data_file:file create_file_perms;
+

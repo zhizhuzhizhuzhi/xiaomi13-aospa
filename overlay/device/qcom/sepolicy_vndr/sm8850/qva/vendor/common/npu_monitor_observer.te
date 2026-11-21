@@ -1,0 +1,10 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+type vendor_npu_monitor, domain;
+type vendor_npu_monitor_exec, exec_type, vendor_file_type, file_type;
+
+init_daemon_domain(vendor_npu_monitor)
+
+# connect to kernel node
+allow vendor_npu_monitor vendor_sysfs_npu_pids_remote_sessions:file r_file_perms;

@@ -160,3 +160,28 @@ PRODUCT_COPY_FILES += \
 
 
 PRODUCT_RELEASE_CONFIG_MAPS += device/xiaomi/sm8550-platform-common/build/release/release_config_map.textproto
+
+# Shared stock QESDK implementations and environment assets.
+PRODUCT_PACKAGES += libqesdk2_0 libqesdk_manager sm8550_qesdk_env_lib32 sm8550_qesdk_env_manager32
+
+# Kernel-platform tools use their own build graph and Android.bp schema.
+PRODUCT_SOURCE_ROOT_DIRS += -kernel_platform kernel_platform/msm-kernel
+
+# Identical stock QESDK transport dependencies.
+PRODUCT_PACKAGES += libminkdescriptor libminksocket_vendor libqcbor
+
+# Identical stock QESDK transport dependencies.
+PRODUCT_PACKAGES += libqrtr libvmmem
+
+# Select the SM8550 device stack while sharing the system source with SM8850.
+PRODUCT_SOURCE_ROOT_DIRS += \
+    -hardware/qcom-caf \
+    -hardware/xiaomi/aidl/touch \
+    -device/xiaomi/pudding \
+    -device/xiaomi/sm8850-common \
+    -device/xiaomi/myron \
+    -vendor/xiaomi/pudding \
+    -vendor/xiaomi/sm8850-common \
+    -vendor/xiaomi/myron \
+    -vendor/qcom/sm8850 \
+    -vendor/qcom/opensource/interfaces/btconfigstore

@@ -1,0 +1,243 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+ * Copyright (c) 2009, 2011-2013 The Linux Foundation. All rights reserved.
+ * Copyright (C) 2014-2015 The CyanogenMod Project
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *    * Redistributions of source code must retain the above copyright
+ *      notice, this list of conditions and the following disclaimer.
+ *    * Redistributions in binary form must reproduce the above copyright
+ *      notice, this list of conditions and the following disclaimer in the
+ *      documentation and/or other materials provided with the distribution.
+ *    * Neither the name of The Linux Foundation nor
+ *      the names of its contributors may be used to endorse or promote
+ *      products derived from this software without specific prior written
+ *      permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NON-INFRINGEMENT ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT OWNER OR
+ * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+ * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+ * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+ * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+-->
+<resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+    <string name="app_name">ڕادیۆی FM</string>
+    <string name="tx_app_name">پەخشکەری FM</string>
+    <string name="menu_scan_start">گەڕان</string>
+    <string name="menu_scan_stop">وەستاندنی گەڕان</string>
+    <string name="menu_record_start">تۆمارکردن</string>
+    <string name="menu_record_stop">وەستاندنی تۆمارکردن</string>
+    <string name="menu_settings">ڕێکخستنەکان</string>
+    <string name="menu_sleep">کاتی خەو</string>
+    <string name="menu_sleep_cancel">لابردنی کاتی خەو</string>
+    <string name="menu_all_channels">هەموو کەناڵەکان</string>
+    <string name="menu_display_tags">پیشاندانی پێشنیارەکان</string>
+    <string name="button_text_stop">ڕاگرتن</string>
+    <string name="msg_seeking">گەڕان بەدوای وێستگەی FM\u2026</string>
+    <string name="msg_scanning">گەڕان بەدوای هەموو وێستگەکانی FM\u2026</string>
+    <string name="msg_scanning_pty">گەڕان بۆ \'<xliff:g id="pty_name">%1$s</xliff:g>\'\u2026</string>
+    <string name="msg_search_title"><xliff:g id="frequency_string">%1$s</xliff:g> MHz</string>
+    <string name="msg_searching_title">دیاریکردنی خۆکارانەی وێستگەکان</string>
+    <string name="msg_searching">گەڕان بۆ بەهێزکردنی وێستگەکان بۆ دروستکردنی لیست\u2026</string>
+    <string name="msg_noantenna">تکایە هێدفۆنێک ببەستە بۆ بەکارهێنانی ڕادیۆی FM</string>
+    <string name="dialog_sleep_title">خۆکارانە کاتی کوژانەوەی کات خەو</string>
+    <string name="presetlist_select_name">دەستنیشانکردنی  \'<xliff:g id="presetlist_name">%1$s</xliff:g>\'</string>
+    <string name="presetlist_add_new">زیادکردنی لیستێکی نوێ</string>
+    <string name="dialog_presetlist_rename_title">ناو بنوسە</string>
+    <string name="presetlist_autoselect_title">دڵنیاکردنەوەی دیاریکردنی-خۆکارانە</string>
+    <string name="preset_replace">گۆڕین</string>
+    <string name="preset_tune">بادان</string>
+    <string name="preset_rename">گۆڕینی ناو</string>
+    <string name="preset_delete">سڕینەوە</string>
+    <string name="preset_search">گەڕان بۆ  \'<xliff:g id="preset_pi">%1$s</xliff:g>\'</string>
+    <string name="stat_notif_frequency">\'<xliff:g id="frequency">%1$s</xliff:g>\'  مێگاهێرتز</string>
+    <string name="regional_band">دەستەی هەرێمایەتی</string>
+    <string name="regional_band_entry_north_america">باکووری ئەمریکا</string>
+    <string name="regional_band_entry_europe">ئەورووپا</string>
+    <string name="regional_band_entry_japan">ژاپۆن</string>
+    <string name="regional_band_entry_japan_wide">ژاپۆن (پانی)</string>
+    <string name="regional_band_entry_australia">ئوسترالیا</string>
+    <string name="regional_band_entry_austria">نەمسا</string>
+    <string name="regional_band_entry_belgium">بەلجیکا</string>
+    <string name="regional_band_entry_brazil">بەڕازیل</string>
+    <string name="regional_band_entry_china">چین</string>
+    <string name="regional_band_entry_czech_republic">کۆماری چیک</string>
+    <string name="regional_band_entry_denmark">دانیمارک</string>
+    <string name="regional_band_entry_finland">فینلەندا</string>
+    <string name="regional_band_entry_france">فەڕەنسا</string>
+    <string name="regional_band_entry_germany">ئەڵمانیا</string>
+    <string name="regional_band_entry_greece">یۆنان</string>
+    <string name="regional_band_entry_hong_kong">هۆنگ کۆنگ</string>
+    <string name="regional_band_entry_india">هیندستان</string>
+    <string name="regional_band_entry_indonesia">ئەندەنووسیا</string>
+    <string name="regional_band_entry_ireland">ئیرلەندا</string>
+    <string name="regional_band_entry_italy">ئیتاڵیا</string>
+    <string name="regional_band_entry_korea">کۆریا</string>
+    <string name="regional_band_entry_mexico">مەکسیک</string>
+    <string name="regional_band_entry_netherlands">هۆڵەندا</string>
+    <string name="regional_band_entry_new_zealand">نیوزیلەندا</string>
+    <string name="regional_band_entry_norway">نەرویج</string>
+    <string name="regional_band_entry_poland">پۆڵەندا</string>
+    <string name="regional_band_entry_portugal">پورتوگال</string>
+    <string name="regional_band_entry_russia">ڕووسیا</string>
+    <string name="regional_band_entry_singapore">سینگاپوور</string>
+    <string name="regional_band_entry_slovakia">سلۆڤاکیا</string>
+    <string name="regional_band_entry_spain">ئیسپانیا</string>
+    <string name="regional_band_entry_switzerland">سویسرا</string>
+    <string name="regional_band_entry_sweden">سوید</string>
+    <string name="regional_band_entry_taiwan">تایوان</string>
+    <string name="regional_band_entry_turkey">تورکیا</string>
+    <string name="regional_band_entry_united_kingdom">شانشینی یەکگرتوو</string>
+    <string name="regional_band_entry_united_states">ویلایەتە یەکگرتووەکان</string>
+    <string name="regional_band_entry_user_defined">باندی دەستنیشانکراوی بەکارهێنەر</string>
+    <string name="regional_band_summary_north_america">باکووری ئەمریکا (87.5 بۆ 108.0 MHz بە هەنگاوی 200 kHz)</string>
+    <string name="regional_band_summary_europe">ئەورووپا (87.5 بۆ 108.0 MHz بە هەنگاوی 100 kHz)</string>
+    <string name="regional_band_summary_japan">ژاپۆن (76.0 بۆ 90.0 MHz بە هەنگاوی 100 kHz)</string>
+    <string name="regional_band_summary_japan_wide">ژاپۆن (پان) (90.0 بۆ 108.0 MHz بە هەنگاوی 50 kHz)</string>
+    <string name="regional_band_summary_australia">ئوسترالیا (87.7 بۆ 108.0 MHz بە هەنگاوی 100 kHz)</string>
+    <string name="regional_band_summary_austria">نەمسا (87.5 بۆ 108.0 MHz بە هەنگاوی 50 kHz)</string>
+    <string name="regional_band_summary_belgium">بەلجیکا (87.5 بۆ 108.0 MHz بە هەنگاوی 100 kHz)</string>
+    <string name="regional_band_summary_brazil">بەڕازیل (87.5 بۆ 108.0 MHz بە هەنگاوی 200 kHz)</string>
+    <string name="regional_band_summary_china">چین (87.0 بۆ 108.0 MHz بە هەنگاوی 100 kHz)</string>
+    <string name="regional_band_summary_czech_republic">کۆماری چیک (87.5 بۆ 108.0 MHz بە هەنگاوی 100 kHz)</string>
+    <string name="regional_band_summary_denmark">دانیمارک (87.5 بۆ 108.0 MHz بە هەنگاوی 50 kHz)</string>
+    <string name="regional_band_summary_finland">فینلاند (87.5 بۆ 108.0 MHz بە هەنگاوی 100 kHz)</string>
+    <string name="regional_band_summary_france">فەڕەنسا (87.5 بۆ 108.0 MHz بە هەنگاوی 100 kHz)</string>
+    <string name="regional_band_summary_germany">ئەڵمانیا (87.5 بۆ 108.0 MHz بە هەنگاوی 50 kHz)</string>
+    <string name="regional_band_summary_greece">یۆنان (87.5 بۆ 108.0 MHz بە هەنگاوی 50 kHz)</string>
+    <string name="regional_band_summary_hong_kong">هۆنگ کۆنگ (87.5 بۆ 108.0 MHz بە هەنگاوی 100 kHz)</string>
+    <string name="regional_band_summary_india">هیندستان (87.5 بۆ 108.0 MHz بە هەنگاوی 100 kHz)</string>
+    <string name="regional_band_summary_indonesia">ئیندۆنیزیا (87.5 بۆ 108.0 MHz بە هەنگاوی 100 kHz)</string>
+    <string name="regional_band_summary_ireland">ئیرلەندا (87.5 بۆ 108.0 MHz بە هەنگاوی 50 kHz)</string>
+    <string name="regional_band_summary_italy">ئیتاڵیا (87.5 بۆ 108.0 MHz بە هەنگاوی 50 kHz)</string>
+    <string name="regional_band_summary_korea">کۆریا (87.5 بۆ 108.0 MHz بە هەنگاوی 200 kHz)</string>
+    <string name="regional_band_summary_mexico">مەکسیک (88.1 بۆ 107.9 MHz بە هەنگاوی 200 kHz)</string>
+    <string name="regional_band_summary_netherlands">هۆڵەندا (87.5 بۆ 108.0 MHz بە هەنگاوی 100 kHz)</string>
+    <string name="regional_band_summary_new_zealand">نیو زیلاند (88.0 بۆ 107.0 MHz بە هەنگاوی 100 kHz)</string>
+    <string name="regional_band_summary_norway">نەرویج (87.5 بۆ 108.0 MHz بە هەنگاوی 100 kHz)</string>
+    <string name="regional_band_summary_poland">پۆڵەندا (87.5 بۆ 108.0 MHz بە هەنگاوی 100 kHz)</string>
+    <string name="regional_band_summary_portugal">پورتوگال (87.5 بۆ 108.0 MHz بە هەنگاوی 50 kHz)</string>
+    <string name="regional_band_summary_russia">ڕووسیا (87.5 بۆ 108.0 MHz بە هەنگاوی 100 kHz)</string>
+    <string name="regional_band_summary_singapore">سینگاپوور (88.0 بۆ 108.0 MHz بە هەنگاوی 100 kHz)</string>
+    <string name="regional_band_summary_slovakia">سلۆڤاکیا (87.5 بۆ 108.0 MHz بە هەنگاوی 100 kHz)</string>
+    <string name="regional_band_summary_spain">ئیسپانیا (87.5 بۆ 108.0 MHz بە هەنگاوی 100 kHz)</string>
+    <string name="regional_band_summary_switzerland">سویسرا (87.5 بۆ 108.0 MHz بە هەنگاوی 100 kHz)</string>
+    <string name="regional_band_summary_sweden">سوید (87.5 بۆ 108.0 MHz بە هەنگاوی 100 kHz)</string>
+    <string name="regional_band_summary_taiwan">تایوان (87.5 بۆ 108.0 MHz بە هەنگاوی 100 kHz)</string>
+    <string name="regional_band_summary_turkey">تورکیا (87.5 بۆ 108.0 MHz بە هەنگاوی 100 kHz)</string>
+    <string name="regional_band_summary_united_kingdom">بەریتانیا (87.5 بۆ 108.0 MHz بە هەنگاوی 100 kHz)</string>
+    <string name="regional_band_summary_united_states">ویلایەتە یەکگرتووەکان (88.1 بۆ 107.9 MHz بە هەنگاوی 200 kHz)</string>
+    <string name="regional_band_summary_user_defined">باندی دەستنیشانکراوی بەکارهێنەر</string>
+    <string name="aud_output_mode">دۆخی دەرچەی دەنگ</string>
+    <string name="audio_type_stereo">ستیریۆ</string>
+    <string name="audio_type_mono">مۆنۆ</string>
+    <string name="record_dur">ماوەی تۆمارکردن</string>
+    <string name="auto_select_af">فریکوێنسی جێگرەوە (AF)</string>
+    <string name="settings_revert_defaults_title">گەڕانەوە بۆ ڕێکخستنە بنەڕەتییەکانی کارگە</string>
+    <string name="settings_revert_defaults_summary">ڕێکخستنەوەی هەموو ڕێکخستنەکان</string>
+    <string name="settings_revert_confirm_title">دڵنیابوونەوە لە ڕێکخستنەوە</string>
+    <string name="settings_revert_confirm_msg">ئەمە هەموو ڕێکخستنەکانی بەرنامەکان دەسڕێتەوە، لەوانەش وێستگە پاشەکەوتکراوەکان. بەردەوامیت؟</string>
+    <string name="no_storage">تکایە کارتی میمۆری (SD) داخڵ بکە پێش تۆمارکردن</string>
+    <string name="preparing_sd">ئامادەکردنی کارتی SD\u2026</string>
+    <string name="access_sd_fail">نەتوانرا دەست بگات بە کارتی SD</string>
+    <string name="spaceIsLow_content">بیرگەی کارتی SD خەریکە پڕ دەبێتەوە. جۆری ڕێکخستنی کوالێتی بگۆڕە یان هەندێک پەڕگە بسڕەوە بۆ چۆڵکردنی شوێن.</string>
+    <string name="FMRecording_reach_size_limit">گەیشتە ئەوپەڕی قەبارەی دیاریکراو</string>
+    <string name="menu_scan_for_preset">گەڕان بەدوای وێستگە ئامادەکراوەکاندا</string>
+    <string name="fm_off">ڕادیۆی FM کوژاوەتەوە.</string>
+    <string name="fm_call">ڕادیۆی FM لە کاتی پەیوەندیی تەلەفۆنیدا بەکارنایەت.</string>
+    <string name="alert_dialog_hint">ناوێک بنووسە</string>
+    <string name="search_dialog_title">گەڕان بەدوای وێستگەکاندا</string>
+    <string name="fm_command_timeout_title">کاتی بەسەرچوو</string>
+    <string name="fm_tune_timeout_msg">وەڵام وەرنەگیرا بۆ ڕێکخستنی وێستگەی FM. ئەگەر کێشەکە بەردەوام بوو، تکایە ڕادیۆی FM بکوژێنەرەوە و دووبارە دایگیرسێنەرەوە.</string>
+    <string name="fm_command_failed_title">کرداری FM شکستی هێنا</string>
+    <string name="fm_cmd_failed_msg">کرداری FM شکستی هێنا. ئەگەر کێشەکە بەردەوام بوو، تکایە ڕادیۆی FM بکوژێنەرەوە و دووبارە دایگیرسێنەرەوە.</string>
+    <string name="fm_cmd_failed_msg_hdmi">کرداری FM شکستی هێنا. کارکردنی هاوکاتی FM و HDMI پشتگیری ناکرێت.</string>
+    <string name="fm_cmd_failed_call_on">کرداری FM شکستی هێنا. دەنگی FM لە کاتی پەیوەندیدا ڕێگەپێدراو نییە.</string>
+    <string name="audio_db_title_format">
+        <xliff:g id="format">yyyy-MM-dd HH:mm:ss</xliff:g>
+    </string>
+    <string name="audio_db_artist_name">تۆمارکراوەکانی من</string>
+    <string name="audio_db_album_name">تۆمارکراوەکانی ڕادیۆ</string>
+    <string name="audio_db_playlist_name">لیستی تۆمارکراوەکان</string>
+    <string name="station_name">وێستگە:</string>
+    <string name="station_exists">ئەم فرێکوێنسییە پێشتر هەیە!</string>
+    <string name="station_list_delete_station">سڕینەوەی  <xliff:g id="name">%s</xliff:g></string>
+    <string name="station_list_delete_station_prompt">
+        دڵنیایت لە سڕینەوەی \'
+        <xliff:g id="name">%s</xliff:g>
+        \'؟
+    </string>
+    <string name="station_name_empty">ناوی وێستگە بەتاڵە، تکایە دووبارە بینووسەوە.</string>
+    <string name="station_name_exist">\'<xliff:g id="name">%s</xliff:g>\' پێشتر لەکارە، تکایە ناوی جیاواز بنوسە.</string>
+    <string name="rt_plus_tags">تاگەکان</string>
+    <string name="usr_def_band_min">نزمترین فریکوێنسی (MHz)</string>
+    <string name="usr_def_band_max">بەرزترین فریکوێنسی (MHz)</string>
+    <string name="chanl_spacing">مەودای نێوان کەناڵەکان</string>
+    <string name="set">دانان</string>
+    <string name="user_defind_band_msg">فریکوێنسییەک لە نێوان 76.0 بۆ 108.0 MHz دیاری بکە</string>
+    <string name="save_record_file">
+        فایلی تۆمارکراو پاشەکەوت کرا لە \'
+        <xliff:g id="record_file">%1$s</xliff:g>
+        \'
+    </string>
+    <string name="fm_search_no_results">هیچ وێستگەیەکی گونجاو نەدۆزرایەوە</string>
+    <string name="typ_All_stations">هەموو وێستگەکان</string>
+    <string name="typ_Culture">ڕۆشنبیری</string>
+    <string name="typ_Current_affairs">کاروباری ڕۆژ</string>
+    <string name="typ_Children">بەرنامەی منداڵان</string>
+    <string name="typ_Country">مۆسیقای کانتری</string>
+    <string name="typ_Documentary">دۆکیومێنتاری</string>
+    <string name="typ_Drama">دراما</string>
+    <string name="typ_Easy_listening">مۆسیقای ئارام</string>
+    <string name="typ_Education">پەروەردە</string>
+    <string name="typ_Emergency">باری نائاسایی</string>
+    <string name="typ_Emergency_test">تاقیکردنەوەی فریاگوزاری</string>
+    <string name="typ_Finance">دارایی</string>
+    <string name="typ_Folk">فۆلکلۆر</string>
+    <string name="typ_Information">زانیاری</string>
+    <string name="typ_Jazz">جاز</string>
+    <string name="typ_Light_classical">کلاسیکی سوک</string>
+    <string name="typ_Leisure">کاتی بەتاڵ</string>
+    <string name="typ_News">هەواڵ</string>
+    <string name="typ_National">مۆسیقای نیشتمانی</string>
+    <string name="typ_Other">مۆسیقای تر</string>
+    <string name="typ_Oldies">گۆرانییە کۆنەکان</string>
+    <string name="typ_Phone_in">بەرنامەی تەلەفۆنی</string>
+    <string name="typ_Pop">پۆپ</string>
+    <string name="typ_Religion">ئایینی</string>
+    <string name="typ_Rock">ڕۆک</string>
+    <string name="typ_Science">زانست</string>
+    <string name="typ_Serious_classical">کلاسیکی جدی</string>
+    <string name="typ_Social_affairs">کاروباری کۆمەڵایەتی</string>
+    <string name="typ_Sport">وەرزش</string>
+    <string name="typ_Travel">گەشتوگوزار</string>
+    <string name="typ_Varied">هەمەجۆر</string>
+    <string name="typ_Weather">کەشوهەوا</string>
+    <string name="typ_Adult_hits">گۆرانییە ناسراوەکان</string>
+    <string name="typ_Classical">کلاسیک</string>
+    <string name="typ_Classic_Rock">ڕۆکی کلاسیک</string>
+    <string name="typ_College">زانکۆ</string>
+    <string name="typ_Foreign_language">زمانی بیانی</string>
+    <string name="typ_Hiphop">هیپ هۆپ</string>
+    <string name="typ_Nostalgia">نۆستالژیا</string>
+    <string name="typ_Personality">کەسایەتی</string>
+    <string name="typ_Public">گشتی</string>
+    <string name="typ_Religious_music">مۆسیقای ئایینی</string>
+    <string name="typ_Religious_talk">گفتوگۆی ئایینی</string>
+    <string name="typ_Rhythm_and_Blues">ڕیتم و بلووز</string>
+    <string name="typ_Spanish_music">مۆسیقای ئیسپانی</string>
+    <string name="typ_Spanish_talk">گفتوگۆی ئیسپانی</string>
+    <string name="typ_Soft">نەرم</string>
+    <string name="typ_Soft_Rock">ڕۆکی نەرم</string>
+    <string name="typ_Soft_Rhythm_and_Blues">ڕیتم و بلووزی نەرم</string>
+    <string name="typ_Sports">وەرزشی</string>
+    <string name="typ_Talk">گفتوگۆ</string>
+    <string name="typ_Top_40">40 باشترینەکان</string>
+</resources>

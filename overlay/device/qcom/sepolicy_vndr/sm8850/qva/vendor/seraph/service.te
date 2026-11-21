@@ -1,0 +1,7 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+type vendor_hal_powerstateservice_service,	 hal_service_type, protected_service, service_manager_type;
+type vendor_hal_powerstateutility_service,	 hal_service_type, protected_service, service_manager_type;
+type vendor_hal_bluetooth_gatt_service,   hal_service_type, protected_service, service_manager_type;
+type vendor_agm_codec_ipc_service,  hal_service_type, protected_service, service_manager_type;

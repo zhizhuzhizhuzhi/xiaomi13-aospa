@@ -69,9 +69,9 @@ public class HealthInterfaceService extends SystemService {
             mFeatures.add(mFCC);
         }
 
-        if (!mFeatures.isEmpty()) {
-            publishBinderService(LineageContextConstants.AOSPA_HEALTH_INTERFACE, mService);
-        }
+        // Unsupported features are reported by the live service, not inferred from
+        // an absent Binder endpoint (which can also mean a service failure).
+        publishBinderService(LineageContextConstants.AOSPA_HEALTH_INTERFACE, mService);
     }
 
     @Override

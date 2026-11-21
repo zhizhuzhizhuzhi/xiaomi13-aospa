@@ -32,12 +32,19 @@ python3 ../aospa-fuxi-kit/scripts/apply.py "$PWD"
 
 ## Build and package
 
-The build script downloads dependencies from [GitHub Releases](https://github.com/zhizhuzhizhuzhi/xiaomi13-aospa/releases/tag/build-deps-20261020) and prepares the kernel. Java and Clang are provided by the source tree.
+Prepare matching inputs with the relative paths listed in `dependencies.json`:
+
+```bash
+python3 ../aospa-fuxi-kit/scripts/fetch-dependencies.py "$PWD" \
+  --source /path/to/prepared-fuxi-inputs --replace-stock-inputs
+```
+
+The build script checks the inputs and prepares the kernel. Java and Clang are provided by the source tree.
 
 ### userdebug
 
 ```bash
-BUILD_NUMBER=20261020 bash ../aospa-fuxi-kit/scripts/build.sh "$PWD" userdebug "$(nproc)"
+BUILD_NUMBER=20261121 bash ../aospa-fuxi-kit/scripts/build.sh "$PWD" userdebug "$(nproc)"
 python3 ../aospa-fuxi-kit/scripts/package.py "$PWD" \
   out/target/product/fuxi/obj/PACKAGING/target_files_intermediates/aospa_fuxi-target_files.zip \
   "$PWD/aospa_fuxi-fastboot-userdebug.zip"
@@ -46,7 +53,7 @@ python3 ../aospa-fuxi-kit/scripts/package.py "$PWD" \
 ### user
 
 ```bash
-BUILD_NUMBER=20261020 bash ../aospa-fuxi-kit/scripts/build.sh "$PWD" user "$(nproc)"
+BUILD_NUMBER=20261121 bash ../aospa-fuxi-kit/scripts/build.sh "$PWD" user "$(nproc)"
 OUT_DIR=out-user-release python3 ../aospa-fuxi-kit/scripts/package.py "$PWD" \
   out-user-release/target/product/fuxi/obj/PACKAGING/target_files_intermediates/aospa_fuxi-target_files.zip \
   "$PWD/aospa_fuxi-fastboot-user.zip"

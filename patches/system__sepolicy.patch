@@ -1,3 +1,15 @@
+diff --git a/private/platform_app_all.te b/private/platform_app_all.te
+index 115e0df..16e85e3 100644
+--- a/private/platform_app_all.te
++++ b/private/platform_app_all.te
+@@ -32,6 +32,7 @@ allow platform_app_all sdcard_type:file create_file_perms;
+ # com.android.systemui
+ allow platform_app_all rootfs:dir getattr;
+ get_prop(platform_app_all, audio_config_prop)
++get_prop(platform_app_all, bluetooth_lea_prop)
+ get_prop(platform_app_all, radio_cdma_ecm_prop)
+ userdebug_or_eng(`
+   set_prop(platform_app_all, persist_wm_debug_prop)
 diff --git a/private/shell.te b/private/shell.te
 index 5d3cabc..7b31fb0 100644
 --- a/private/shell.te

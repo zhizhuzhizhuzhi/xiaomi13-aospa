@@ -1,0 +1,27 @@
+# Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+type vendor_qlm_service, domain;
+type vendor_qlm_service_exec, exec_type, vendor_file_type, file_type;
+
+init_daemon_domain(vendor_qlm_service)
+
+# to read /sys/devices
+allow vendor_qlm_service sysfs:dir r_dir_perms;
+
+# This is required to access /dev/socket/qlm_service socket
+allow vendor_qlm_service vendor_qlm_socket:sock_file rw_file_perms;
+
+# This is required for thermal sysfs access
+r_dir_file(vendor_qlm_service, sysfs_thermal)
+allow vendor_qlm_service sysfs_thermal:lnk_file r_file_perms;
+
+# This is required for power telemetry sysfs access
+until_board_api(202604, `
+	allow vendor_qlm_service vendor_sysfs_powercap:dir r_dir_perms;
+	allow vendor_qlm_service vendor_sysfs_powercap:file r_file_perms;
+')
+starting_at_board_api(202604, `
+	allow vendor_qlm_service sysfs_powercap:dir r_dir_perms;
+	allow vendor_qlm_service sysfs_powercap:file r_file_perms;
+')

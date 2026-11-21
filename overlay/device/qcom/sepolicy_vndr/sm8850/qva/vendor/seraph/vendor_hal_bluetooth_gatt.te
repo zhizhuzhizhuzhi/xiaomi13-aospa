@@ -1,0 +1,11 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+#for BT Gatt Service
+type vendor_hal_bluetooth_gatt, domain;
+type vendor_hal_bluetooth_gatt_exec, exec_type, vendor_file_type, file_type;
+
+init_daemon_domain(vendor_hal_bluetooth_gatt)
+
+hal_server_domain(vendor_hal_bluetooth_gatt, hal_bluetooth)
+hal_attribute_service(hal_bluetooth, vendor_hal_bluetooth_gatt_service)

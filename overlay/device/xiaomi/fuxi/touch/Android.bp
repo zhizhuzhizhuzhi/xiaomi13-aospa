@@ -1,0 +1,6 @@
+prebuilt_etc {
+    name: "init.fuxi.touch.rc",
+    src: "init.fuxi.touch.rc",
+    sub_dir: "init",
+    vendor: true,
+}

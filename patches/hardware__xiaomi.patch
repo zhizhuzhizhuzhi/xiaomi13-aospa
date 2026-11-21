@@ -135,12 +135,117 @@ index dc89544..d2dd885 100644
  
          private val invalidFpVendors = arrayOf(
              "",
+diff --git a/aidl/fingerprint/Fingerprint.cpp b/aidl/fingerprint/Fingerprint.cpp
+index 9a0b43d..c4b64c3 100644
+--- a/aidl/fingerprint/Fingerprint.cpp
++++ b/aidl/fingerprint/Fingerprint.cpp
+@@ -1,5 +1,5 @@
+ /*
+- * Copyright (C) 2024 The LineageOS Project
++ * Copyright (C) 2024-2025 The LineageOS Project
+  *               2024 Paranoid Android
+  *
+  * SPDX-License-Identifier: Apache-2.0
+@@ -12,8 +12,11 @@
+ #include "util/Util.h"
+ 
+ #include <android-base/logging.h>
++#include <android-base/properties.h>
+ #include <android-base/strings.h>
+ 
++using ::android::base::SetProperty;
++
+ namespace aidl::android::hardware::biometrics::fingerprint {
+ 
+ namespace {
+@@ -30,8 +33,9 @@ typedef struct fingerprint_hal {
+ } fingerprint_hal_t;
+ 
+ static const fingerprint_hal_t kModules[] = {
++        {"goodix_us2"}, {"qcom_us"},
+         {"fortsense"},  {"fpc"},         {"fpc_fod"}, {"goodix"}, {"goodix:gf_fingerprint"},
+-        {"goodix_fod"}, {"goodix_fod6"}, {"silead"},  {"syna"},
++        {"goodix_fod"}, {"goodix_fod6"}, {"jiiov"},   {"silead"}, {"syna"},
+ };
+ 
+ }  // namespace
+@@ -67,15 +71,19 @@ Fingerprint::Fingerprint(std::shared_ptr<FingerprintConfig> config) : mConfig(st
+             }
+             ALOGI("Opened fingerprint HAL, class: %s, module_id: %s", class_name.c_str(),
+                   class_module_id.c_str());
++            SetProperty("persist.vendor.sys.fp.vendor", class_name);
+             break;
+         }
+         if (!mDevice) {
+             ALOGE("Can't open any fingerprint HAL module");
++            SetProperty("persist.vendor.sys.fp.vendor", "none");
+         }
+     }
+ 
+     std::string sensorTypeProp = mConfig->get<std::string>("type");
+     if (sensorTypeProp == "udfps" || sensorTypeProp == "udfps_optical") {
++        SetProperty("ro.hardware.fp.udfps", "true");
++
+         if (sensorTypeProp == "udfps") {
+             mSensorType = FingerprintSensorType::UNDER_DISPLAY_ULTRASONIC;
+         } else {
+@@ -89,6 +97,12 @@ Fingerprint::Fingerprint(std::shared_ptr<FingerprintConfig> config) : mConfig(st
+             if (!mUdfpsHandler) {
+                 ALOGE("Can't create UdfpsHandler");
+             } else {
++                mUdfpsHandler->setErrorCallback([] {
++                    fingerprint_msg_t message = {};
++                    message.type = FINGERPRINT_ERROR;
++                    message.data.error = FINGERPRINT_ERROR_HW_UNAVAILABLE;
++                    Fingerprint::notify(&message);
++                });
+                 mUdfpsHandler->init(mDevice);
+             }
+         }
+@@ -203,6 +217,13 @@ void Fingerprint::notify(const fingerprint_msg_t* msg) {
+ }
+ 
+ ndk::ScopedAStatus Fingerprint::getSensorProps(std::vector<SensorProps>* out) {
++    // A failed legacy HAL must not be advertised to the framework.
++    if (!mDevice || !mDevice->set_active_group) {
++        ALOGW("Fingerprint hardware unavailable; reporting no sensors");
++        out->clear();
++        return ndk::ScopedAStatus::ok();
++    }
++
+     std::vector<common::ComponentInfo> componentInfo = {
+             {HW_COMPONENT_ID, HW_VERSION, FW_VERSION, SERIAL_NUMBER, "" /* softwareVersion */},
+             {SW_COMPONENT_ID, "" /* hardwareVersion */, "" /* firmwareVersion */,
+@@ -235,6 +256,16 @@ ndk::ScopedAStatus Fingerprint::getSensorProps(std::vector<SensorProps>* out) {
+ ndk::ScopedAStatus Fingerprint::createSession(int32_t /*sensorId*/, int32_t userId,
+                                               const std::shared_ptr<ISessionCallback>& cb,
+                                               std::shared_ptr<ISession>* out) {
++    if (!mDevice || !mDevice->set_active_group) {
++        ALOGE("Cannot create fingerprint session: hardware module unavailable");
++        return ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_STATE);
++    }
++
++    if (mUdfpsHandler && !mUdfpsHandler->isHardwareAvailable()) {
++        return ndk::ScopedAStatus::fromExceptionCodeWithMessage(
++                EX_ILLEGAL_STATE, "Fingerprint touch observation unavailable");
++    }
++
+     CHECK(mSession == nullptr || mSession->isClosed()) << "Open session already exists!";
+ 
+     mSession = SharedRefBase::make<Session>(mDevice, mUdfpsHandler, userId, cb, mLockoutTracker);
 diff --git a/aidl/fingerprint/Session.cpp b/aidl/fingerprint/Session.cpp
-index 9126ec7..165bdc3 100644
+index 9126ec7..afe6f5a 100644
 --- a/aidl/fingerprint/Session.cpp
 +++ b/aidl/fingerprint/Session.cpp
-@@ -54,9 +54,11 @@ ndk::ScopedAStatus Session::enroll(const HardwareAuthToken& hat,
+@@ -52,11 +52,18 @@ ndk::ScopedAStatus Session::revokeChallenge(int64_t challenge) {
+ 
+ ndk::ScopedAStatus Session::enroll(const HardwareAuthToken& hat,
                                     std::shared_ptr<ICancellationSignal>* out) {
++    if (mUdfpsHandler && !mUdfpsHandler->isHardwareAvailable()) {
++        return ndk::ScopedAStatus::fromExceptionCodeWithMessage(
++                EX_ILLEGAL_STATE, "Fingerprint touch observation unavailable");
++    }
++
      hw_auth_token_t authToken;
      translate(hat, authToken);
 +    if (mUdfpsHandler) mUdfpsHandler->onOperationStarted();
@@ -151,9 +256,15 @@ index 9126ec7..165bdc3 100644
          mCb->onError(Error::UNABLE_TO_PROCESS, error);
      }
  
-@@ -67,9 +69,11 @@ ndk::ScopedAStatus Session::enroll(const HardwareAuthToken& hat,
+@@ -66,10 +73,17 @@ ndk::ScopedAStatus Session::enroll(const HardwareAuthToken& hat,
+ 
  ndk::ScopedAStatus Session::authenticate(int64_t operationId,
                                           std::shared_ptr<ICancellationSignal>* out) {
++    if (mUdfpsHandler && !mUdfpsHandler->isHardwareAvailable()) {
++        return ndk::ScopedAStatus::fromExceptionCodeWithMessage(
++                EX_ILLEGAL_STATE, "Fingerprint touch observation unavailable");
++    }
++
      checkSensorLockout();
 +    if (mUdfpsHandler) mUdfpsHandler->onOperationStarted();
      int error = mDevice->authenticate(mDevice, operationId, mUserId);
@@ -163,7 +274,31 @@ index 9126ec7..165bdc3 100644
          mCb->onError(Error::UNABLE_TO_PROCESS, error);
      }
  
-@@ -179,8 +183,8 @@ ndk::ScopedAStatus Session::onContextChanged(const common::OperationContext& /*c
+@@ -129,6 +143,11 @@ ndk::ScopedAStatus Session::resetLockout(const HardwareAuthToken& /*hat*/) {
+ 
+ ndk::ScopedAStatus Session::onPointerDown(int32_t /*pointerId*/, int32_t x, int32_t y, float minor,
+                                           float major) {
++    if (mUdfpsHandler && !mUdfpsHandler->isHardwareAvailable()) {
++        return ndk::ScopedAStatus::fromExceptionCodeWithMessage(
++                EX_ILLEGAL_STATE, "Fingerprint touch observation unavailable");
++    }
++
+     if (mUdfpsHandler) {
+         mUdfpsHandler->onFingerDown(x, y, minor, major);
+     }
+@@ -136,6 +155,11 @@ ndk::ScopedAStatus Session::onPointerDown(int32_t /*pointerId*/, int32_t x, int3
+ }
+ 
+ ndk::ScopedAStatus Session::onPointerUp(int32_t /*pointerId*/) {
++    if (mUdfpsHandler && !mUdfpsHandler->isHardwareAvailable()) {
++        return ndk::ScopedAStatus::fromExceptionCodeWithMessage(
++                EX_ILLEGAL_STATE, "Fingerprint touch observation unavailable");
++    }
++
+     if (mUdfpsHandler) {
+         mUdfpsHandler->onFingerUp();
+     }
+@@ -179,8 +203,8 @@ ndk::ScopedAStatus Session::onContextChanged(const common::OperationContext& /*c
      return ndk::ScopedAStatus::ok();
  }
  
@@ -174,7 +309,7 @@ index 9126ec7..165bdc3 100644
  }
  
  ndk::ScopedAStatus Session::setIgnoreDisplayTouches(bool /*shouldIgnore*/) {
-@@ -195,7 +199,9 @@ ndk::ScopedAStatus Session::cancel() {
+@@ -195,7 +219,9 @@ ndk::ScopedAStatus Session::cancel() {
      int ret = mDevice->cancel(mDevice);
  
      if (ret == 0) {
@@ -185,7 +320,7 @@ index 9126ec7..165bdc3 100644
          return ndk::ScopedAStatus::ok();
      }
  
-@@ -204,6 +210,7 @@ ndk::ScopedAStatus Session::cancel() {
+@@ -204,6 +230,7 @@ ndk::ScopedAStatus Session::cancel() {
  
  ndk::ScopedAStatus Session::close() {
      mClosed = true;
@@ -193,7 +328,7 @@ index 9126ec7..165bdc3 100644
      mCb->onSessionClosed();
      AIBinder_DeathRecipient_delete(mDeathRecipient);
      return ndk::ScopedAStatus::ok();
-@@ -323,6 +330,7 @@ void Session::notify(const fingerprint_msg_t* msg) {
+@@ -323,6 +350,7 @@ void Session::notify(const fingerprint_msg_t* msg) {
      // const uint64_t devId = reinterpret_cast<uint64_t>(mDevice);
      switch (msg->type) {
          case FINGERPRINT_ERROR: {
@@ -201,7 +336,7 @@ index 9126ec7..165bdc3 100644
              int32_t vendorCode = 0;
              Error result = VendorErrorFilter(msg->data.error, &vendorCode);
              ALOGD("onError(%hhd, %d)", result, vendorCode);
-@@ -346,6 +354,9 @@ void Session::notify(const fingerprint_msg_t* msg) {
+@@ -346,6 +374,9 @@ void Session::notify(const fingerprint_msg_t* msg) {
          case FINGERPRINT_TEMPLATE_ENROLLING: {
              ALOGD("onEnrollResult(fid=%d, gid=%d, rem=%d)", msg->data.enroll.finger.fid,
                    msg->data.enroll.finger.gid, msg->data.enroll.samples_remaining);
@@ -211,6 +346,16 @@ index 9126ec7..165bdc3 100644
              mCb->onEnrollmentProgress(msg->data.enroll.finger.fid,
                                        msg->data.enroll.samples_remaining);
          } break;
+diff --git a/aidl/fingerprint/android.hardware.biometrics.fingerprint-service.xiaomi.rc b/aidl/fingerprint/android.hardware.biometrics.fingerprint-service.xiaomi.rc
+index 82d4dd9..d04bd33 100644
+--- a/aidl/fingerprint/android.hardware.biometrics.fingerprint-service.xiaomi.rc
++++ b/aidl/fingerprint/android.hardware.biometrics.fingerprint-service.xiaomi.rc
+@@ -5,4 +5,5 @@ service vendor.fingerprint-default /vendor/bin/hw/android.hardware.biometrics.fi
+     class late_start
+     user system
+     group system input uhid
++    capabilities SYS_NICE WAKE_ALARM
+     shutdown critical
 diff --git a/aidl/sensors/Android.bp b/aidl/sensors/Android.bp
 index f00c5e9..a210b59 100644
 --- a/aidl/sensors/Android.bp
@@ -296,6 +441,53 @@ index 7dc61fd..5221c92 100644
  };
  
  // Array containing the paths to fifo data in vendor.
+diff --git a/dolby/src/co/aospa/dolby/xiaomi/DolbyController.kt b/dolby/src/co/aospa/dolby/xiaomi/DolbyController.kt
+index 07631e9..7c05e0d 100644
+--- a/dolby/src/co/aospa/dolby/xiaomi/DolbyController.kt
++++ b/dolby/src/co/aospa/dolby/xiaomi/DolbyController.kt
+@@ -28,6 +28,10 @@ internal class DolbyController private constructor(
+     private val stereoWideningSupported =
+         context.getResources().getBoolean(R.bool.dolby_stereo_widening_supported)
+ 
++    // Half-EQ OEM firmware cannot accept the generic 20-band GEQ payload.
++    val geqSupported: Boolean
++        get() = !android.os.SystemProperties.getBoolean("ro.vendor.audio.dolby.eq.half", false)
++
+     // Restore current profile on every media session
+     private val playbackCallback = object : AudioPlaybackCallback() {
+         override fun onPlaybackConfigChanged(configs: List<AudioPlaybackConfiguration>) {
+@@ -119,10 +123,12 @@ internal class DolbyController private constructor(
+     private fun restoreSettings(profile: Int) {
+         dlog(TAG, "restoreSettings(profile=$profile)")
+         val prefs = context.getSharedPreferences("profile_$profile", Context.MODE_PRIVATE)
+-        setPreset(
+-            prefs.getString(DolbyConstants.PREF_PRESET, getPreset(profile))!!,
+-            profile
+-        )
++        if (geqSupported) {
++            setPreset(
++                prefs.getString(DolbyConstants.PREF_PRESET, getPreset(profile))!!,
++                profile
++            )
++        }
+         setIeqPreset(
+             prefs.getString(
+                 DolbyConstants.PREF_IEQ,
+diff --git a/dolby/src/co/aospa/dolby/xiaomi/geq/EqualizerActivity.kt b/dolby/src/co/aospa/dolby/xiaomi/geq/EqualizerActivity.kt
+index 30babc3..c9899e0 100644
+--- a/dolby/src/co/aospa/dolby/xiaomi/geq/EqualizerActivity.kt
++++ b/dolby/src/co/aospa/dolby/xiaomi/geq/EqualizerActivity.kt
+@@ -29,6 +29,10 @@ class EqualizerActivity : ComponentActivity() {
+ 
+     override fun onCreate(savedInstanceState: Bundle?) {
+         super.onCreate(savedInstanceState)
++        if (android.os.SystemProperties.getBoolean("ro.vendor.audio.dolby.eq.half", false)) {
++            finish()
++            return
++        }
+         setContent {
+             SettingsTheme {
+                 MainContent()
 diff --git a/dolby/src/co/aospa/dolby/xiaomi/preference/DolbyIeqPreference.kt b/dolby/src/co/aospa/dolby/xiaomi/preference/DolbyIeqPreference.kt
 index b51d00d..5910460 100644
 --- a/dolby/src/co/aospa/dolby/xiaomi/preference/DolbyIeqPreference.kt
@@ -324,14 +516,47 @@ index b51d00d..5910460 100644
 +            else -> 0 // Unset or unsupported engine preset.
          }
  }
+diff --git a/dolby/src/co/aospa/dolby/xiaomi/preference/DolbySettingsFragment.kt b/dolby/src/co/aospa/dolby/xiaomi/preference/DolbySettingsFragment.kt
+index f23410c..0be4e84 100644
+--- a/dolby/src/co/aospa/dolby/xiaomi/preference/DolbySettingsFragment.kt
++++ b/dolby/src/co/aospa/dolby/xiaomi/preference/DolbySettingsFragment.kt
+@@ -232,6 +232,7 @@ class DolbySettingsFragment : PreferenceFragment(),
+         }
+ 
+         val enable = dsOn && (currentProfile != -1)
++        presetPref.isVisible = dolbyController.geqSupported
+         presetPref.setEnabled(enable)
+         spkVirtPref.setEnabled(enable)
+         ieqPref.setEnabled(enable)
+@@ -244,7 +245,9 @@ class DolbySettingsFragment : PreferenceFragment(),
+ 
+         if (!enable) return
+ 
+-        presetPref.summary = dolbyController.getPresetName()
++        if (dolbyController.geqSupported) {
++            presetPref.summary = dolbyController.getPresetName()
++        }
+ 
+         val ieqValue = dolbyController.getIeqPreset(currentProfile)
+         ieqPref.apply {
 diff --git a/fingerprint/include/UdfpsHandler.h b/fingerprint/include/UdfpsHandler.h
-index 28cece7..f6e3242 100644
+index 28cece7..8c14e96 100644
 --- a/fingerprint/include/UdfpsHandler.h
 +++ b/fingerprint/include/UdfpsHandler.h
-@@ -14,6 +14,7 @@ class UdfpsHandler {
+@@ -7,6 +7,7 @@
+ #pragma once
+ 
+ #include <stdint.h>
++#include <functional>
+ #include "fingerprint.h"
+ 
+ class UdfpsHandler {
+@@ -14,6 +15,9 @@ class UdfpsHandler {
      virtual ~UdfpsHandler() = default;
  
      virtual void init(fingerprint_device_t* device) {};
++    virtual bool isHardwareAvailable() const { return true; }
++    virtual void setErrorCallback(std::function<void()>) {}
 +    virtual void onOperationStarted() {};
      virtual void onFingerDown(uint32_t x, uint32_t y, float minor, float major) {};
      virtual void onFingerUp() {};

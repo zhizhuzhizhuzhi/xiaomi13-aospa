@@ -1,7 +1,31 @@
+diff --git a/configs/kalama/audio_policy_configuration.xml b/configs/kalama/audio_policy_configuration.xml
+index 7741665..e66fcb3 100644
+--- a/configs/kalama/audio_policy_configuration.xml
++++ b/configs/kalama/audio_policy_configuration.xml
+@@ -533,8 +533,8 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+         <!-- Remote Submix Audio HAL -->
+         <xi:include href="/vendor/etc/r_submix_audio_policy_configuration.xml"/>
+ 
+-        <!-- Bluetooth Audio HAL for hearing aid -->
+-        <xi:include href="/vendor/etc/bluetooth_qti_hearing_aid_audio_policy_configuration.xml"/>
++        <!-- Bluetooth Audio HAL (software A2DP and hearing aid) -->
++        <xi:include href="/vendor/etc/bluetooth_qti_audio_policy_configuration.xml"/>
+ 
+     </modules>
+     <!-- End of Modules section -->
 diff --git a/configs/kalama/kalama.mk b/configs/kalama/kalama.mk
-index 1c3e9c7..a239632 100644
+index 1c3e9c7..6ab3a6c 100644
 --- a/configs/kalama/kalama.mk
 +++ b/configs/kalama/kalama.mk
+@@ -125,7 +125,7 @@ CONFIG_SKU_OUT_DIR := $(TARGET_COPY_OUT_VENDOR)/etc/audio/sku_$(DEVICE_SKU)
+ 
+ PRODUCT_COPY_FILES += \
+     $(CONFIG_HAL_SRC_DIR)/audio_effects.conf:$(CONFIG_SKU_OUT_DIR)/audio_effects.conf \
+-    $(CONFIG_HAL_SRC_DIR)/audio_effects.xml:$(CONFIG_SKU_OUT_DIR)/audio_effects.xml \
++    $(if $(filter aospa_sheng,$(TARGET_PRODUCT)),device/xiaomi/sheng/dolby/audio_effects.xml,$(CONFIG_HAL_SRC_DIR)/audio_effects.xml):$(CONFIG_SKU_OUT_DIR)/audio_effects.xml \
+     $(CONFIG_HAL_SRC_DIR)/microphone_characteristics.xml:$(TARGET_COPY_OUT_VENDOR)/etc/microphone_characteristics.xml \
+     $(CONFIG_PAL_SRC_DIR)/card-defs.xml:$(TARGET_COPY_OUT_VENDOR)/etc/card-defs.xml \
+     $(CONFIG_PAL_SRC_DIR)/mixer_paths_kalama_qrd.xml:$(CONFIG_SKU_OUT_DIR)/mixer_paths_kalama_qrd.xml \
 @@ -216,13 +216,6 @@ persist.vendor.audio.fluence.voicerec=false\
  persist.vendor.audio.fluence.speaker=true\
  persist.vendor.audio.fluence.tmic.enabled=false
@@ -16,6 +40,15 @@ index 1c3e9c7..a239632 100644
  ##speaker protection v3 switch and ADSP AFE API version
  PRODUCT_PROPERTY_OVERRIDES += \
  persist.vendor.audio.spv3.enable=true\
+@@ -300,7 +293,7 @@ vendor.audio.hal.boot.timeout.ms=20000
+ 
+ #split a2dp DSP supported encoder list
+ PRODUCT_PROPERTY_OVERRIDES += \
+-persist.vendor.bt.a2dp_offload_cap=sbc-aptx-aptxtws-aptxhd-aac-ldac
++persist.vendor.bt.a2dp_offload_cap?=sbc-aptx-aptxtws-aptxhd-aac-ldac
+ 
+ # A2DP offload support
+ PRODUCT_PROPERTY_OVERRIDES += \
 @@ -328,10 +321,6 @@ vendor.audio.use.sw.mpegh.decoder=true
  PRODUCT_PROPERTY_OVERRIDES += \
  vendor.audio.hw.aac.encoder=false

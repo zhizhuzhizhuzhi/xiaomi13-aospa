@@ -1,0 +1,6 @@
+#Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+#SPDX-License-Identifier: BSD-3-Clause-Clear
+
+starting_at_board_api(202504, `
+allow vendor_hal_usb_qti sysfs_udc:dir search;
+')

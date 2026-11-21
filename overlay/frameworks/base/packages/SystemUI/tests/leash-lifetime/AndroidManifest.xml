@@ -4,4 +4,6 @@
     <application android:label="Surface lifetime regression" android:hasCode="true" />
     <instrumentation android:name=".LeashLifetimeInstrumentation"
         android:targetPackage="com.android.systemui.leashtest" />
+    <instrumentation android:name=".LeashRaceInstrumentation"
+        android:targetPackage="com.android.systemui.leashtest" />
 </manifest>

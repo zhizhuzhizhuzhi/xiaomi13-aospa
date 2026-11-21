@@ -1,0 +1,413 @@
+diff --git a/extract_utils/bp_builder.py b/extract_utils/bp_builder.py
+index 7d7897a..e3f8773 100644
+--- a/extract_utils/bp_builder.py
++++ b/extract_utils/bp_builder.py
+@@ -54,6 +54,9 @@ PARTITION_SPECIFIC_MAP = {
+     'product': 'product',
+     'system_ext': 'system_ext',
+     'odm': 'device',
++    'vendor_dlkm': 'vendor_dlkm',
++    'odm_dlkm': 'odm_dlkm',
++    'system_dlkm': 'system_dlkm',
+ }
+ 
+ 
+diff --git a/extract_utils/file.py b/extract_utils/file.py
+index 6ad3ec5..bca8eb7 100644
+--- a/extract_utils/file.py
++++ b/extract_utils/file.py
+@@ -41,6 +41,7 @@ LIB_PARTS = ['lib']
+ LIB_RFSA_PARTS = ['lib', 'rfsa']
+ LIB64_PARTS = ['lib64']
+ BIN_PARTS = ['bin']
++MODULES_PARTS = ['lib', 'modules']
+ 
+ 
+ class FileArgs(str, Enum):
+@@ -58,7 +59,6 @@ class FileArgs(str, Enum):
+     FIX_SONAME = 'FIX_SONAME'
+     FIX_XML = 'FIX_XML'
+     STRIP_DEBUG_SECTIONS = 'STRIP_DEBUG_SECTIONS'
+-    SPLIT_FILE = 'SPLIT_FILE'
+     OVERRIDES = 'OVERRIDES'
+     PRESIGNED = 'PRESIGNED'
+     REQUIRED = 'REQUIRED'
+@@ -84,7 +84,6 @@ FILE_ARGS_TYPE_MAP: Dict[FileArgs, Union[Type[str], Type[List[Any]], bool]] = {
+     FileArgs.FIX_SONAME: True,
+     FileArgs.FIX_XML: True,
+     FileArgs.STRIP_DEBUG_SECTIONS: True,
+-    FileArgs.SPLIT_FILE: str,
+     FileArgs.OVERRIDES: list,
+     FileArgs.PRESIGNED: True,
+     FileArgs.REQUIRED: list,
+@@ -541,6 +540,10 @@ class FileList:
+             ):
+                 return True
+ 
++        if ext == '.ko':
++            if file.contains_path_parts(MODULES_PARTS):
++                return True
++
+         if file.contains_path_parts(BIN_PARTS) or file.contains_path_parts(
+             LIB_RFSA_PARTS
+         ):
+diff --git a/extract_utils/fixups_blob.py b/extract_utils/fixups_blob.py
+index 392c310..2afa4b2 100644
+--- a/extract_utils/fixups_blob.py
++++ b/extract_utils/fixups_blob.py
+@@ -29,6 +29,7 @@ from extract_utils.utils import (
+     Color,
+     TemporaryWorkingDirectory,
+     color_print,
++    import_module,
+     run_cmd,
+ )
+ 
+@@ -352,12 +353,37 @@ class blob_fixup:
+     def copy_file_from_tmp(self) -> blob_fixup:
+         return self.call(self.copy_file_from_tmp_impl, need_tmp_dir=True)
+ 
+-    def patch_file(self, patches_path: str) -> blob_fixup:
++    def patch_file(
++        self,
++        patches_path: str,
++        *args,
++        need_tmp_dir: bool = True,
++        **kwargs: Any,
++    ) -> blob_fixup:
++        if patches_path.endswith('.py'):
++            impl = partial(self.patch_file_py_impl, patches_path)
++            return self.call(impl, *args, need_tmp_dir=need_tmp_dir, **kwargs)
++
+         self.copy_file_to_tmp()
+         self.patch_dir(patches_path)
+         self.copy_file_from_tmp()
+         return self
+ 
++    def patch_file_py_impl(
++        self,
++        patch_path: str,
++        ctx: BlobFixupCtx,
++        file: File,
++        file_path: str,
++        *args: Any,
++        **kwargs: Any,
++    ):
++        module = import_module(
++            os.path.splitext(patch_path)[0],
++            os.path.join(ctx.module_dir, patch_path),
++        )
++        module.blob_fixup(ctx, file, file_path, *args, **kwargs)
++
+     def apktool_unpack_impl(
+         self,
+         ctx: BlobFixupCtx,
+@@ -476,22 +502,6 @@ class blob_fixup:
+     def strip_debug_sections(self) -> blob_fixup:
+         return self.call(self.strip_debug_sections_impl)
+ 
+-    def split_file_parts_impl(
+-        self,
+-        bytes_size: str,
+-        ctx: BlobFixupCtx,
+-        file: File,
+-        file_path: str,
+-        *args,
+-        **kwargs,
+-    ):
+-        part_path = file_path + '.part'
+-        run_cmd(['split', f'--bytes={bytes_size}', '-d', file_path, part_path])
+-
+-    def split_file_parts(self, bytes_size: str) -> blob_fixup:
+-        impl = partial(self.split_file_parts_impl, bytes_size)
+-        return self.call(impl)
+-
+     def regex_replace_impl(
+         self,
+         pattern: str,
+diff --git a/extract_utils/fixups_lib.py b/extract_utils/fixups_lib.py
+index 163499d..128c57f 100644
+--- a/extract_utils/fixups_lib.py
++++ b/extract_utils/fixups_lib.py
+@@ -5,7 +5,6 @@
+ 
+ from __future__ import annotations
+ 
+-import fnmatch
+ from typing import Any, Callable, List, Optional
+ 
+ from extract_utils.fixups import fixups_type, fixups_user_type
+@@ -89,13 +88,6 @@ def run_lib_fixup(
+         return lib
+ 
+     lib_fixup_fn = fixups.get(lib)
+-
+-    if lib_fixup_fn is None:
+-        for pattern, fixup_fn in fixups.items():
+-            if fnmatch.fnmatch(lib, pattern):
+-                lib_fixup_fn = fixup_fn
+-                break
+-
+     if lib_fixup_fn is None:
+         return lib
+ 
+diff --git a/extract_utils/makefiles.py b/extract_utils/makefiles.py
+index c59784b..11225f0 100644
+--- a/extract_utils/makefiles.py
++++ b/extract_utils/makefiles.py
+@@ -44,8 +44,11 @@ ALL_PARTITIONS = [
+     'system_ext',
+     'odm',
+     'recovery',
++    'vendor_dlkm',
++    'odm_dlkm',
++    'system_dlkm',
+ ]
+-APEX_PARTITIONS = ['system', 'vendor', 'product', 'system_ext']
++APEX_PARTITIONS = ['system', 'vendor', 'system_ext']
+ RFSA_PARTITIONS = ['vendor', 'odm']
+ 
+ RUST_DYLIB_SUFFIX = '.dylib.so'
+@@ -232,6 +235,8 @@ def split_rust_dylib_deps(
+     for dep in deps:
+         if dep.endswith(RUST_DYLIB_STEM_SUFFIX):
+             rust_deps.append(dep[: -len(RUST_DYLIB_STEM_SUFFIX)])
++        elif dep.endswith('-rust'):
++            rust_deps.append(dep)
+         else:
+             shared_deps.append(dep)
+ 
+@@ -255,19 +260,6 @@ def write_elfs_package(
+     depses: List[Optional[List[str]]] = []
+     rust_depses: List[Optional[List[str]]] = []
+ 
+-    missing_files = []
+-    for f in files:
+-        f_path = f'{ctx.vendor_prop_path}/{f.dst}'
+-        if not os.path.exists(f_path):
+-            missing_files.append(f.dst)
+-
+-    if missing_files:
+-        color_print(
+-            f'Skipping package generation for {file.dst} - missing files: {missing_files}',
+-            color=Color.YELLOW,
+-        )
+-        return None
+-
+     for f in files:
+         f_path = f'{ctx.vendor_prop_path}/{f.dst}'
+ 
+@@ -356,7 +348,6 @@ def write_elfs_package(
+             .no_strip()
+             .prefer()
+             .relative_install_path()
+-            .set('overrides', file.overrides, optional=True)
+             .specific()
+             .recovery_available()
+             .set('required', file.required, optional=True)
+@@ -375,7 +366,6 @@ def write_elfs_package(
+         .check_elf(enable_check_elf)
+         .relative_install_path()
+         .prefer()
+-        .set('overrides', file.overrides, optional=True)
+         .specific()
+         .recovery_available()
+         .set('required', file.required, optional=True)
+@@ -389,14 +379,6 @@ def write_lib_package(
+     builder: FileBpBuilder,
+     ctx: ProductPackagesCtx,
+ ):
+-    f_path = f'{ctx.vendor_prop_path}/{file.dst}'
+-    if not os.path.exists(f_path):
+-        color_print(
+-            f'Skipping package generation for {file.dst} - file not found',
+-            color=Color.YELLOW,
+-        )
+-        return None
+-
+     return write_elfs_package(
+         [file],
+         builder,
+@@ -424,14 +406,6 @@ def write_bin_package(
+     if file.ext == '.sh':
+         return write_sh_package(file, builder)
+ 
+-    f_path = f'{ctx.vendor_prop_path}/{file.dst}'
+-    if not os.path.exists(f_path):
+-        color_print(
+-            f'Skipping package generation for {file.dst} - file not found',
+-            color=Color.YELLOW,
+-        )
+-        return None
+-
+     return write_elfs_package(
+         [file],
+         builder,
+@@ -455,6 +429,21 @@ def write_rfsa_package(file: File, builder: FileBpBuilder):
+     return package_name
+ 
+ 
++def write_kernel_module_package(file: File, builder: FileBpBuilder):
++    _, package_name = file_stem_package_name(file)
++
++    (
++        builder.set_rule_name('prebuilt_lib')
++        .name(package_name)
++        .owner()
++        .src()
++        .filename()
++        .sub_dir()
++        .specific()
++    )
++    return package_name
++
++
+ def write_apex_package(file: File, builder: FileBpBuilder):
+     _, package_name = file_stem_package_name(file)
+ 
+@@ -464,7 +453,6 @@ def write_apex_package(file: File, builder: FileBpBuilder):
+         .owner()
+         .src()
+         .filename()
+-        .set('overrides', file.overrides, optional=True)
+         .specific()
+     )
+     return package_name
+@@ -500,10 +488,12 @@ def write_framework_package(file: File, builder: FileBpBuilder):
+         .name(package_name)
+         .owner()
+         .jars()
+-        .set('overrides', file.overrides, optional=True)
+         .specific()
+     )
+ 
++    if file.partition == 'system_ext' and FileArgs.BOOT_JAR in file.args:
++        builder.set('use_generic_config', True)
++
+     return package_name
+ 
+ 
+@@ -522,7 +512,6 @@ def write_etc_package(file: File, builder: FileBpBuilder):
+         .src()
+         .set('filename_from_src', True)
+         .sub_dir()
+-        .set('overrides', file.overrides, optional=True)
+         .specific()
+         .recovery_available()
+     )
+@@ -557,10 +546,8 @@ def write_common_packages_group(
+     for files in file_tree.common_files_iter():
+         builder = create_builder(ctx, file_tree, files[0], encoder)
+         package_name = fn(files, builder, *args, **kwargs)
+-
+-        if package_name is not None:
+-            builder.write(out)
+-            package_names.append(package_name)
++        builder.write(out)
++        package_names.append(package_name)
+ 
+ 
+ def write_packages_group(
+@@ -576,12 +563,10 @@ def write_packages_group(
+     for file in file_tree:
+         builder = create_builder(ctx, file_tree, file, encoder)
+         package_name = fn(file, builder, *args, **kwargs)
+-
+-        if package_name is not None:
+-            builder.write(out)
+-            package_names.append(package_name)
+-            if file.recovery_available:
+-                package_names.append(f'{package_name}.recovery')
++        builder.write(out)
++        package_names.append(package_name)
++        if file.recovery_available:
++            package_names.append(f'{package_name}.recovery')
+ 
+ 
+ def write_packages_inclusion(package_names: List[str], out: TextIO):
+@@ -608,6 +593,10 @@ def write_boot_jars(
+ 
+     for file in base_file_tree:
+         _, package_name = file_stem_package_name(file, can_have_stem=True)
++
++        if file.partition == 'system_ext':
++            package_name = f'system_ext:{package_name}'
++
+         line = f' \\\n    {package_name}'
+         ctx.product_mk_out.write(line)
+ 
+@@ -661,13 +650,20 @@ def write_product_packages(
+     for part in ALL_PARTITIONS:
+         part_path = get_part_path(part)
+ 
++        # Extract RFSA and kernel modules first so that they don't end up in lib32
+         lib_rfsa_tree = None
+         if part in RFSA_PARTITIONS:
+-            # Extract these first so that they don't end up in lib32
+             lib_rfsa_tree = base_file_tree.filter_prefixed(
+                 part_path + ['lib', 'rfsa']
+             )
+ 
++        kernel_modules_tree = base_file_tree.filter_prefixed(
++            part_path + ['lib', 'modules']
++        )
++        kernel_modules_tree.parts_prefix_len = sum(
++            len(p) + 1 for p in part_path + ['lib']
++        )
++
+         lib32_tree = base_file_tree.filter_prefixed(part_path + ['lib'])
+         lib64_tree = base_file_tree.filter_prefixed(part_path + ['lib64'])
+ 
+@@ -689,6 +685,8 @@ def write_product_packages(
+         if lib_rfsa_tree is not None:
+             w(write_rfsa_package, lib_rfsa_tree)
+ 
++        w(write_kernel_module_package, kernel_modules_tree)
++
+     for part in APEX_PARTITIONS:
+         wp(write_apex_package, part, 'apex')
+ 
+@@ -810,7 +808,6 @@ def write_dummy_shared_libs_packages(
+         .name(package_name)
+         .stem(stem)
+         .multilibs(bitses)
+-        .set('overrides', file.overrides, optional=True)
+         .specific()
+     )
+ 
+diff --git a/extract_utils/module.py b/extract_utils/module.py
+index b681a12..c3b36b5 100644
+--- a/extract_utils/module.py
++++ b/extract_utils/module.py
+@@ -807,9 +807,6 @@ class ExtractUtilsModule:
+         if FileArgs.STRIP_DEBUG_SECTIONS in file.args:
+             return True
+ 
+-        if FileArgs.SPLIT_FILE in file.args:
+-            return True
+-
+         if self.blob_fixups.get(file.dst) is not None:
+             return True
+ 
+@@ -828,11 +825,6 @@ class ExtractUtilsModule:
+         if FileArgs.STRIP_DEBUG_SECTIONS in file.args:
+             blob_fixup().strip_debug_sections().run(ctx, file, file_path)
+ 
+-        if FileArgs.SPLIT_FILE in file.args:
+-            bytes_size = file.args[FileArgs.SPLIT_FILE]
+-            assert isinstance(bytes_size, str)
+-            blob_fixup().split_file_parts(bytes_size).run(ctx, file, file_path)
+-
+         # TODO: mark which fixups have been used and print unused ones
+         # at the end
+         blob_fixup_fn = self.blob_fixups.get(file.dst)
+diff --git a/sdat2img.py b/sdat2img.py
+index 161e5a6..52de1c7 100755
+--- a/sdat2img.py
++++ b/sdat2img.py
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env python
++#!/usr/bin/env python3
+ # -*- coding: utf-8 -*-
+ #
+ # SPDX-FileCopyrightText: 2021 Andrei Conache

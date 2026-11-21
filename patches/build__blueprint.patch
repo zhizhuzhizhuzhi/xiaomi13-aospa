@@ -1,0 +1,27 @@
+diff --git a/bootstrap/bootstrap.go b/bootstrap/bootstrap.go
+index 4005869..a983b51 100644
+--- a/bootstrap/bootstrap.go
++++ b/bootstrap/bootstrap.go
+@@ -19,6 +19,7 @@ import (
+ 	"fmt"
+ 	"path/filepath"
+ 	"runtime"
++	"sort"
+ 	"strings"
+ 
+ 	"github.com/google/blueprint"
+@@ -871,7 +872,13 @@ func (s *singleton) GenerateBuildActions(ctx blueprint.SingletonContext) {
+ 		}
+ 
+ 		envAssignments := ""
+-		for k, v := range i.Env {
++		envKeys := make([]string, 0, len(i.Env))
++		for key := range i.Env {
++			envKeys = append(envKeys, key)
++		}
++		sort.Strings(envKeys)
++		for _, k := range envKeys {
++			v := i.Env[k]
+ 			// NB: This is rife with quoting issues but we don't care because we trust
+ 			// soong_ui to not abuse this facility too much
+ 			envAssignments += k + "=" + v + " "

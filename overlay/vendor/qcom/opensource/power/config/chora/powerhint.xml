@@ -1,0 +1,500 @@
+<?xml version="1.0" encoding="utf-8" ?>
+
+<!--
+/* Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
+ */
+-->
+<HintConfigs>
+    <Powerhint>
+        <!-- Video Profiles -->
+        <!-- video decode 30 fps non secure content tunings-->
+        <!-- MPCTLV3_MIN_FREQ_CLUSTER_BIG_CORE_0, 0XA -->
+        <Config
+            Id="0X00001502" Enable="true" Timeout="0" Target="chora"
+            Resources="0x40800000, 0XA"/>
+
+        <Config
+            Id="0X00001502" Enable="true" Timeout="0" Target="bourtzi"
+            Resources="0x40800000, 0XA"/>
+
+        <!-- video decode 30 fps secure content tunings-->
+        <!-- MPCTLV3_MIN_FREQ_CLUSTER_BIG_CORE_0, 0XA -->
+        <Config
+            Id="0X00001504" Enable="true" Timeout="0" Target="chora"
+            Resources="0x40800000, 0XA"/>
+
+        <Config
+            Id="0X00001504" Enable="true" Timeout="0" Target="bourtzi"
+            Resources="0x40800000, 0XA"/>
+
+        <!-- Camera Profiles -->
+        <!--camera ZSLPreview-->
+        <!--CPU-LLC-DDR BWMON - Set sample_ms 33 -->
+        <!--CPU-LLC-DDR BWMON - Set hyst_length hist memory 0 -->
+        <!--L CPU - Disable schedutil PL -->
+        <!--L CPU - Set hispeed load 99 -->
+        <!--L CPU - max freq 1113MHz -->
+        <!--L CPU SCHED LOAD BOOST -->
+        <!--B CPU SCHED LOAD BOOST -->
+        <!--GROUP UPMIGRATE - 25 -->
+        <!--GROUP DOWNMIGRATE - 20 -->
+        <!--MPCTLV3_SCHED_BG_UPDOWNMIGRATE - 25 30-->
+        <!--MPCTLV3_SCHED_FG_UPDOWNMIGRATE - 25 30-->
+        <!--MPCTLV3_SCHED_OT_UPDOWNMIGRATE - 25 30-->
+        <!--MPCTLV3_SCHED_TA_UPDOWNMIGRATE - 25 30-->
+        <Config
+            Id="0x00001330" Enable="true" Timeout="0" Target="chora"
+            Resources="0x43034000, 0x21, 0x43024000, 0, 0x41444100, 0, 0x41440100, 0x63, 0x40804100, 0x459, 0x41000000, 4,
+            0x40C68100, -10, 0x40C68000, -10, 0x40CF4000, 0x00190014, 0x43C74100, 0x00190014, 0x43C78100, 0x00190014, 0x43C7C100, 0x00190014, 0x43C80100, 0x00190014"/>
+
+        <!--L CPU CORE 0 SCHED LOAD BOOST -->
+        <!--L CPU CORE 6 SCHED LOAD BOOST -->
+        <!--L CPU Hispeed freq of 1094Mhz -->
+        <!--L CLUSTER_LITTLE - Set hispeed load 99 -->
+        <!--L CLUSTER_BIG - Set hispeed load 99 -->
+        <!--CPUBW HWMON - Set sample_ms 48 -->
+        <!--CPUBW HWMON - Set io_percent 100 -->
+        <!--CPUBW HWMON - Set up_scale 0 -->
+        <!-- AB scale 50 -->
+        <!--L CPU max freq 1286Mhz -->
+        <Config
+            Id="0x00001330" Enable="true" Timeout="0" Target="bourtzi"
+            Resources="0x40C68100, -15, 0x40C68000, -15,
+            0x4143C100, 1094, 0x41440100, 0x63, 0x41440000, 0x63, 0x43034000, 0x30, 0x43020000,
+            0x64, 0x43014000, 0x0, 0x43048000, 0x32, 0x40804100, 1286"/>
+
+        <!--camera 30fps-->
+        <!--CPU-LLC-DDR BWMON - Set sample_ms 33 -->
+        <!--CPU-LLC-DDR BWMON - Set hyst_length hist memory 0 -->
+        <!--CPU-LLC-DDR BWMON - Set min_freq 547 -->
+        <!--L CPU SCHED LOAD BOOST -->
+        <!--B CPU SCHED LOAD BOOST -->
+        <!--L CPU max freq 11130000 -->
+        <!--L CPU - Set hispeed load 99 -->
+        <!--L CPU Min Freq 902Mhz, Max Freq 1.3Ghz -->
+        <!--MPCTLV3_SCHED_BG_UPDOWNMIGRATE - 25 20-->
+        <!--MPCTLV3_SCHED_FG_UPDOWNMIGRATE - 25 20-->
+        <!--MPCTLV3_SCHED_OT_UPDOWNMIGRATE - 25 20-->
+        <!--MPCTLV3_SCHED_TA_UPDOWNMIGRATE - 25 20-->
+        <Config
+            Id="0x00001331" Enable="true" Timeout="0" Target="chora"
+            Resources="0x43034000, 0x21, 0x43024000, 0, 0x4303C000, 0x858B8, 0x41000000, 4,
+            0x40C68100, -10, 0x40C68000, -10, 0x40804100, 0x459, 0x41440100, 0x63,
+            0x43C74100, 0x00190014, 0x43C78100, 0x00190014, 0x43C7C100, 0x00190014, 0x43C80100, 0x00190014"/>
+
+        <!--L CPU CORE 0 SCHED LOAD BOOST -->
+        <!--L CPU CORE 6 SCHED LOAD BOOST -->
+        <!--L CLUSTER_LITTLE - Set hispeed load 95 -->
+        <!--L CLUSTER_BIG - Set hispeed load 95 -->
+        <!--CPUBW HWMON - Set sample_ms 48 -->
+        <!--CPUBW HWMON - Set io_percent 100 -->
+        <!--CPUBW HWMON - Set up_scale 0 -->
+        <!--Set uclamp latency sensitivity to 1 -->
+        <!-- AB scale 50-->
+        <!--L CPU min freq 921Mhz -->
+        <!--L CPU max freq 1632Mhz -->
+        <!-- GPU - min pwrlevel 7 (freq 390 Mhz) -->
+        <!--MPCTLV3_SCHED_BG_UPDOWNMIGRATE - 55 50-->
+        <!--MPCTLV3_SCHED_FG_UPDOWNMIGRATE - 55 50-->
+        <!--MPCTLV3_SCHED_OT_UPDOWNMIGRATE - 55 50-->
+        <!--MPCTLV3_SCHED_TA_UPDOWNMIGRATE - 55 50-->
+        <Config
+            Id="0x00001331" Enable="true" Timeout="0" Target="bourtzi"
+            Resources="0x40C68100, -10, 0x40C68000, -10,
+            0x41440100, 0x5F, 0x41440000, 0x5F, 0x43034000, 0x30, 0x43020000, 0x64, 0x43014000, 0x0,
+            0x40CEC000, 0x1, 0x43048000, 0x32, 0x40800100, 921, 0x40804100, 1632, 0x42804000, 0x7, 0x43C74100, 0x00370032, 0x43C78100, 0x00370032, 0x43C7C100, 0x00370032, 0x43C80100, 0x00370032"/>
+
+        <!--camera 60fps-->
+        <!--CPU-LLC-DDR BWMON - Set sample_ms 16 -->
+        <!--CPU-LLC-DDR BWMON - Set io_percent 100 -->
+        <!--CPU-LLC-DDR BWMON - Set hyst_length hist memory 0 -->
+        <!--CPU-LLC-DDR BWMON - Set min_freq 1555 -->
+        <!--MPCTLV3_LLCC_DDR_BW_AB_SCALE - 50-->
+        <!--L CPU max freq 1113600 -->
+        <!--L CPU SCHED LOAD BOOST -->
+        <!--B CPU SCHED LOAD BOOST -->
+        <!--B CPU - Set hispeed load 99 -->
+        <!--MPCTLV3_SCHED_BG_UPDOWNMIGRATE - 25 20-->
+        <!--MPCTLV3_SCHED_FG_UPDOWNMIGRATE - 25 20-->
+        <!--MPCTLV3_SCHED_OT_UPDOWNMIGRATE - 25 20-->
+        <!--MPCTLV3_SCHED_TA_UPDOWNMIGRATE - 25 20-->
+        <Config
+            Id="0x00001332" Enable="true" Timeout="0" Target="chora"
+            Resources="0x43034000, 0x10, 0x43020000, 0x64, 0x43024000, 0, 0x4303C000, 0x14A528,  0x43048000, 0x32, 0x40804100, 0x459, 0x41000000, 4,
+            0x40C68100, -10, 0x40C68000, -10, 0x41440000, 0x63, 0x43C74100, 0x00190014, 0x43C78100, 0x00190014, 0x43C7C100, 0x00190014, 0x43C80100, 0x00190014"/>
+
+        <!--L CPU CORE 0 SCHED LOAD BOOST -->
+        <!--L CPU CORE 6 SCHED LOAD BOOST -->
+        <!--L CLUSTER_LITTLE - Set hispeed load 95 -->
+        <!--L CLUSTER_BIG - Set hispeed load 95 -->
+        <!--CPUBW HWMON - Set sample_ms 20 -->
+        <!--Set uclamp latency sensitivity to 1 -->
+        <!-- AB scale 50-->
+        <!-- CPUBW HWMON - Set io_percent 100 -->
+        <!--L CPU max freq 1286Mhz -->
+        <!--MPCTLV3_SCHED_BG_UPDOWNMIGRATE - 60 55-->
+        <!--MPCTLV3_SCHED_FG_UPDOWNMIGRATE - 60 55-->
+        <!--MPCTLV3_SCHED_OT_UPDOWNMIGRATE - 60 55-->
+        <!--MPCTLV3_SCHED_TA_UPDOWNMIGRATE - 60 55-->
+        <Config
+            Id="0x00001332" Enable="true" Timeout="0" Target="bourtzi"
+            Resources="0x40C68100, -10, 0x40C68000, -10, 0x41440100, 0x5F, 0x41440000, 0x5F, 0x43034000, 0x14, 0x40CEC000, 0x1, 0x43048000, 0x32,
+            0x43020000, 0x64, 0x40804100, 1286 , 0x43C74100, 0x003C0037, 0x43C78100, 0x003C0037, 0x43C7C100, 0x003C0037, 0x43C80100, 0x003C0037"/>
+
+        <!-- camera HFR -->
+        <!--CPU-LLC-DDR BWMON - Set sample_ms 16 -->
+        <!--CPU-LLC-DDR BWMON - Set io_percent 100 -->
+        <!--CPU-LLC-DDR BWMON - Set hyst_length hist memory 0 -->
+        <!--CPU-LLC-DDR BWMON - Set min_freq 1555 -->
+        <!--L CPU CORE 0 SCHED LOAD BOOST -->
+        <!--B CPU SCHED LOAD BOOST -->
+        <!--L CPU max freq 1113600 -->
+        <!--L CPU - Disable schedutil PL -->
+        <!--B CPU - Disable schedutil PL -->
+        <!--B CPU - Set hispeed load 99 -->
+        <!--MPCTLV3_SCHED_BG_UPDOWNMIGRATE - 35 30-->
+        <!--MPCTLV3_SCHED_FG_UPDOWNMIGRATE - 35 30-->
+        <!--MPCTLV3_SCHED_OT_UPDOWNMIGRATE - 35 30-->
+        <!--MPCTLV3_SCHED_TA_UPDOWNMIGRATE - 35 30-->
+        <Config
+            Id="0x00001333" Enable="true" Timeout="0" Target="chora"
+            Resources="0x43034000, 0x10, 0x43020000, 0x64, 0x43024000, 0, 0x4303C000, 0x14A528,
+            0x40C68100, -10, 0x40C68000, -10, 0x40804100, 0x459, 0x41444100, 0, 0x41444000, 0, 0x41440000, 0x63,
+            0x43C74100, 0x0023001E, 0x43C78100, 0x0023001E, 0x43C7C100, 0x0023001E, 0x43C80100, 0x0023001E"/>
+
+        <!--L CPU CORE 0 SCHED LOAD BOOST -->
+        <!--L CPU CORE 6 SCHED LOAD BOOST -->
+        <!--L CPU Hispeed freq of 1094Mhz -->
+        <!--L CLUSTER_LITTLE - Set hispeed load 95 -->
+        <!--L CLUSTER_BIG - Set hispeed load 95 -->
+        <!--CPUBW HWMON - Set sample_ms 20 -->
+        <!-- AB scale 50-->
+        <!--L CPU max freq 1094Mhz -->
+        <Config
+            Id="0x00001333" Enable="true" Timeout="0" Target="bourtzi"
+            Resources="0x40C68100, -10, 0x40C68000, -10, 0x4143C100, 1094, 0x41440100,
+            0x5F, 0x41440000, 0x5F, 0x43034000, 0x14, 0x43048000, 0x32, 0x40804100, 1094"/>
+
+        <!--video encode HFR 480 fps-->
+        <!-- MPCTLV3_TOGGLE_POWER_COLLAPSE -->
+        <!-- MPCTLV3_CPUBW_HWMON_SAMPLE_MS -->
+        <!-- MPCTLV3_CPUBW_HWMON_IO_PERCENT -->
+        <!-- MPCTLV3_CPUBW_HWMON_HYST_OPT -->
+        <!--MPCTLV3_SCHED_BG_UPDOWNMIGRATE - 35 30-->
+        <!--MPCTLV3_SCHED_FG_UPDOWNMIGRATE - 35 30-->
+        <!--MPCTLV3_SCHED_OT_UPDOWNMIGRATE - 35 30-->
+        <!--MPCTLV3_SCHED_TA_UPDOWNMIGRATE - 35 30-->
+        <!--L CPU CORE 0 SCHED LOAD BOOST -->
+        <!--B CPU SCHED LOAD BOOST -->
+        <!-- MPCTLV3_MIN_FREQ_CLUSTER_LITTLE_CORE_0 -->
+        <!-- MPCTLV3_MIN_FREQ_CLUSTER_BIG_CORE_0 -->
+        <Config
+            Id="0x00001334" Enable="true" Timeout="0" Target="chora"
+            Resources="0x40400000, 0x1, 0x41820000, 0x0A, 0x41808000, 0x50, 0x4180C000, 0,
+            0x43C74100, 0x0023001E, 0x43C78100, 0x0023001E, 0x43C7C100, 0x0023001E, 0x43C80100, 0x0023001E, 0x40C68100, -10, 0x40C68000, -10, 0x40800100, 0x459, 0x40800000, 0x506"/>
+
+        <!--L CPU CORE 0 SCHED LOAD BOOST -->
+        <!--L CPU CORE 6 SCHED LOAD BOOST -->
+        <!--L CPU Hispeed freq of 1094Mhz -->
+        <!--L CLUSTER_LITTLE - Set hispeed load 95 -->
+        <!--L CLUSTER_BIG - Set hispeed load 95 -->
+        <!--CPUBW HWMON - Set sample_ms 20 -->
+        <!--L CPU core ctl min cpus 6 -->
+        <Config
+            Id="0x00001334" Enable="true" Timeout="0" Target="bourtzi"
+            Resources="0x40C68100, 0xFFFFFFFA, 0x40C68000, 0xFFFFFFFA, 0x4143C100, 1094, 0x41440100,
+            0x5F, 0x41440000, 0x5F, 0x43034000, 0x14, 0x41000100, 6"/>
+
+        <!-- multi camera 30fps-->
+        <!--L CPU CORE 0 SCHED LOAD BOOST -->
+        <!--L CPU CORE 6 SCHED LOAD BOOST -->
+        <!--L CPU cluster min freq of 1094Mhz -->
+        <!--CPUBW HWMON - Set sample_ms 48 -->
+        <!--CPUBW HWMON - Set io_percent 100 -->
+        <!--CPUBW HWMON - Set up_scale 0 -->
+        <!--L CPU core ctl min cpus 6 -->
+        <!--Set uclamp latency sensitivity to 1 -->
+        <Config
+            Id="0x00001336" Enable="true" Timeout="0" Target="bourtzi"
+            Resources="0x40C68100, -10, 0x40C68000, -10,
+            0x40800100, 1094, 0x43034000, 0x30, 0x43020000, 0x64, 0x43014000, 0x0, 0x41000100, 6,
+            0x40CEC000, 0x1"/>
+
+        <!-- same settings for all the qvr power levels intentionally -->
+        <!-- qvr level cpu1 gpu1 -->
+        <!-- B CPU - Cluster min freq ~.691 Ghz -->
+        <!-- B CPU - Cluster max freq ~.2.131 Ghz -->
+        <!-- L CPU - Cluster min freq ~.691 Ghz -->
+        <!-- L CPU - Cluster max freq ~1.113 Ghz -->
+        <!-- GPU - min pwrlevel 4 (freq 285 Mhz) -->
+        <!-- GPU - max pwrlevel 0 (freq 540 Mhz) -->
+        <!-- Min Big CPUs 2 -->
+        <!-- Idefinite Duration -->
+        <Config
+            Id="0x0000130A" Enable="true" Target="chora" Timeout="0"
+            Resources="0x40800000, 0x2B3, 0x40804000, 0x853, 0x40800100, 0x2B3, 0x40804100, 0x459,
+            0x42804000, 0x4, 0x42808000, 0x0, 0x41000000, 0x2"/>
+
+        <Config
+            Id="0x0000130A" Enable="true" Target="bourtzi" Timeout="0"
+            Resources="0x40800000, 0x2B3, 0x40804000, 0x8A0, 0x40800100, 0x240, 0x40804100, 0x5EC,
+            0x42804000, 0x6, 0x42808000, 0x0"/>
+
+        <!-- camera open tunings-->
+         <!-- MPCTLV3_ALL_CPUS_PWR_CLPS_DIS, 0x1 -->
+         <!-- MPCTLV3_SCHED_BOOST, 0x1 -->
+         <!-- MPCTLV3_MAX_FREQ_CLUSTER_BIG_CORE_0, ~2.1 Ghz -->
+         <!-- MPCTLV3_MIN_FREQ_CLUSTER_BIG_CORE_0, ~2.1 Ghz -->
+         <!-- MPCTLV3_MAX_FREQ_CLUSTER_LITTLE_CORE_0, ~1.8 Ghz -->
+         <!-- MPCTLV3_MIN_FREQ_CLUSTER_LITTLE_CORE_0, ~1.8 Ghz -->
+         <Config
+             Id="0x00001337" Enable="true" Timeout="0" Target="chora"
+             Resources="0x40400000, 0x1, 0x40C00000, 0x1, 0x40804000, 0X834, 0x40800000, 0X834,
+             0x40804100, 0X708, 0x40800100, 0X708"/>
+
+         <Config
+             Id="0x00001337" Enable="true" Timeout="0" Target="bourtzi"
+             Resources="0x40400000, 0x1, 0x40C00000, 0x1, 0x40804000, 0X834, 0x40800000, 0X834,
+             0x40804100, 0X708, 0x40800100, 0X708"/>
+
+         <!-- camera close tunings-->
+         <!-- MPCTLV3_ALL_CPUS_PWR_CLPS_DIS, 0x1 -->
+         <!-- MPCTLV3_SCHED_BOOST, 0x1 -->
+         <!-- MPCTLV3_MAX_FREQ_CLUSTER_BIG_CORE_0, ~2.1 Ghz -->
+         <!-- MPCTLV3_MIN_FREQ_CLUSTER_BIG_CORE_0, ~2.1 Ghz -->
+         <!-- MPCTLV3_MAX_FREQ_CLUSTER_LITTLE_CORE_0,~1.8 Ghz -->
+         <!-- MPCTLV3_MIN_FREQ_CLUSTER_LITTLE_CORE_0, ~1.8 Ghz -->
+         <Config
+             Id="0x00001338" Enable="true" Timeout="0" Target="chora"
+             Resources="0x40400000, 0x1, 0x40C00000, 0x1, 0x40804000, 0X834, 0x40800000, 0X834,
+             0x40804100, 0X708, 0x40800100, 0X708"/>
+
+         <Config
+             Id="0x00001338" Enable="true" Timeout="0" Target="bourtzi"
+             Resources="0x40400000, 0x1, 0x40C00000, 0x1, 0x40804000, 0X834, 0x40800000, 0X834,
+             0x40804100, 0X708, 0x40800100, 0X708"/>
+
+         <!-- camera snapshot tunings-->
+         <!-- MPCTLV3_ALL_CPUS_PWR_CLPS_DIS, 0x1 -->
+         <!-- Silver cluster min freq to ~1.113 GHz -->
+         <!-- Gold cluster min freq to 1.190 GHz -->
+         <!-- MPCTLV3_SCHED_DOWNMIGRATE, 0x14 -->
+         <!-- MPCTLV3_SCHED_UPMIGRATE, 0x1E -->
+         <Config
+             Id="0x00001339" Enable="true" Timeout="0" Target="chora"
+             Resources="0x40400000, 0x1, 0x40800100, 0x459, 0x40800000, 0x4A6, 0x40CE0000, 0x001E0014,"/>
+
+         <Config
+             Id="0x00001339" Enable="true" Timeout="0" Target="bourtzi"
+             Resources="0x40400000, 0x1, 0x40800100, 0x459, 0x40800000, 0x4A6, 0x40CE0000, 0x001E0014,"/>
+
+        <!-- Generic Profiles -->
+        <!-- qvr level cpu1 gpu2 -->
+        <!-- B CPU - Cluster min freq ~.691 Ghz -->
+        <!-- B CPU - Cluster max freq ~.2.131 Ghz -->
+        <!-- L CPU - Cluster min freq ~.691 Ghz -->
+        <!-- L CPU - Cluster max freq ~1.113 Ghz -->
+        <!-- GPU - min pwrlevel 4 (freq 285 Mhz) -->
+        <!-- GPU - max pwrlevel 0 (freq 540 Mhz) -->
+        <!-- Min Big CPUs 2 -->
+        <!-- Idefinite Duration -->
+        <Config
+            Id="0x0000130B" Enable="true" Target="chora" Timeout="0"
+            Resources="0x40800000, 0x2B3, 0x40804000, 0x853, 0x40800100, 0x2B3, 0x40804100, 0x459,
+            0x42804000, 0x4, 0x42808000, 0x0, 0x41000000, 0x2"/>
+
+        <Config
+            Id="0x0000130B" Enable="true" Target="bourtzi" Timeout="0"
+            Resources="0x40800000, 0x2B3, 0x40804000, 0x8A0, 0x40800100, 0x240, 0x40804100, 0x5EC,
+            0x42804000, 0x6, 0x42808000, 0x0"/>
+
+        <!-- qvr level cpu1 gpu3 -->
+        <!-- B CPU - Cluster min freq ~.691 Ghz -->
+        <!-- B CPU - Cluster max freq ~2.131 Ghz -->
+        <!-- L CPU - Cluster min freq ~.691 Ghz -->
+        <!-- L CPU - Cluster max freq ~1.113 Ghz -->
+        <!-- GPU - min pwrlevel 4 (freq 285 Mhz) -->
+        <!-- GPU - max pwrlevel 0 (freq 540 Mhz) -->
+        <!-- Min Big CPUs 2 -->
+        <!-- Idefinite Duration -->
+        <Config
+            Id="0x0000130C" Enable="true" Target="chora" Timeout="0"
+            Resources="0x40800000, 0x2B3, 0x40804000, 0x853, 0x40800100, 0x2B3, 0x40804100, 0x459,
+            0x42804000, 0x4, 0x42808000, 0x0, 0x41000000, 0x2"/>
+
+        <Config
+            Id="0x0000130C" Enable="true" Target="bourtzi" Timeout="0"
+            Resources="0x40800000, 0x2B3, 0x40804000, 0x8A0, 0x40800100, 0x240, 0x40804100, 0x5EC,
+            0x42804000, 0x6, 0x42808000, 0x0"/>
+
+        <!-- qvr level cpu2 gpu1 -->
+        <!-- B CPU - Cluster min freq ~.691 Ghz -->
+        <!-- B CPU - Cluster max freq ~.2.131 Ghz -->
+        <!-- L CPU - Cluster min freq ~.691 Ghz -->
+        <!-- L CPU - Cluster max freq ~1.113 Ghz -->
+        <!-- GPU - min pwrlevel 4 (freq 285 Mhz) -->
+        <!-- GPU - max pwrlevel 0 (freq 540 Mhz) -->
+        <!-- Min Big CPUs 2 -->
+        <!-- Idefinite Duration -->
+        <Config
+            Id="0x0000130D" Enable="true" Target="chora" Timeout="0"
+            Resources="0x40800000, 0x2B3, 0x40804000, 0x853, 0x40800100, 0x2B3, 0x40804100, 0x459,
+            0x42804000, 0x4, 0x42808000, 0x0, 0x41000000, 0x2"/>
+
+        <Config
+            Id="0x0000130D" Enable="true" Target="bourtzi" Timeout="0"
+            Resources="0x40800000, 0x2B3, 0x40804000, 0x8A0, 0x40800100, 0x240, 0x40804100, 0x5EC,
+            0x42804000, 0x6, 0x42808000, 0x0"/>
+
+        <!-- qvr level cpu2 gpu2 -->
+        <!-- B CPU - Cluster min freq ~.691 Ghz -->
+        <!-- B CPU - Cluster max freq ~.2.131 Ghz -->
+        <!-- L CPU - Cluster min freq ~.691 Ghz -->
+        <!-- L CPU - Cluster max freq ~1.113 Ghz -->
+        <!-- GPU - min pwrlevel 4 (freq 285 Mhz) -->
+        <!-- GPU - max pwrlevel 0 (freq 540 Mhz) -->
+        <!-- Min Big CPUs 2 -->
+        <!-- Idefinite Duration -->
+        <Config
+            Id="0x0000130E" Enable="true" Target="chora" Timeout="0"
+            Resources="0x40800000, 0x2B3, 0x40804000, 0x853, 0x40800100, 0x2B3, 0x40804100, 0x459,
+            0x42804000, 0x4, 0x42808000, 0x0, 0x41000000, 0x2"/>
+
+        <Config
+            Id="0x0000130E" Enable="true" Target="bourtzi" Timeout="0"
+            Resources="0x40800000, 0x2B3, 0x40804000, 0x8A0, 0x40800100, 0x240, 0x40804100, 0x5EC,
+            0x42804000, 0x6, 0x42808000, 0x0"/>
+
+        <!-- qvr level cpu2 gpu3 -->
+        <!-- B CPU - Cluster min freq ~.691 Ghz -->
+        <!-- B CPU - Cluster max freq ~.2.131 Ghz -->
+        <!-- L CPU - Cluster min freq ~.691 Ghz -->
+        <!-- L CPU - Cluster max freq ~1.113 Ghz -->
+        <!-- GPU - min pwrlevel 4 (freq 285 Mhz) -->
+        <!-- GPU - max pwrlevel 0 (freq 540 Mhz) -->
+        <!-- Min Big CPUs 2 -->
+        <!-- Idefinite Duration -->
+        <Config
+            Id="0x0000130F" Enable="true" Target="chora" Timeout="0"
+            Resources="0x40800000, 0x2B3, 0x40804000, 0x853, 0x40800100, 0x2B3, 0x40804100, 0x459,
+            0x42804000, 0x4, 0x42808000, 0x0, 0x41000000, 0x2"/>
+
+        <Config
+            Id="0x0000130F" Enable="true" Target="bourtzi" Timeout="0"
+            Resources="0x40800000, 0x2B3, 0x40804000, 0x8A0, 0x40800100, 0x240, 0x40804100, 0x5EC,
+            0x42804000, 0x6, 0x42808000, 0x0"/>
+
+        <!-- qvr level cpu3 gpu1 -->
+        <!-- B CPU - Cluster min freq ~.691 Ghz -->
+        <!-- B CPU - Cluster max freq ~.2.131 Ghz -->
+        <!-- L CPU - Cluster min freq ~.691 Ghz -->
+        <!-- L CPU - Cluster max freq ~1.113 Ghz -->
+        <!-- GPU - min pwrlevel 4 (freq 285 Mhz) -->
+        <!-- GPU - max pwrlevel 0 (freq 540 Mhz) -->
+        <!-- Min Big CPUs 2 -->
+        <!-- Idefinite Duration -->
+        <Config
+            Id="0x00001310" Enable="true" Target="chora" Timeout="0"
+            Resources="0x40800000, 0x2B3, 0x40804000, 0x853, 0x40800100, 0x2B3, 0x40804100, 0x459,
+            0x42804000, 0x4, 0x42808000, 0x0, 0x41000000, 0x2"/>
+
+        <Config
+            Id="0x00001310" Enable="true" Target="bourtzi" Timeout="0"
+            Resources="0x40800000, 0x2B3, 0x40804000, 0x8A0, 0x40800100, 0x240, 0x40804100, 0x5EC,
+            0x42804000, 0x6, 0x42808000, 0x0"/>
+
+        <!-- qvr level cpu3 gpu2 -->
+        <!-- B CPU - Cluster min freq ~.691 Ghz -->
+        <!-- B CPU - Cluster max freq ~.2.131 Ghz -->
+        <!-- L CPU - Cluster min freq ~.691 Ghz -->
+        <!-- L CPU - Cluster max freq ~1.113 Ghz -->
+        <!-- GPU - min pwrlevel 4 (freq 285 Mhz) -->
+        <!-- GPU - max pwrlevel 0 (freq 540 Mhz) -->
+        <!-- Min Big CPUs 2 -->
+        <!-- Idefinite Duration -->
+        <Config
+            Id="0x00001311" Enable="true" Target="chora" Timeout="0"
+            Resources="0x40800000, 0x2B3, 0x40804000, 0x853, 0x40800100, 0x2B3, 0x40804100, 0x459,
+            0x42804000, 0x4, 0x42808000, 0x0, 0x41000000, 0x2"/>
+
+        <Config
+            Id="0x00001311" Enable="true" Target="bourtzi" Timeout="0"
+            Resources="0x40800000, 0x2B3, 0x40804000, 0x8A0, 0x40800100, 0x240, 0x40804100, 0x5EC,
+            0x42804000, 0x6, 0x42808000, 0x0"/>
+
+        <!-- qvr level cpu3 gpu3 -->
+        <!-- B CPU - Cluster min freq ~.691 Ghz -->
+        <!-- B CPU - Cluster max freq ~.2.131 Ghz -->
+        <!-- L CPU - Cluster min freq ~.691 Ghz -->
+        <!-- L CPU - Cluster max freq ~1.113 Ghz -->
+        <!-- GPU - min pwrlevel 4 (freq 285 Mhz) -->
+        <!-- GPU - max pwrlevel 0 (freq 540 Mhz) -->
+        <!-- Min Big CPUs 2 -->
+        <!-- Idefinite Duration -->
+        <Config
+            Id="0x00001312" Enable="true" Target="chora" Timeout="0"
+            Resources="0x40800000, 0x2B3, 0x40804000, 0x853, 0x40800100, 0x2B3, 0x40804100, 0x459,
+            0x42804000, 0x4, 0x42808000, 0x0, 0x41000000, 0x2"/>
+
+        <Config
+            Id="0x00001312" Enable="true" Target="bourtzi" Timeout="0"
+            Resources="0x40800000, 0x2B3, 0x40804000, 0x8A0, 0x40800100, 0x240, 0x40804100, 0x5EC,
+            0x42804000, 0x6, 0x42808000, 0x0"/>
+
+         <!-- sustained performance -->
+         <!-- B CPU - Cluster min freq uncapped -->
+         <!-- L CPU - Cluster min freq uncapped -->
+         <!-- B CPU - Cluster max freq ~1.344 GHz -->
+         <!-- L CPU - Cluster max freq ~1.113 Ghz -->
+         <!-- GPU - min freq 285Mhz -->
+         <!-- GPU - max freq 443Mhz -->
+         <!-- GPUBW freq uncapped -->
+         <Config
+             Id="0x00001206" Enable="true" Timeout="0" Target="chora"
+             Resources="0x40800000, 0x0, 0x40800100, 0x0, 0x40804000, 0x540, 0x40804100, 0x459,
+             0X4280C000, 0x11D, 0X42810000, 0x1BB, 0x42814000, 0x0"/>
+
+         <Config
+             Id="0x00001206" Enable="true" Timeout="0" Target="bourtzi"
+             Resources="0x40800000, 0x0, 0x40800100, 0x0, 0x40804000, 0x4CC, 0x40804100, 0x4CC,
+             0X4280C000, 0x113, 0X42810000, 0x190, 0x42814000, 0x0"/>
+
+         <!-- vr mode -->
+         <!-- B CPU - Cluster min freq ~1.190 Ghz -->
+         <!-- L CPU - Cluster min freq ~0.940 Ghz -->
+         <!-- B CPU - Cluster max freq ~1.90 Ghz -->
+         <!-- L CPU - Cluster max freq ~1.804 Ghz -->
+         <!-- GPU - min freq 285Mhz -->
+         <!-- GPU - max freq 540Mhz -->
+         <!-- GPUBW uncapped -->
+         <Config
+             Id="0x00001207" Enable="true" Timeout="0" Target="chora"
+             Resources="0x40800000, 0x4A6, 0x40800100, 0x3AC, 0x40804000, 0x76C, 0x40804100, 0x70C,
+             0X4280C000, 0x11D, 0X4280C000, 0x21C, 0x42814000, 0x0"/>
+
+         <Config
+             Id="0x00001207" Enable="true" Timeout="0" Target="bourtzi"
+             Resources="0x40800000, 0x4CC, 0x40800100, 0x3AC, 0x40804000, 0x76C, 0x40804100, 0x6C0,
+             0X4280C000, 0x113, 0X4280C000, 0x271, 0x42814000, 0x0"/>
+
+         <!-- vr mode sustained performance -->
+         <!-- B CPU - Cluster min freq ~1.190 Ghz -->
+         <!-- L CPU - Cluster min freq ~1.113 Ghz -->
+         <!-- B CPU - Cluster max freq ~1.190 Ghz -->
+         <!-- L CPU - Cluster max freq ~1.113 Ghz -->
+         <!-- GPU - min freq 443Mhz -->
+         <!-- GPU - max freq 443Mhz -->
+         <!-- GPUBW uncapped  -->
+         <Config
+             Id="0x00001301" Enable="true" Timeout="0" Target="chora"
+             Resources="0x40800000, 0x4A6, 0x40800100, 0x459, 0x40804000, 0x4A6, 0x40804100, 0x459,
+             0X4280C000, 0x1BB, 0X42810000, 0x1BB, 0x42814000, 0x0"/>
+
+         <Config
+             Id="0x00001301" Enable="true" Timeout="0" Target="bourtzi"
+             Resources="0x40800000, 0x4CC, 0x40800100, 0x4CC, 0x40804000, 0x4CC, 0x40804100, 0x4CC,
+             0X4280C000, 0x190, 0X42810000, 0x190, 0x42814000, 0x0"/>
+
+    </Powerhint>
+</HintConfigs>

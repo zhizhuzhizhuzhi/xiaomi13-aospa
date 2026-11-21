@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- MiFace HAL preview buffer dimensions; Settings does not open a second camera. -->
+<resources>
+    <integer name="face_hal_preview_width">480</integer>
+    <integer name="face_hal_preview_height">640</integer>
+</resources>

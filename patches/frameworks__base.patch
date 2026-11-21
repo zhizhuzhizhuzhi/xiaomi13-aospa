@@ -73,6 +73,32 @@ index 8e10dd750652..22fc2709ddfd 100644
  
                  mFrequenciesHz = null;
                  mOutputAccelerationsGs = null;
+diff --git a/core/java/android/view/ViewRootImpl.java b/core/java/android/view/ViewRootImpl.java
+index f57581182692..7b94a86a0f28 100644
+--- a/core/java/android/view/ViewRootImpl.java
++++ b/core/java/android/view/ViewRootImpl.java
+@@ -14400,16 +14400,14 @@ public final class ViewRootImpl implements ViewParent,
+     }
+ 
+     private boolean shouldTouchBoost(int motionEventAction, int windowType) {
+-        // boost for almost all input
+-        boolean desiredAction = motionEventAction != MotionEvent.ACTION_OUTSIDE;
+-        boolean undesiredType = windowType == TYPE_INPUT_METHOD;
+-
+-        // don't suppress touch boost for TYPE_INPUT_METHOD in ViewRootImpl
++        final boolean desiredAction = motionEventAction != MotionEvent.ACTION_OUTSIDE;
+         if (toolkitFrameRateTouchBoost25q1()) {
+             return desiredAction && shouldEnableDvrr() && getFrameRateBoostOnTouchEnabled();
+         }
+-        // use toolkitSetFrameRate flag to gate the change
+-        return desiredAction && !undesiredType && shouldEnableDvrr()
++        final boolean excludedInputMethod = windowType == TYPE_INPUT_METHOD
++                && !mContext.getResources().getBoolean(
++                        com.android.internal.R.bool.config_enableImeTouchBoost);
++        return desiredAction && !excludedInputMethod && shouldEnableDvrr()
+                 && getFrameRateBoostOnTouchEnabled();
+     }
+ 
 diff --git a/core/java/com/android/internal/app/ActivityTrigger.java b/core/java/com/android/internal/app/ActivityTrigger.java
 index cc7ea0201d28..1e37971816f9 100644
 --- a/core/java/com/android/internal/app/ActivityTrigger.java
@@ -673,8 +699,40 @@ index f58c6012043c..919d7f42d09a 100644
      <protected-broadcast android:name="lineageos.platform.intent.action.CHARGING_CONTROL_CANCEL_ONCE" />
  
      <application android:process="system"
+diff --git a/core/res/res/values/aospa_config.xml b/core/res/res/values/aospa_config.xml
+index a3ed2f65aa0d..bf9726067881 100644
+--- a/core/res/res/values/aospa_config.xml
++++ b/core/res/res/values/aospa_config.xml
+@@ -155,4 +155,12 @@
+     <!-- Whether to use Richtap vibration -->
+     <bool name="config_usesRichtapVibration">false</bool>
+ 
++    <!-- Use the stock Xiaomi DisplayFeature AIDL backend; node remains readback only. -->
++    <bool name="config_deviceDcDimmingUseXiaomiAidl">false</bool>
++    <integer name="config_screenBrightnessIdleDimDurationMillis">0</integer>
++    <string-array name="config_systemPropertyNotificationExcludedServices" translatable="false" />
++    <bool name="config_useXiaomiDualAlsPolicy">false</bool>
++    <bool name="config_useLinearBrightnessCalibration">false</bool>
++    <!-- Device opt-in to touch frame-rate boost for scrolling input method windows. -->
++    <bool name="config_enableImeTouchBoost">false</bool>
+ </resources>
+diff --git a/core/res/res/values/aospa_symbols.xml b/core/res/res/values/aospa_symbols.xml
+index a9c6f75fd7a8..2f3cf1a921cc 100644
+--- a/core/res/res/values/aospa_symbols.xml
++++ b/core/res/res/values/aospa_symbols.xml
+@@ -102,4 +102,10 @@
+     <!-- Whether to use Richtap vibration -->
+     <java-symbol type="bool" name="config_usesRichtapVibration" />
+ 
++    <java-symbol type="bool" name="config_deviceDcDimmingUseXiaomiAidl" />
++    <java-symbol type="integer" name="config_screenBrightnessIdleDimDurationMillis" />
++    <java-symbol type="array" name="config_systemPropertyNotificationExcludedServices" />
++    <java-symbol type="bool" name="config_useXiaomiDualAlsPolicy" />
++    <java-symbol type="bool" name="config_useLinearBrightnessCalibration" />
++    <java-symbol type="bool" name="config_enableImeTouchBoost" />
+ </resources>
 diff --git a/core/res/res/values/config.xml b/core/res/res/values/config.xml
-index e6c5b11945c1..f2f37dd8f490 100644
+index e6c5b11945c1..3f0f59a0443c 100644
 --- a/core/res/res/values/config.xml
 +++ b/core/res/res/values/config.xml
 @@ -6450,7 +6450,7 @@
@@ -686,6 +744,13 @@ index e6c5b11945c1..f2f37dd8f490 100644
  
      <!-- Package name of the required service extension package. -->
      <string name="config_servicesExtensionPackage" translatable="false">android.ext.services</string>
+@@ -8097,4 +8097,6 @@
+ 
+     <!-- Whether to explicitly disable the Video capability over IWLAN when Wi-Fi Calling is turned off. -->
+     <bool name="config_disable_video_capability_when_wfc_off">false</bool>
++    <!-- Optional ON_CHANGE rear ALS used only to veto suspected front-occlusion darkening. -->
++    <integer name="config_rearLightDarkeningGuardSensorType">0</integer>
+ </resources>
 diff --git a/core/res/res/values/strings.xml b/core/res/res/values/strings.xml
 index 05f868346ebc..48e4ca1fa12b 100644
 --- a/core/res/res/values/strings.xml
@@ -707,6 +772,17 @@ index 05f868346ebc..48e4ca1fa12b 100644
 +    <!-- Attribution label for Bluetooth commands issued through the system shell. -->
 +    <string name="bluetooth_shell_command">Bluetooth shell commands</string>
  </resources>
+diff --git a/core/res/res/values/symbols.xml b/core/res/res/values/symbols.xml
+index adb5a2b14186..eb269e19f4c0 100644
+--- a/core/res/res/values/symbols.xml
++++ b/core/res/res/values/symbols.xml
+@@ -6663,4 +6663,5 @@
+   <java-symbol type="drawable" name="ic_cross_device_sync_airplane" />
+   <!-- Disable the Video Capability over IWLAN when Wi-Fi Calling is turned off  -->
+   <java-symbol type="bool" name="config_disable_video_capability_when_wfc_off" />
+-  </resources>
++      <java-symbol type="integer" name="config_rearLightDarkeningGuardSensorType" />
++</resources>
 diff --git a/data/etc/privapp-permissions-platform.xml b/data/etc/privapp-permissions-platform.xml
 index 4ada58b2acf6..612e6eb8df89 100644
 --- a/data/etc/privapp-permissions-platform.xml
@@ -925,10 +1001,19 @@ index 565919bf9dd8..ac82aaeca508 100644
              Log.d(TAG, "Fail to check isAudioSharingSupported, e = ", e);
              return false;
 diff --git a/packages/SettingsLib/src/com/android/settingslib/development/SystemPropPoker.java b/packages/SettingsLib/src/com/android/settingslib/development/SystemPropPoker.java
-index 3f16be184c41..96f1940fe939 100644
+index 3f16be184c41..4aa5b79c3827 100644
 --- a/packages/SettingsLib/src/com/android/settingslib/development/SystemPropPoker.java
 +++ b/packages/SettingsLib/src/com/android/settingslib/development/SystemPropPoker.java
-@@ -71,6 +71,11 @@ public class SystemPropPoker  {
+@@ -17,6 +17,8 @@
+ package com.android.settingslib.development;
+ 
+ import android.os.AsyncTask;
++import android.content.res.Resources;
++import java.util.Arrays;
+ import android.os.IBinder;
+ import android.os.Parcel;
+ import android.os.RemoteException;
+@@ -71,6 +73,17 @@ public class SystemPropPoker  {
              return ServiceManager.checkService(service);
          }
  
@@ -937,25 +1022,24 @@ index 3f16be184c41..96f1940fe939 100644
 +            return service.indexOf('/') > 0 && ServiceManager.isDeclared(service);
 +        }
 +
++        @VisibleForTesting
++        String[] excludedServices() {
++            return Resources.getSystem().getStringArray(
++                    com.android.internal.R.array.config_systemPropertyNotificationExcludedServices);
++        }
++
          @Override
          protected Void doInBackground(Void... params) {
              String[] services = listServices();
-@@ -79,8 +84,22 @@ public class SystemPropPoker  {
+@@ -79,15 +92,24 @@ public class SystemPropPoker  {
                  return null;
              }
              for (String service : services) {
-+                // VINTF services use HAL-specific APIs. Settings must not poke them
-+                // through a framework Binder transaction. Keep ordinary vendor services.
-+                // The remaining names are inaccessible internal endpoints, or the
-+                // legacy QSPM endpoint that parses a token before reserved transactions.
-+                if (service.equals("vendor.qspmsvc")
-+                        || service.equals("suspend_control")
-+                        || service.equals("suspend_control_internal")
-+                        || service.equals("tracing.proxy")
-+                        || service.equals("android.os.casefoldingremover")
-+                        || service.equals("storaged")
-+                        || service.equals("storaged_pri")
-+                        || service.equals("wifinl80211")) {
++                // The device explicitly declares endpoints without this transaction ABI.
++                // Common framework code must not carry a vendor service-name blacklist.
++                if (Arrays.asList(excludedServices()).contains(service)) {
++                    Log.w(TAG, "Property notification unsupported by device-configured endpoint: "
++                            + service);
 +                    continue;
 +                }
                  IBinder obj = checkService(service);
@@ -963,20 +1047,34 @@ index 3f16be184c41..96f1940fe939 100644
 +                if (obj != null && !isDeclaredHal(service)) {
                      Parcel data = Parcel.obtain();
                      try {
-                         obj.transact(IBinder.SYSPROPS_TRANSACTION, data, null, 0);
+-                        obj.transact(IBinder.SYSPROPS_TRANSACTION, data, null, 0);
++                        if (!obj.transact(IBinder.SYSPROPS_TRANSACTION, data, null, 0)) {
++                            Log.e(TAG, "Property notification rejected by " + service);
++                        }
+                     } catch (RemoteException e) {
+-                        // Ignore
+-                    } catch (Exception e) {
+-                        Log.i(TAG, "Someone wrote a bad service '" + service
++                        Log.e(TAG, "Property notification failed for " + service, e);
++                    } catch (RuntimeException e) {
++                        Log.e(TAG, "Someone wrote a bad service '" + service
+                                 + "' that doesn't like to be poked", e);
+                     }
+                     data.recycle();
 diff --git a/packages/SettingsLib/tests/robotests/src/com/android/settingslib/development/SystemPropPokerTest.java b/packages/SettingsLib/tests/robotests/src/com/android/settingslib/development/SystemPropPokerTest.java
-index d1212fcad864..cb3cc46ed225 100644
+index d1212fcad864..d61302b4a4a1 100644
 --- a/packages/SettingsLib/tests/robotests/src/com/android/settingslib/development/SystemPropPokerTest.java
 +++ b/packages/SettingsLib/tests/robotests/src/com/android/settingslib/development/SystemPropPokerTest.java
-@@ -51,6 +51,7 @@ public class SystemPropPokerTest {
+@@ -51,6 +51,8 @@ public class SystemPropPokerTest {
          doReturn(mPokerTask).when(mSystemPropPoker).createPokerTask();
          doReturn(new String[] {"testService"}).when(mPokerTask).listServices();
          doReturn(mMockBinder).when(mPokerTask).checkService("testService");
++        doReturn(new String[0]).when(mPokerTask).excludedServices();
 +        doReturn(false).when(mPokerTask).isDeclaredHal("testService");
          doReturn(true).when(mMockBinder)
                  .transact(anyInt(), any(Parcel.class), nullable(Parcel.class), anyInt());
      }
-@@ -58,6 +59,7 @@ public class SystemPropPokerTest {
+@@ -58,6 +60,7 @@ public class SystemPropPokerTest {
      @Test
      public void testPoke() throws Exception {
          mSystemPropPoker.poke();
@@ -984,7 +1082,7 @@ index d1212fcad864..cb3cc46ed225 100644
          verify(mMockBinder, atLeastOnce())
                  .transact(anyInt(), any(Parcel.class), nullable(Parcel.class), anyInt());
      }
-@@ -70,7 +72,40 @@ public class SystemPropPokerTest {
+@@ -70,7 +73,41 @@ public class SystemPropPokerTest {
                  .transact(anyInt(), any(Parcel.class), nullable(Parcel.class), anyInt());
          mSystemPropPoker.unblockPokes();
          mSystemPropPoker.poke();
@@ -997,6 +1095,7 @@ index d1212fcad864..cb3cc46ed225 100644
 +        String[] skipped = {"vendor.qspmsvc", "suspend_control",
 +                "suspend_control_internal", "tracing.proxy", "android.os.casefoldingremover",
 +                "storaged", "storaged_pri", "wifinl80211"};
++        doReturn(skipped).when(mPokerTask).excludedServices();
 +        String[] notified = {"vendor.perfservice", "android.hardware.undeclared", "testService"};
 +        String[] services = new String[skipped.length + notified.length + 1];
 +        services[services.length - 1] = "vendor.test.IHal/default";
@@ -1026,7 +1125,7 @@ index d1212fcad864..cb3cc46ed225 100644
 +
  }
 diff --git a/packages/SystemUI/animation/src/com/android/systemui/animation/ActivityTransitionAnimator.kt b/packages/SystemUI/animation/src/com/android/systemui/animation/ActivityTransitionAnimator.kt
-index 1e61df9..2ceaaef 100644
+index 1e61df90cede..2ceaaefaa145 100644
 --- a/packages/SystemUI/animation/src/com/android/systemui/animation/ActivityTransitionAnimator.kt
 +++ b/packages/SystemUI/animation/src/com/android/systemui/animation/ActivityTransitionAnimator.kt
 @@ -2530,27 +2530,15 @@ constructor(
@@ -1079,6 +1178,138 @@ index fee2b4ffb4df..1d944f5998c8 100644
                          mock(CoroutineScope.class),
                          UserActivityNotifierKosmosKt.getUserActivityNotifier(mKosmos),
                          mWakefulnessLifecycle,
+diff --git a/packages/SystemUI/multivalentTests/src/com/android/systemui/keyguard/KeyguardUnlockAnimationControllerTest.kt b/packages/SystemUI/multivalentTests/src/com/android/systemui/keyguard/KeyguardUnlockAnimationControllerTest.kt
+index dbd5caaac09d..c58f03371aa4 100644
+--- a/packages/SystemUI/multivalentTests/src/com/android/systemui/keyguard/KeyguardUnlockAnimationControllerTest.kt
++++ b/packages/SystemUI/multivalentTests/src/com/android/systemui/keyguard/KeyguardUnlockAnimationControllerTest.kt
+@@ -139,42 +139,73 @@ class KeyguardUnlockAnimationControllerTest : SysuiTestCase() {
+         keyguardUnlockAnimationController.notifyFinishedKeyguardExitAnimation(true)
+     }
+ 
+-    /**
+-     * If we're wake and unlocking, we are animating from the black/AOD screen to the app/launcher
+-     * underneath. The LightRevealScrim will animate circularly from the fingerprint reader,
+-     * revealing the app/launcher below. In this case, we want to make sure we are not animating the
+-     * surface, or the user will see the wallpaper briefly as the app animates in.
+-     */
++    /** AOD unlock uses the same window entry animator and completes with it. */
+     @Test
+     @DisableFlags(Flags.FLAG_KEYGUARD_WM_STATE_REFACTOR)
+-    fun noSurfaceAnimation_ifWakeAndUnlocking() {
++    fun surfaceAnimation_ifWakeAndUnlocking() {
+         whenever(biometricUnlockController.isWakeAndUnlock).thenReturn(true)
+-
+         keyguardUnlockAnimationController.notifyStartSurfaceBehindRemoteAnimation(
+-            animatedSurfaces,
+-            arrayOf(),
+-            arrayOf(),
+-            0 /* startTime */,
+-            false, /* requestedShowSurfaceBehindKeyguard */
++            animatedSurfaces, arrayOf(), arrayOf(), 0, false,
+         )
++        val captor = ArgThatCaptor<SyncRtSurfaceTransactionApplier.SurfaceParams>()
++        verify(surfaceTransactionApplier).scheduleApply(
++            captor.capture { params -> params.surface == surfaceControl1 }
++        )
++        // Do not expose an unanimated desktop/app during the animator's start delay.
++        assertEquals(0f, captor.getLastValue().alpha)
++        assertFalse(captor.getLastValue().matrix.isIdentity)
++        assertTrue(keyguardUnlockAnimationController.surfaceBehindEntryAnimator.isStarted)
++        verify(keyguardViewMediator, never())
++            .exitKeyguardAndFinishSurfaceBehindRemoteAnimation(false)
++        keyguardUnlockAnimationController.surfaceBehindEntryAnimator.end()
++        verify(keyguardViewMediator).exitKeyguardAndFinishSurfaceBehindRemoteAnimation(false)
++    }
+ 
+-        val captorSb = ArgThatCaptor<SyncRtSurfaceTransactionApplier.SurfaceParams>()
+-        verify(surfaceTransactionApplier, times(1))
+-            .scheduleApply(captorSb.capture { sp -> sp.surface == surfaceControl1 })
++    @Test
++    @DisableFlags(Flags.FLAG_KEYGUARD_WM_STATE_REFACTOR)
++    fun cancelCannedUnlock_doesNotReportSuccessfulCompletion() {
++        startCannedUnlockForCancellationTest()
++        clearInvocations(keyguardViewMediator)
+ 
+-        val params = captorSb.getLastValue()
++        keyguardUnlockAnimationController.notifyFinishedKeyguardExitAnimation(true)
+ 
+-        // We expect that we've instantly set the surface behind to alpha = 1f, and have no
+-        // transforms (translate, scale) on its matrix.
+-        assertEquals(1f, params.alpha)
+-        assertTrue(params.matrix.isIdentity)
++        assertFalse(keyguardUnlockAnimationController.surfaceBehindEntryAnimator.isStarted)
++        verify(keyguardViewMediator, never())
++            .exitKeyguardAndFinishSurfaceBehindRemoteAnimation(false)
++    }
++
++    @Test
++    @DisableFlags(Flags.FLAG_KEYGUARD_WM_STATE_REFACTOR)
++    fun finishCannedUnlock_doesNotScheduleAnotherCompletion() {
++        startCannedUnlockForCancellationTest()
++        clearInvocations(keyguardViewMediator)
++
++        keyguardUnlockAnimationController.notifyFinishedKeyguardExitAnimation(false)
++
++        assertFalse(keyguardUnlockAnimationController.surfaceBehindEntryAnimator.isStarted)
++        verify(keyguardViewMediator, never())
++            .exitKeyguardAndFinishSurfaceBehindRemoteAnimation(false)
++    }
++
++    @Test
++    @DisableFlags(Flags.FLAG_KEYGUARD_WM_STATE_REFACTOR)
++    fun cannedUnlockAfterCancellation_canCompleteNormally() {
++        startCannedUnlockForCancellationTest()
++        keyguardUnlockAnimationController.notifyFinishedKeyguardExitAnimation(true)
++        clearInvocations(keyguardViewMediator)
++
++        startCannedUnlockForCancellationTest()
++        keyguardUnlockAnimationController.surfaceBehindEntryAnimator.end()
+ 
+-        // Also expect we've immediately asked the keyguard view mediator to finish the remote
+-        // animation.
+         verify(keyguardViewMediator, times(1))
+-            .exitKeyguardAndFinishSurfaceBehindRemoteAnimation(false /* cancelled */)
++            .exitKeyguardAndFinishSurfaceBehindRemoteAnimation(false)
++    }
+ 
+-        verifyNoMoreInteractions(surfaceTransactionApplier)
++    private fun startCannedUnlockForCancellationTest() {
++        keyguardUnlockAnimationController.notifyStartSurfaceBehindRemoteAnimation(
++            animatedSurfaces, arrayOf(), arrayOf(), 0, false,
++        )
++        assertTrue(keyguardUnlockAnimationController.surfaceBehindEntryAnimator.isStarted)
+     }
+ 
+     /** If we are not wake and unlocking, we expect the unlock animation to play normally. */
+diff --git a/packages/SystemUI/multivalentTests/src/com/android/systemui/keyguard/data/repository/LightRevealScrimRepositoryTest.kt b/packages/SystemUI/multivalentTests/src/com/android/systemui/keyguard/data/repository/LightRevealScrimRepositoryTest.kt
+index fc95fb415f41..140e516c3bc7 100644
+--- a/packages/SystemUI/multivalentTests/src/com/android/systemui/keyguard/data/repository/LightRevealScrimRepositoryTest.kt
++++ b/packages/SystemUI/multivalentTests/src/com/android/systemui/keyguard/data/repository/LightRevealScrimRepositoryTest.kt
+@@ -224,6 +224,24 @@ class LightRevealScrimRepositoryTest : SysuiTestCase() {
+             assertEquals(0.0f, lastValue)
+         }
+ 
++    @Test
++    @TestableLooper.RunWithLooper(setAsMainLooper = true)
++    fun setRevealed_cancelsAnimationAndAllowsNextHide() =
++        testScope.runTest {
++            val value by collectLastValue(underTest.revealAmount)
++            runCurrent()
++            underTest.startRevealAmountAnimator(true, 500L)
++            animatorTestRule.advanceTimeBy(250L)
++            underTest.setRevealed(true)
++            assertEquals(1f, value)
++            assertFalse(underTest.isAnimating)
++            animatorTestRule.advanceTimeBy(500L)
++            assertEquals(1f, value)
++            underTest.startRevealAmountAnimator(false, 500L)
++            animatorTestRule.advanceTimeBy(500L)
++            assertEquals(0f, value)
++        }
++
+     /**
+      * Asserts that the list of LightRevealEffects satisfies the list of predicates, in order, with
+      * no leftover elements.
 diff --git a/packages/SystemUI/multivalentTests/src/com/android/systemui/keyguard/domain/interactor/FromGoneTransitionInteractorTest.kt b/packages/SystemUI/multivalentTests/src/com/android/systemui/keyguard/domain/interactor/FromGoneTransitionInteractorTest.kt
 index 1132d523e2e0..74bad2823dda 100644
 --- a/packages/SystemUI/multivalentTests/src/com/android/systemui/keyguard/domain/interactor/FromGoneTransitionInteractorTest.kt
@@ -1678,7 +1909,7 @@ index 47241f78d41d..3a40285251a8 100644
          "androidx.test.ext.junit",
          "androidx.test.ext.truth",
 diff --git a/packages/SystemUI/pods/graphics/src/main/ImageLoaderImpl.kt b/packages/SystemUI/pods/graphics/src/main/ImageLoaderImpl.kt
-index 0332d527b4fd..e01996da7f32 100644
+index 0332d527b4fd..52795760720f 100644
 --- a/packages/SystemUI/pods/graphics/src/main/ImageLoaderImpl.kt
 +++ b/packages/SystemUI/pods/graphics/src/main/ImageLoaderImpl.kt
 @@ -32,6 +32,7 @@ import android.graphics.drawable.Drawable
@@ -1704,57 +1935,151 @@ index 0332d527b4fd..e01996da7f32 100644
                  try {
                      ImageDecoder.decodeDrawable(toImageDecoderSource(source, defaultContext)) {
                          decoder,
-@@ -208,12 +217,16 @@ constructor(
-                 Icon.TYPE_RESOURCE -> {
-                     val resources = resolveResourcesForIcon(context, icon)
-                     resources?.let {
--                        loadDrawableSync(
--                            ImageDecoder.createSource(it, icon.resId),
--                            maxWidth,
--                            maxHeight,
--                            allocator,
--                        )
-+                        if (isXmlDrawableResource(it, icon.resId)) {
-+                            loadIconDrawable(icon, context)
-+                        } else {
-+                            loadDrawableSync(
-+                                ImageDecoder.createSource(it, icon.resId),
-+                                maxWidth,
-+                                maxHeight,
-+                                allocator,
-+                            )
+@@ -199,49 +208,58 @@ constructor(
+         allocator: Int,
+     ): Drawable? =
+         traceSection("ImageLoader#loadDrawable") {
+-            return when (icon.type) {
+-                Icon.TYPE_URI,
+-                Icon.TYPE_URI_ADAPTIVE_BITMAP -> {
+-                    val source = ImageDecoder.createSource(context.contentResolver, icon.uri)
+-                    loadDrawableSync(source, maxWidth, maxHeight, allocator)
+-                }
+-                Icon.TYPE_RESOURCE -> {
+-                    val resources = resolveResourcesForIcon(context, icon)
+-                    resources?.let {
++            return try {
++                when (icon.type) {
++                    Icon.TYPE_URI,
++                    Icon.TYPE_URI_ADAPTIVE_BITMAP -> {
++                        val source = ImageDecoder.createSource(context.contentResolver, icon.uri)
++                        loadDrawableSync(source, maxWidth, maxHeight, allocator)
++                    }
++                    Icon.TYPE_RESOURCE -> {
++                        val resources = resolveResourcesForIcon(context, icon)
++                        resources?.let {
++                            if (isXmlDrawableResource(it, icon.resId)) {
++                                loadIconDrawable(icon, context)
++                            } else {
++                                loadDrawableSync(
++                                    ImageDecoder.createSource(it, icon.resId),
++                                    maxWidth,
++                                    maxHeight,
++                                    allocator,
++                                )
++                            }
 +                        }
++                            // Fallback to non-ImageDecoder load if the attempt failed (e.g. the
++                            // resource
++                            // is a Vector drawable which ImageDecoder doesn't support.)
++                            ?: loadIconDrawable(icon, context)
++                    }
++                    Icon.TYPE_BITMAP -> {
++                        BitmapDrawable(context.resources, icon.bitmap)
++                    }
++                    Icon.TYPE_ADAPTIVE_BITMAP -> {
++                        AdaptiveIconDrawable(null, BitmapDrawable(context.resources, icon.bitmap))
++                    }
++                    Icon.TYPE_DATA -> {
+                         loadDrawableSync(
+-                            ImageDecoder.createSource(it, icon.resId),
++                            ImageDecoder.createSource(icon.dataBytes, icon.dataOffset, icon.dataLength),
+                             maxWidth,
+                             maxHeight,
+                             allocator,
+                         )
                      }
-                         // Fallback to non-ImageDecoder load if the attempt failed (e.g. the
-                         // resource
-@@ -255,6 +268,16 @@ constructor(
+-                        // Fallback to non-ImageDecoder load if the attempt failed (e.g. the
+-                        // resource
+-                        // is a Vector drawable which ImageDecoder doesn't support.)
+-                        ?: loadIconDrawable(icon, context)
+-                }
+-                Icon.TYPE_BITMAP -> {
+-                    BitmapDrawable(context.resources, icon.bitmap)
+-                }
+-                Icon.TYPE_ADAPTIVE_BITMAP -> {
+-                    AdaptiveIconDrawable(null, BitmapDrawable(context.resources, icon.bitmap))
+-                }
+-                Icon.TYPE_DATA -> {
+-                    loadDrawableSync(
+-                        ImageDecoder.createSource(icon.dataBytes, icon.dataOffset, icon.dataLength),
+-                        maxWidth,
+-                        maxHeight,
+-                        allocator,
+-                    )
+-                }
+-                else -> {
+-                    // We don't recognize this icon, just fallback.
+-                    loadIconDrawable(icon, context)
++                    else -> {
++                        // We don't recognize this icon, just fallback.
++                        loadIconDrawable(icon, context)
++                    }
++                }?.let { drawable ->
++                    // Icons carry tint which we need to propagate down to a Drawable.
++                    tintDrawable(icon, drawable)
++                    drawable
+                 }
+-            }?.let { drawable ->
+-                // Icons carry tint which we need to propagate down to a Drawable.
+-                tintDrawable(icon, drawable)
+-                drawable
++            } catch (error: NotFoundException) {
++                Log.w(TAG, "Couldn't load icon resource $icon", error)
++                null
+             }
+         }
+ 
+@@ -255,6 +273,12 @@ constructor(
          return null
      }
  
 +    private fun isXmlDrawableResource(resources: Resources, resId: Int): Boolean {
 +        val value = TypedValue()
-+        return try {
-+            resources.getValue(resId, value, true /* resolveRefs */)
-+            value.type == TypedValue.TYPE_STRING && value.string?.endsWith(".xml") == true
-+        } catch (e: NotFoundException) {
-+            false
-+        }
++        resources.getValue(resId, value, true /* resolveRefs */)
++        return value.type == TypedValue.TYPE_STRING && value.string?.endsWith(".xml") == true
 +    }
 +
      override suspend fun loadSize(icon: Icon, context: Context): Size? =
          withContext(backgroundDispatcher) { loadSizeSync(icon, context) }
  
+diff --git a/packages/SystemUI/res/values/config_qti.xml b/packages/SystemUI/res/values/config_qti.xml
+index 5c175d61a4a9..118536414ad4 100644
+--- a/packages/SystemUI/res/values/config_qti.xml
++++ b/packages/SystemUI/res/values/config_qti.xml
+@@ -10,7 +10,7 @@
+     <dimen name="keyguard_emergency_button_bottom_margin">60dp</dimen>
+     <item type="id" name="keyguard_emergency_area" />
+ <!-- QTI_BEGIN: 2025-12-16: Android_UI: SystemUI: Refactor dual sim icon on status bar. -->
+-    <bool name="config_enable_stacked_icon">false</bool>
++    <bool name="config_enable_stacked_icon">true</bool>
+ <!-- QTI_END: 2025-12-16: Android_UI: SystemUI: Refactor dual sim icon on status bar. -->
+     <string translatable="false" name="status_bar_turbo_dsda">turbo</string>
+ </resources>
 diff --git a/packages/SystemUI/res/values/dimens.xml b/packages/SystemUI/res/values/dimens.xml
-index 1b4b599..2519f31 100644
+index 1b4b599b6cc7..dfde337416c2 100644
 --- a/packages/SystemUI/res/values/dimens.xml
 +++ b/packages/SystemUI/res/values/dimens.xml
 @@ -2309,4 +2309,6 @@
      <dimen name="usb_device_dialog_button_background_radius_full">360dp</dimen>
      <!-- Usb Device Dialog values end -->
  
-+    <!-- Negative disables notification-pulse brightness override by default. -->
++    <!-- Negative disables the notification-only brightness floor. -->
 +    <item name="doze_notification_pulse_brightness" format="float" type="dimen">-1.0</item>
  </resources>
+diff --git a/packages/SystemUI/res/xml/status_bar_prefs.xml b/packages/SystemUI/res/xml/status_bar_prefs.xml
+index cc7366733a86..5798c46be18c 100644
+--- a/packages/SystemUI/res/xml/status_bar_prefs.xml
++++ b/packages/SystemUI/res/xml/status_bar_prefs.xml
+@@ -73,7 +73,7 @@
+ 
+     <com.android.systemui.tuner.StatusBarSwitch
+         android:icon="@drawable/ic_statusbar_mute"
+-        android:key="mute"
++        android:key="@*android:string/status_bar_mute"
+         android:title="@string/volume_ringer_status_silent" />
+ 
+     <com.android.systemui.tuner.StatusBarSwitch
 diff --git a/packages/SystemUI/src/com/android/systemui/biometrics/BiometricPromptLottieViewWrapper.kt b/packages/SystemUI/src/com/android/systemui/biometrics/BiometricPromptLottieViewWrapper.kt
 index e48e6e2dfdc6..d2460845c71d 100644
 --- a/packages/SystemUI/src/com/android/systemui/biometrics/BiometricPromptLottieViewWrapper.kt
@@ -1775,7 +2100,7 @@ index e48e6e2dfdc6..d2460845c71d 100644
 +        ContextThemeWrapper(context, androidx.appcompat.R.style.Theme_AppCompat_DayNight), attrs
 +    )
 diff --git a/packages/SystemUI/src/com/android/systemui/biometrics/UdfpsController.java b/packages/SystemUI/src/com/android/systemui/biometrics/UdfpsController.java
-index 9d20611..74a800a 100644
+index 9d2061103979..74a800a2c52c 100644
 --- a/packages/SystemUI/src/com/android/systemui/biometrics/UdfpsController.java
 +++ b/packages/SystemUI/src/com/android/systemui/biometrics/UdfpsController.java
 @@ -643,8 +643,17 @@ public class UdfpsController implements DozeReceiver, Dumpable {
@@ -1797,8 +2122,24 @@ index 9d20611..74a800a 100644
                  if (InteractionEvent.CANCEL.equals(processedTouch.getEvent())) {
                      Log.w(TAG, "This is a CANCEL event that's reported as an UP event!");
                  }
+diff --git a/packages/SystemUI/src/com/android/systemui/dagger/FrameworkServicesModule.java b/packages/SystemUI/src/com/android/systemui/dagger/FrameworkServicesModule.java
+index 2262123600de..1a22cb06209f 100644
+--- a/packages/SystemUI/src/com/android/systemui/dagger/FrameworkServicesModule.java
++++ b/packages/SystemUI/src/com/android/systemui/dagger/FrameworkServicesModule.java
+@@ -840,6 +840,11 @@ public class FrameworkServicesModule {
+     @Provides
+     @Singleton
+     static Optional<SatelliteManager> provideSatelliteManager(Context context) {
++        // No satellite service, startup delay, or radio callbacks on unsupported hardware.
++        if (!context.getPackageManager().hasSystemFeature(
++                PackageManager.FEATURE_TELEPHONY_SATELLITE)) {
++            return Optional.empty();
++        }
+         return Optional.ofNullable(context.getSystemService(SatelliteManager.class));
+     }
+ 
 diff --git a/packages/SystemUI/src/com/android/systemui/doze/DozeScreenBrightness.java b/packages/SystemUI/src/com/android/systemui/doze/DozeScreenBrightness.java
-index 59310bf..bd2b3b3 100644
+index 59310bfef134..7eb14a5d8a09 100644
 --- a/packages/SystemUI/src/com/android/systemui/doze/DozeScreenBrightness.java
 +++ b/packages/SystemUI/src/com/android/systemui/doze/DozeScreenBrightness.java
 @@ -112,6 +112,10 @@ public class DozeScreenBrightness extends BroadcastReceiver implements DozeMachi
@@ -1822,7 +2163,7 @@ index 59310bf..bd2b3b3 100644
          mScreenBrightnessDim = alwaysOnDisplayPolicy.dimBrightness;
          float[] sensorToBrightness =
                  mDisplayManager.getDozeBrightnessSensorValueToBrightness(mContext.getDisplayId());
-@@ -181,9 +188,19 @@ public class DozeScreenBrightness extends BroadcastReceiver implements DozeMachi
+@@ -181,9 +188,22 @@ public class DozeScreenBrightness extends BroadcastReceiver implements DozeMachi
          mDevicePostureController.addCallback(mDevicePostureCallback);
      }
  
@@ -1835,14 +2176,17 @@ index 59310bf..bd2b3b3 100644
      public void transitionTo(DozeMachine.State oldState, DozeMachine.State newState) {
          mState = newState;
 +        final boolean wasNotificationPulseActive = mNotificationPulseActive;
-+        mNotificationPulseActive = mNotificationPulseBrightness >= 0f
++        mNotificationPulseActive = Float.isFinite(mNotificationPulseBrightness)
++                && mNotificationPulseBrightness >= 0f
++                && mNotificationPulseBrightness <= PowerManager.BRIGHTNESS_MAX
 +                && (newState == DozeMachine.State.DOZE_PULSING
 +                    || newState == DozeMachine.State.DOZE_PULSING_BRIGHT)
++                && mDozeMachine != null
 +                && mDozeMachine.getPulseReason() == DozeLog.PULSE_REASON_NOTIFICATION;
          switch (newState) {
              case INITIALIZED:
                  startListeningForWallpaperSupportsAmbientMode();
-@@ -210,6 +227,9 @@ public class DozeScreenBrightness extends BroadcastReceiver implements DozeMachi
+@@ -210,6 +230,9 @@ public class DozeScreenBrightness extends BroadcastReceiver implements DozeMachi
          if (newState != DozeMachine.State.FINISH) {
              setScreenOff(newState == DozeMachine.State.DOZE);
              setPaused(newState == DozeMachine.State.DOZE_AOD_PAUSED);
@@ -1852,7 +2196,7 @@ index 59310bf..bd2b3b3 100644
          }
      }
  
-@@ -242,7 +262,7 @@ public class DozeScreenBrightness extends BroadcastReceiver implements DozeMachi
+@@ -242,7 +265,7 @@ public class DozeScreenBrightness extends BroadcastReceiver implements DozeMachi
              float brightness = computeBrightness(sensorValue);
              brightnessReady = brightness >= 0;
              if (brightnessReady) {
@@ -1861,7 +2205,7 @@ index 59310bf..bd2b3b3 100644
                          clampToDimBrightnessForScreenOff(clampToUserSetting(brightness)));
              }
  
-@@ -322,8 +342,22 @@ public class DozeScreenBrightness extends BroadcastReceiver implements DozeMachi
+@@ -322,8 +345,22 @@ public class DozeScreenBrightness extends BroadcastReceiver implements DozeMachi
      public void onAccuracyChanged(Sensor sensor, int accuracy) {
      }
  
@@ -1871,8 +2215,8 @@ index 59310bf..bd2b3b3 100644
 +    }
 +
 +    private void applyCurrentBrightness() {
-+        // Keep sensor updates while pulsing, so the end of a notification restores
-+        // the current environment brightness rather than an old captured value.
++        // Keep the ambient value current during a notification, including sensor
++        // changes, so pulse completion restores the latest ambient brightness.
 +        float brightness = mNotificationPulseActive
 +                ? Math.max(mAmbientBrightness, clampToUserSetting(mNotificationPulseBrightness))
 +                : mAmbientBrightness;
@@ -1885,7 +2229,7 @@ index 59310bf..bd2b3b3 100644
                  clampToUserSettingOrAutoBrightness(mDefaultDozeBrightness)));
          mDozeHost.setAodDimmingScrim(0f);
          mDozeHost.setAodWallpaperDimmingScrim(0f);
-@@ -440,6 +474,9 @@ public class DozeScreenBrightness extends BroadcastReceiver implements DozeMachi
+@@ -440,6 +477,9 @@ public class DozeScreenBrightness extends BroadcastReceiver implements DozeMachi
                  + Arrays.toString(mSensorToWallpaperScrimOpacity));
          idpw.println("screenBrightnessDim=" + mScreenBrightnessDim);
          idpw.println("mDefaultDozeBrightness=" + mDefaultDozeBrightness);
@@ -1896,7 +2240,7 @@ index 59310bf..bd2b3b3 100644
      }
  
 diff --git a/packages/SystemUI/src/com/android/systemui/keyguard/KeyguardService.java b/packages/SystemUI/src/com/android/systemui/keyguard/KeyguardService.java
-index 8d1c39a..4d6f352 100644
+index 8d1c39add7a2..4d6f352cd0be 100644
 --- a/packages/SystemUI/src/com/android/systemui/keyguard/KeyguardService.java
 +++ b/packages/SystemUI/src/com/android/systemui/keyguard/KeyguardService.java
 @@ -211,6 +211,15 @@ public class KeyguardService extends Service {
@@ -1959,18 +2303,18 @@ index 8d1c39a..4d6f352 100644
          };
      }
 diff --git a/packages/SystemUI/src/com/android/systemui/keyguard/KeyguardUnlockAnimationController.kt b/packages/SystemUI/src/com/android/systemui/keyguard/KeyguardUnlockAnimationController.kt
-index 2fa697f..5e25ac2 100644
+index 2fa697fa812b..a252fcee55cf 100644
 --- a/packages/SystemUI/src/com/android/systemui/keyguard/KeyguardUnlockAnimationController.kt
 +++ b/packages/SystemUI/src/com/android/systemui/keyguard/KeyguardUnlockAnimationController.kt
 @@ -345,7 +345,18 @@ constructor(
              }
              addListener(
                  object : AnimatorListenerAdapter() {
++                    private var cancelled = false
++
 +                    override fun onAnimationStart(animation: Animator) {
 +                        cancelled = false
 +                    }
-+
-+                    private var cancelled = false
 +
 +                    override fun onAnimationCancel(animation: Animator) {
 +                        cancelled = true
@@ -2014,11 +2358,11 @@ index 2fa697f..5e25ac2 100644
              }
              addListener(
                  object : AnimatorListenerAdapter() {
++                    private var cancelled = false
++
 +                    override fun onAnimationStart(animation: Animator) {
 +                        cancelled = false
 +                    }
-+
-+                    private var cancelled = false
 +
 +                    override fun onAnimationCancel(animation: Animator) {
 +                        cancelled = true
@@ -2029,8 +2373,45 @@ index 2fa697f..5e25ac2 100644
                          Log.d(TAG, "surfaceBehindEntryAnimator#onAnimationEnd")
                          playingCannedUnlockAnimation = false
                          keyguardViewMediator
+@@ -456,8 +486,7 @@ constructor(
+             // If the launcher is underneath, but we're about to launch an activity, don't do
+             // the animations since they won't be visible.
+             !notificationShadeWindowController.isLaunchingActivity &&
+-            launcherUnlockController != null &&
+-            !biometricUnlockControllerLazy.get().isWakeAndUnlock
++            launcherUnlockController != null
+     }
+ 
+     /**
+@@ -700,22 +729,14 @@ constructor(
+                 unlockToLauncherWithInWindowAnimations()
+             }
+ 
+-            // If we're waking and unlocking to a non-Launcher app surface (or Launcher in-window
+-            // animations are not available), show it immediately and end the remote animation. The
+-            // circular light reveal will show the app surface, and it looks weird if it's moving
+-            // around behind that.
+-            biometricUnlockControllerLazy.get().isWakeAndUnlock -> {
+-                Log.d(TAG, "playCannedUnlockAnimation, isWakeAndUnlock")
+-                setSurfaceBehindAppearAmount(1f)
+-                keyguardViewMediator
+-                    .get()
+-                    .exitKeyguardAndFinishSurfaceBehindRemoteAnimation(false /* cancelled */)
+-            }
+-
+             // Otherwise, we're doing a normal full-window unlock. Start this animator, which will
+             // scale/translate the window underneath the lockscreen.
+             else -> {
+                 Log.d(TAG, "playCannedUnlockAnimation, surfaceBehindEntryAnimator#start")
++                // AOD unlock has no opaque lockscreen covering the first frame.
++                // Initialize before the existing entry-animation start delay.
++                surfaceBehindAlpha = 0f
++                setSurfaceBehindAppearAmount(0f)
+                 surfaceBehindEntryAnimator.start()
+             }
+         }
 diff --git a/packages/SystemUI/src/com/android/systemui/keyguard/KeyguardViewMediator.java b/packages/SystemUI/src/com/android/systemui/keyguard/KeyguardViewMediator.java
-index dc65bd6..b82aecd 100644
+index dc65bd6e0aba..b82aecd13de9 100644
 --- a/packages/SystemUI/src/com/android/systemui/keyguard/KeyguardViewMediator.java
 +++ b/packages/SystemUI/src/com/android/systemui/keyguard/KeyguardViewMediator.java
 @@ -1806,7 +1806,10 @@ public class KeyguardViewMediator implements CoreStartable,
@@ -2045,6 +2426,35 @@ index dc65bd6..b82aecd 100644
                  KeyguardService.wrap(this, getAppearAnimationRunner()),
                  ActivityTransitionAnimator.Companion.shellMigrationEnabled()
                          ? getOccludeTransition()
+diff --git a/packages/SystemUI/src/com/android/systemui/keyguard/data/repository/LightRevealScrimRepository.kt b/packages/SystemUI/src/com/android/systemui/keyguard/data/repository/LightRevealScrimRepository.kt
+index e0dc68caf856..4dc4c65ed918 100644
+--- a/packages/SystemUI/src/com/android/systemui/keyguard/data/repository/LightRevealScrimRepository.kt
++++ b/packages/SystemUI/src/com/android/systemui/keyguard/data/repository/LightRevealScrimRepository.kt
+@@ -80,6 +80,9 @@ interface LightRevealScrimRepository {
+     /** For brighter wallpapers, add a darker scrim to ensure contrast */
+     val useDarkWallpaperScrim: StateFlow<Boolean>
+ 
++    /** Set the reveal endpoint immediately without playing an animation. */
++    fun setRevealed(reveal: Boolean)
++
+     fun startRevealAmountAnimator(reveal: Boolean, duration: Long = DEFAULT_REVEAL_DURATION)
+ }
+ 
+@@ -183,6 +186,14 @@ constructor(
+ 
+     private var willBeOrIsRevealed: Boolean? = null
+ 
++    override fun setRevealed(reveal: Boolean) {
++        revealAmountAnimator.cancel()
++        willBeOrIsRevealed = reveal
++        // Seeking updates the existing reveal observer and keeps the next reverse animation
++        // aligned with this endpoint. It does not start the animator.
++        revealAmountAnimator.setCurrentFraction(if (reveal) 1f else 0f)
++    }
++
+     override fun startRevealAmountAnimator(reveal: Boolean, duration: Long) {
+         if (reveal == willBeOrIsRevealed) return
+         willBeOrIsRevealed = reveal
 diff --git a/packages/SystemUI/src/com/android/systemui/keyguard/domain/interactor/FromGoneTransitionInteractor.kt b/packages/SystemUI/src/com/android/systemui/keyguard/domain/interactor/FromGoneTransitionInteractor.kt
 index 8f4d009f3383..5e2321be8575 100644
 --- a/packages/SystemUI/src/com/android/systemui/keyguard/domain/interactor/FromGoneTransitionInteractor.kt
@@ -2058,39 +2468,112 @@ index 8f4d009f3383..5e2321be8575 100644
              startTransitionTo(KeyguardState.LOCKSCREEN, ownerReason = "showKeyguard()")
          }
      }
-diff --git a/packages/SystemUI/src/com/android/systemui/keyguard/domain/interactor/LightRevealScrimInteractor.kt b/packages/SystemUI/src/com/android/systemui/keyguard/domain/interactor/LightRevealScrimInteractor.kt
-index 1e70d0b..187858e 100644
---- a/packages/SystemUI/src/com/android/systemui/keyguard/domain/interactor/LightRevealScrimInteractor.kt
-+++ b/packages/SystemUI/src/com/android/systemui/keyguard/domain/interactor/LightRevealScrimInteractor.kt
-@@ -32,7 +32,6 @@ import com.android.systemui.power.shared.model.WakeSleepReason
- import com.android.systemui.scene.shared.model.Scenes
- import com.android.systemui.statusbar.LightRevealEffect
- import com.android.systemui.util.kotlin.BooleanFlowOperators.anyOf
--import com.android.systemui.util.kotlin.sample
- import dagger.Lazy
- import java.util.Optional
- import javax.inject.Inject
-@@ -40,6 +39,7 @@ import kotlinx.coroutines.CoroutineDispatcher
+diff --git a/packages/SystemUI/src/com/android/systemui/keyguard/domain/interactor/FromLockscreenTransitionInteractor.kt b/packages/SystemUI/src/com/android/systemui/keyguard/domain/interactor/FromLockscreenTransitionInteractor.kt
+index 2626449a320d..996d061301b2 100644
+--- a/packages/SystemUI/src/com/android/systemui/keyguard/domain/interactor/FromLockscreenTransitionInteractor.kt
++++ b/packages/SystemUI/src/com/android/systemui/keyguard/domain/interactor/FromLockscreenTransitionInteractor.kt
+@@ -47,6 +47,7 @@ import kotlin.time.Duration.Companion.seconds
+ import kotlinx.coroutines.CoroutineDispatcher
  import kotlinx.coroutines.CoroutineScope
  import kotlinx.coroutines.flow.Flow
++import kotlinx.coroutines.flow.combine
+ import kotlinx.coroutines.flow.distinctUntilChanged
  import kotlinx.coroutines.flow.filter
-+import kotlinx.coroutines.flow.first
- import kotlinx.coroutines.flow.flatMapLatest
- import kotlinx.coroutines.flow.flowOf
- import kotlinx.coroutines.flow.flowOn
-@@ -103,7 +103,11 @@ constructor(
-      * LiftReveal.
-      */
-     val lightRevealEffect: Flow<LightRevealEffect> =
--        transitionInteractor.startedKeyguardTransitionStep.sample(repository.revealEffect)
-+        transitionInteractor.startedKeyguardTransitionStep.map {
-+            // Resolve from the current biometric state, not a separately scheduled cached
-+            // emission that can still describe the preceding non-biometric wakeup.
-+            repository.revealEffect.first()
+ import kotlinx.coroutines.flow.map
+@@ -278,13 +279,22 @@ constructor(
+     private fun listenForLockscreenToGone() {
+         if (SceneContainerFlag.isEnabled) return
+         scope.launch("$TAG#listenForLockscreenToGone") {
+-            keyguardInteractor.isKeyguardGoingAway
+-                .filterRelevantKeyguardStateAnd { isKeyguardGoingAway -> isKeyguardGoingAway }
++            // An unlock may finish before the wake transition reaches LOCKSCREEN.
++            // Observe the confirmed showing state and new transition target as well,
++            // so an early going-away event cannot leave us settled on LOCKSCREEN.
++            combine(
++                    keyguardInteractor.isKeyguardGoingAway,
++                    keyguardInteractor.isKeyguardShowing,
++                    transitionInteractor.startedKeyguardTransitionStep,
++                ) { goingAway, showing, startedStep ->
++                    startedStep.to == KeyguardState.LOCKSCREEN && (goingAway || !showing)
++                }
++                .filterRelevantKeyguardStateAnd { shouldDismiss -> shouldDismiss }
+                 .collect {
+                     startTransitionTo(
+                         KeyguardState.GONE,
+                         modeOnCanceled = TransitionModeOnCanceled.RESET,
+-                        ownerReason = "keyguard interactor says keyguard is going away",
++                        ownerReason = "keyguard is leaving or no longer showing",
+                     )
+                 }
+         }
+diff --git a/packages/SystemUI/src/com/android/systemui/keyguard/domain/interactor/LightRevealScrimInteractor.kt b/packages/SystemUI/src/com/android/systemui/keyguard/domain/interactor/LightRevealScrimInteractor.kt
+index 1e70d0bd28f0..dd4b205b8098 100644
+--- a/packages/SystemUI/src/com/android/systemui/keyguard/domain/interactor/LightRevealScrimInteractor.kt
++++ b/packages/SystemUI/src/com/android/systemui/keyguard/domain/interactor/LightRevealScrimInteractor.kt
+@@ -22,7 +22,10 @@ import com.android.systemui.dagger.qualifiers.Application
+ import com.android.systemui.dagger.qualifiers.Background
+ import com.android.systemui.keyguard.data.repository.DEFAULT_REVEAL_DURATION
+ import com.android.systemui.keyguard.data.repository.MINMODE_REVEAL_DURATION
++import com.android.systemui.keyguard.data.repository.KeyguardRepository
+ import com.android.systemui.keyguard.data.repository.LightRevealScrimRepository
++import com.android.systemui.keyguard.shared.model.BiometricUnlockMode
++import com.android.systemui.keyguard.shared.model.BiometricUnlockSource
+ import com.android.systemui.keyguard.shared.model.Edge
+ import com.android.systemui.keyguard.shared.model.KeyguardState
+ import com.android.systemui.minmode.MinModeManager
+@@ -51,6 +54,7 @@ class LightRevealScrimInteractor
+ constructor(
+     private val transitionInteractor: KeyguardTransitionInteractor,
+     private val repository: LightRevealScrimRepository,
++    private val keyguardRepository: KeyguardRepository,
+     @Application private val scope: CoroutineScope,
+     private val scrimLogger: ScrimLogger,
+     private val powerInteractor: Lazy<PowerInteractor>,
+@@ -67,6 +71,19 @@ constructor(
+         scope.launch {
+             transitionInteractor.startedKeyguardTransitionStep.collect {
+                 scrimLogger.d(TAG, "listenForStartedKeyguardTransitionStep", it)
++                val biometricUnlockState = keyguardRepository.biometricUnlockState.value
++                val fingerprintWakeAndUnlock =
++                    it.to == KeyguardState.GONE &&
++                        biometricUnlockState.source == BiometricUnlockSource.FINGERPRINT_SENSOR &&
++                        biometricUnlockState.mode in setOf(
++                            BiometricUnlockMode.WAKE_AND_DISMISS,
++                            BiometricUnlockMode.WAKE_AND_DISMISS_PULSING,
++                            BiometricUnlockMode.WAKE_AND_DISMISS_FROM_DREAM,
++                        )
++                if (fingerprintWakeAndUnlock) {
++                    repository.setRevealed(true)
++                    return@collect
++                }
+                 val animationDuration =
+                     if (it.to == KeyguardState.AOD && isLastSleepDueToFold) {
+                         // Do not animate the scrim when folding as we want to cover the screen
+diff --git a/packages/SystemUI/src/com/android/systemui/privacy/AppOpsPrivacyItemMonitor.kt b/packages/SystemUI/src/com/android/systemui/privacy/AppOpsPrivacyItemMonitor.kt
+index 06e1862daa10..00943879a5b4 100644
+--- a/packages/SystemUI/src/com/android/systemui/privacy/AppOpsPrivacyItemMonitor.kt
++++ b/packages/SystemUI/src/com/android/systemui/privacy/AppOpsPrivacyItemMonitor.kt
+@@ -25,6 +25,7 @@ import android.content.Context
+ import android.content.PermissionChecker
+ import android.content.pm.PackageManager
+ import android.content.pm.UserInfo
++import android.os.SystemProperties
+ import android.os.UserHandle
+ import com.android.internal.annotations.GuardedBy
+ import com.android.internal.annotations.VisibleForTesting
+@@ -379,6 +380,12 @@ constructor(
+         if (!privacyItemForAppOpEnabledLocked(appOpItem.code)) {
+             return null
+         }
++        if (appOpItem.code == AppOpsManager.OP_CAMERA
++            && appOpItem.packageName == "co.aospa.sense"
++            && SystemProperties.getBoolean("ro.face.sense_service.native_provider", false)
++        ) {
++            return null
 +        }
- 
-     /** Limit the max alpha for the scrim to allow for some transparency */
-     val maxAlpha: Flow<Float> =
+         val type: PrivacyType =
+             when (appOpItem.code) {
+                 AppOpsManager.OP_PHONE_CALL_CAMERA,
 diff --git a/packages/SystemUI/src/com/android/systemui/statusbar/notification/stack/MagneticNotificationRowManagerImpl.kt b/packages/SystemUI/src/com/android/systemui/statusbar/notification/stack/MagneticNotificationRowManagerImpl.kt
 index b9d534949b00..966f386c271e 100644
 --- a/packages/SystemUI/src/com/android/systemui/statusbar/notification/stack/MagneticNotificationRowManagerImpl.kt
@@ -2103,8 +2586,135 @@ index b9d534949b00..966f386c271e 100644
              val swipedLoggingKey =
                  currentMagneticListeners.swipedListener()?.getRowLoggingKey().toString()
              if (swipedLoggingKey == "null") {
+diff --git a/packages/SystemUI/src/com/android/systemui/statusbar/phone/KeyguardStatusBarViewController.java b/packages/SystemUI/src/com/android/systemui/statusbar/phone/KeyguardStatusBarViewController.java
+index b95e542e2aa2..6d9d6b84ddc3 100644
+--- a/packages/SystemUI/src/com/android/systemui/statusbar/phone/KeyguardStatusBarViewController.java
++++ b/packages/SystemUI/src/com/android/systemui/statusbar/phone/KeyguardStatusBarViewController.java
+@@ -28,6 +28,7 @@ import android.content.res.Configuration;
+ import android.content.res.Resources;
+ import android.database.ContentObserver;
+ import android.hardware.biometrics.BiometricSourceType;
++import android.os.SystemProperties;
+ import android.os.UserHandle;
+ import android.os.UserManager;
+ import android.provider.Settings;
+@@ -260,7 +261,8 @@ public class KeyguardStatusBarViewController extends ViewController<KeyguardStat
+ 
+                 @Override
+                 public void onFinishedGoingToSleep(int why) {
+-                    mFirstBypassAttempt = mKeyguardBypassController.getBypassEnabled();
++                    mFirstBypassAttempt = mKeyguardBypassController.getBypassEnabled()
++                    && !SystemProperties.getBoolean("ro.face.sense_service.native_provider", false);
+                     mDelayShowingKeyguardStatusBar = false;
+                 }
+             };
+@@ -409,7 +411,8 @@ public class KeyguardStatusBarViewController extends ViewController<KeyguardStat
+         mDreamViewModel = dreamViewModel;
+         mKeyguardInteractor = keyguardInteractor;
+ 
+-        mFirstBypassAttempt = mKeyguardBypassController.getBypassEnabled();
++        mFirstBypassAttempt = mKeyguardBypassController.getBypassEnabled()
++                    && !SystemProperties.getBoolean("ro.face.sense_service.native_provider", false);
+         if (!SceneContainerFlag.isEnabled()) {
+             mKeyguardStateController.addCallback(mKeyguardStateControllerCallback);
+         }
+diff --git a/packages/SystemUI/src/com/android/systemui/statusbar/pipeline/battery/ui/composable/UnifiedBattery.kt b/packages/SystemUI/src/com/android/systemui/statusbar/pipeline/battery/ui/composable/UnifiedBattery.kt
+index e5b01522847a..e89bd228b058 100644
+--- a/packages/SystemUI/src/com/android/systemui/statusbar/pipeline/battery/ui/composable/UnifiedBattery.kt
++++ b/packages/SystemUI/src/com/android/systemui/statusbar/pipeline/battery/ui/composable/UnifiedBattery.kt
+@@ -171,6 +171,8 @@ fun UnifiedBattery(
+     isDarkProvider: () -> IsAreaDark,
+     modifier: Modifier,
+ ) {
++    if (!viewModel.isVisible) return
++
+     var bounds by remember { mutableStateOf(Rect()) }
+ 
+     val colorProvider = {
+diff --git a/packages/SystemUI/src/com/android/systemui/statusbar/pipeline/battery/ui/viewmodel/BatteryViewModel.kt b/packages/SystemUI/src/com/android/systemui/statusbar/pipeline/battery/ui/viewmodel/BatteryViewModel.kt
+index 83b682f7d7b9..8af946654b12 100644
+--- a/packages/SystemUI/src/com/android/systemui/statusbar/pipeline/battery/ui/viewmodel/BatteryViewModel.kt
++++ b/packages/SystemUI/src/com/android/systemui/statusbar/pipeline/battery/ui/viewmodel/BatteryViewModel.kt
+@@ -35,6 +35,7 @@ import com.android.systemui.statusbar.pipeline.battery.domain.interactor.Battery
+ import com.android.systemui.statusbar.pipeline.battery.domain.interactor.BatteryInteractor
+ import com.android.systemui.statusbar.pipeline.battery.shared.ui.BatteryColors
+ import com.android.systemui.statusbar.pipeline.battery.shared.ui.BatteryGlyph
++import com.android.systemui.statusbar.pipeline.shared.domain.interactor.HomeStatusBarIconBlockListInteractor
+ import dagger.assisted.AssistedFactory
+ import dagger.assisted.AssistedInject
+ import kotlinx.coroutines.ExperimentalCoroutinesApi
+@@ -49,8 +50,11 @@ sealed class BatteryViewModel(
+     val interactor: BatteryInteractor,
+     shouldShowPercent: Flow<Boolean>,
+     @Application context: Context,
++    shouldBeVisible: Flow<Boolean> = flowOf(true),
+ ) : HydratedActivatable() {
+ 
++    val isVisible: Boolean by shouldBeVisible.hydratedStateOf(initialValue = true)
++
+     val level by interactor.level.hydratedStateOf(initialValue = 0)
+ 
+     val isFull by interactor.isFull.hydratedStateOf(initialValue = false)
+@@ -194,11 +198,16 @@ sealed class BatteryViewModel(
+     /** View model that shows the percentage based on the percent setting */
+     class BasedOnUserSetting
+     @AssistedInject
+-    constructor(interactor: BatteryInteractor, @Application context: Context) :
++    constructor(
++        interactor: BatteryInteractor,
++        @Application context: Context,
++        iconBlockListInteractor: HomeStatusBarIconBlockListInteractor,
++    ) :
+         BatteryViewModel(
+             interactor = interactor,
+             shouldShowPercent = interactor.isBatteryPercentSettingEnabled,
+             context = context,
++            shouldBeVisible = iconBlockListInteractor.isBatteryVisible,
+         ) {
+ 
+         @AssistedFactory
+@@ -213,7 +222,11 @@ sealed class BatteryViewModel(
+      */
+     class ShowPercentWhenChargingOrSetting
+     @AssistedInject
+-    constructor(interactor: BatteryInteractor, @Application context: Context) :
++    constructor(
++        interactor: BatteryInteractor,
++        @Application context: Context,
++        iconBlockListInteractor: HomeStatusBarIconBlockListInteractor,
++    ) :
+         BatteryViewModel(
+             interactor = interactor,
+             shouldShowPercent =
+@@ -223,6 +236,7 @@ sealed class BatteryViewModel(
+                     charging || settingEnabled
+                 },
+             context = context,
++            shouldBeVisible = iconBlockListInteractor.isBatteryVisible,
+         ) {
+ 
+         @AssistedFactory
+diff --git a/packages/SystemUI/src/com/android/systemui/statusbar/pipeline/ims/data/model/ImsStateModel.kt b/packages/SystemUI/src/com/android/systemui/statusbar/pipeline/ims/data/model/ImsStateModel.kt
+index c90021f0b574..3e67cc8bc8db 100644
+--- a/packages/SystemUI/src/com/android/systemui/statusbar/pipeline/ims/data/model/ImsStateModel.kt
++++ b/packages/SystemUI/src/com/android/systemui/statusbar/pipeline/ims/data/model/ImsStateModel.kt
+@@ -25,11 +25,12 @@ data class ImsStateModel(
+     val activeSubCount: Int = 0,
+     val registered: Boolean = false,
+     val capabilities: MmTelFeature.MmTelCapabilities? = null,
+-    val registrationTech: Int = REGISTRATION_TECH_NONE
++    val registrationTech: Int = REGISTRATION_TECH_NONE,
++    val observationError: Throwable? = null
+ ) {
+ 
+     fun isHdVoiceCapable(): Boolean =
+-        registered && capabilities
++        observationError == null && registered && capabilities
+             ?.isCapable(MmTelFeature.MmTelCapabilities.CAPABILITY_TYPE_VOICE) ?: false
+ 
+     fun isVoWifiAvailable(): Boolean =
 diff --git a/packages/SystemUI/src/com/android/systemui/statusbar/pipeline/ims/data/repository/ImsRepository.kt b/packages/SystemUI/src/com/android/systemui/statusbar/pipeline/ims/data/repository/ImsRepository.kt
-index bee52cf8b497..d7b9cf4f802e 100644
+index bee52cf8b497..a8e241f0ade9 100644
 --- a/packages/SystemUI/src/com/android/systemui/statusbar/pipeline/ims/data/repository/ImsRepository.kt
 +++ b/packages/SystemUI/src/com/android/systemui/statusbar/pipeline/ims/data/repository/ImsRepository.kt
 @@ -25,6 +25,7 @@ import android.telephony.ims.ImsStateCallback
@@ -2213,17 +2823,155 @@ index bee52cf8b497..d7b9cf4f802e 100644
              }
          }
              .retryWhen { cause, _ ->
-@@ -116,7 +157,9 @@ class ImsRepositoryImpl(
+@@ -116,7 +157,10 @@ class ImsRepositoryImpl(
                  delay(1000)
                  cause is ImsException && cause.code == ImsException.CODE_ERROR_SERVICE_UNAVAILABLE
              }
 -            .catch { /* Nothing */ }
 +            .catch { cause ->
-+                Log.w("ImsRepository", "IMS observation stopped for subscription $subId", cause)
++                Log.e("ImsRepository", "IMS observation stopped for subscription $subId", cause)
++                emit(CallbackEvent.OnObservationError(cause))
 +            }
              .scan(initial = initial) { state, event -> state.applyEvent(event) }
              .stateIn(scope = scope, started = SharingStarted.WhileSubscribed(), initial)
      }
+@@ -136,10 +180,14 @@ class ImsRepositoryImpl(
+                     activeSubCount = subscriptionManager.activeSubscriptionInfoCount,
+                     registered = registered,
+                     capabilities = capabilities,
+-                    registrationTech = registrationTech
++                    registrationTech = registrationTech,
++                    observationError = callbackState.observationError
+                 )
+             }
+-            .catch { emit(ImsStateModel()) /* on exception, just return default value */ }
++            .catch { cause ->
++                Log.e("ImsRepository", "IMS state projection failed for subscription $subId", cause)
++                emit(ImsStateModel(subId = subId, observationError = cause))
++            }
+             .stateIn(scope, SharingStarted.WhileSubscribed(), ImsStateModel())
+ 
+     class Factory
+@@ -163,6 +211,7 @@ class ImsRepositoryImpl(
+ }
+ 
+ sealed interface CallbackEvent {
++    data class OnObservationError(val cause: Throwable) : CallbackEvent
+     data class OnImsRegistrationChanged(
+         val registered: Boolean,
+         val attributes: ImsRegistrationAttributes?
+@@ -175,10 +224,12 @@ sealed interface CallbackEvent {
+ 
+ data class ImsCallbackState(
+     val onImsRegistrationChanged: CallbackEvent.OnImsRegistrationChanged? = null,
+-    val onImsCapabilitiesStatusChanged: CallbackEvent.OnImsCapabilitiesStatusChanged? = null
++    val onImsCapabilitiesStatusChanged: CallbackEvent.OnImsCapabilitiesStatusChanged? = null,
++    val observationError: Throwable? = null
+ ) {
+     fun applyEvent(event: CallbackEvent): ImsCallbackState {
+         return when (event) {
++            is CallbackEvent.OnObservationError -> copy(observationError = event.cause)
+             is CallbackEvent.OnImsRegistrationChanged -> copy(onImsRegistrationChanged = event)
+             is CallbackEvent.OnImsCapabilitiesStatusChanged -> copy(onImsCapabilitiesStatusChanged = event)
+         }
+diff --git a/packages/SystemUI/src/com/android/systemui/statusbar/pipeline/mobile/ui/viewmodel/MobileIconViewModel.kt b/packages/SystemUI/src/com/android/systemui/statusbar/pipeline/mobile/ui/viewmodel/MobileIconViewModel.kt
+index f2132e439cfd..e74f7c9c956b 100644
+--- a/packages/SystemUI/src/com/android/systemui/statusbar/pipeline/mobile/ui/viewmodel/MobileIconViewModel.kt
++++ b/packages/SystemUI/src/com/android/systemui/statusbar/pipeline/mobile/ui/viewmodel/MobileIconViewModel.kt
+@@ -351,7 +351,9 @@ private class CellularIconViewModel(
+             }
+             .stateIn(scope, SharingStarted.WhileSubscribed(), null)
+     override val roaming: StateFlow<Boolean> =
+-        iconInteractor.isRoaming
++        combine(iconInteractor.isRoaming, iconInteractor.isRoamingForceHidden) { roaming, hidden ->
++                roaming && !hidden
++            }
+             .logDiffsForTable(
+                 iconInteractor.tableLogBuffer,
+                 columnName = "roaming",
+diff --git a/packages/SystemUI/src/com/android/systemui/statusbar/pipeline/mobile/ui/viewmodel/MobileIconViewModelKairos.kt b/packages/SystemUI/src/com/android/systemui/statusbar/pipeline/mobile/ui/viewmodel/MobileIconViewModelKairos.kt
+index 0330cbcb30e3..b0828893f9dd 100644
+--- a/packages/SystemUI/src/com/android/systemui/statusbar/pipeline/mobile/ui/viewmodel/MobileIconViewModelKairos.kt
++++ b/packages/SystemUI/src/com/android/systemui/statusbar/pipeline/mobile/ui/viewmodel/MobileIconViewModelKairos.kt
+@@ -334,7 +334,9 @@ private class CellularIconViewModelKairos(
+         }
+ 
+     override val roaming: KairosState<Boolean> =
+-        iconInteractor.isRoaming.also {
++        combine(iconInteractor.isRoaming, iconInteractor.isRoamingForceHidden) { roaming, hidden ->
++                roaming && !hidden
++            }.also {
+             onActivated {
+                 logDiffsForTable(
+                     name = nameTag { "CellularIconViewModelKairos(subId=$subscriptionId).roaming" },
+diff --git a/packages/SystemUI/src/com/android/systemui/statusbar/pipeline/shared/domain/interactor/HomeStatusBarIconBlockListInteractor.kt b/packages/SystemUI/src/com/android/systemui/statusbar/pipeline/shared/domain/interactor/HomeStatusBarIconBlockListInteractor.kt
+index b3865071ad02..a4208bd9783c 100644
+--- a/packages/SystemUI/src/com/android/systemui/statusbar/pipeline/shared/domain/interactor/HomeStatusBarIconBlockListInteractor.kt
++++ b/packages/SystemUI/src/com/android/systemui/statusbar/pipeline/shared/domain/interactor/HomeStatusBarIconBlockListInteractor.kt
+@@ -16,22 +16,30 @@
+ 
+ package com.android.systemui.statusbar.pipeline.shared.domain.interactor
+ 
++import android.content.Context
+ import android.content.res.Resources
+ import android.provider.Settings
+ import com.android.systemui.dagger.SysUISingleton
++import com.android.systemui.dagger.qualifiers.Application
+ import com.android.systemui.dagger.qualifiers.Main
+ import com.android.systemui.res.R
+ import com.android.systemui.shared.settings.data.repository.SecureSettingsRepository
++import com.android.systemui.statusbar.phone.ui.StatusBarIconController
+ import com.android.systemui.statusbar.systemstatusicons.domain.interactor.SystemStatusIconBlocklistInteractor
+ import javax.inject.Inject
+ import kotlinx.coroutines.flow.Flow
++import kotlinx.coroutines.flow.combine
+ import kotlinx.coroutines.flow.map
+ 
+ /** A place to define the blocklist/allowlist for home status bar icons */
+ @SysUISingleton
+ class HomeStatusBarIconBlockListInteractor
+ @Inject
+-constructor(@Main res: Resources, secureSettingsRepository: SecureSettingsRepository) :
++constructor(
++    @Main res: Resources,
++    secureSettingsRepository: SecureSettingsRepository,
++    @Application context: Context,
++) :
+     SystemStatusIconBlocklistInteractor {
+     private val defaultBlockedIcons =
+         res.getStringArray(R.array.config_collapsed_statusbar_icon_blocklist)
+@@ -42,19 +50,29 @@ constructor(@Main res: Resources, secureSettingsRepository: SecureSettingsReposi
+     private val shouldShowVibrateIcon: Flow<Boolean> =
+         secureSettingsRepository.boolSetting(Settings.Secure.STATUS_BAR_SHOW_VIBRATE_ICON, true)
+ 
++    private val tunerHiddenIcons: Flow<Set<String>> =
++        secureSettingsRepository.stringSetting(StatusBarIconController.ICON_HIDE_LIST).map {
++            StatusBarIconController.getIconHideList(context, it).toSet()
++        }
++
+     override val blockedIconSlots: Flow<Set<String>> =
+-        shouldShowVibrateIcon.map {
++        combine(shouldShowVibrateIcon, tunerHiddenIcons) { showVibrate, hiddenIcons ->
+             val defaultSet = defaultBlockedIcons.toMutableSet()
+             // It's possible that the vibrate icon was in the default blocklist, so we manually
+             // merge the setting and list
+-            if (it) {
++            if (showVibrate) {
+                 defaultSet.remove(vibrateIconSlot)
+             } else {
+                 defaultSet.add(vibrateIconSlot)
+             }
+ 
++            defaultSet.addAll(hiddenIcons)
+             defaultSet
+         }
+ 
++    val isBatteryVisible: Flow<Boolean> = blockedIconSlots.map {
++        context.getString(com.android.internal.R.string.status_bar_battery) !in it
++    }
++
+     val iconBlockList: Flow<List<String>> = blockedIconSlots.map { it.toList() }
+ }
 diff --git a/packages/SystemUI/tests/src/com/android/systemui/biometrics/UdfpsControllerOverlayTest.kt b/packages/SystemUI/tests/src/com/android/systemui/biometrics/UdfpsControllerOverlayTest.kt
 index a798fccad767..68630a4eb083 100644
 --- a/packages/SystemUI/tests/src/com/android/systemui/biometrics/UdfpsControllerOverlayTest.kt
@@ -2301,6 +3049,90 @@ index 35812f3ddde6..91101d91f2b9 100644
                      )
                  }
              }
+diff --git a/packages/SystemUI/tests/src/com/android/systemui/doze/DozeScreenBrightnessTest.java b/packages/SystemUI/tests/src/com/android/systemui/doze/DozeScreenBrightnessTest.java
+index f72a6948ee0a..5dc9f3123c64 100644
+--- a/packages/SystemUI/tests/src/com/android/systemui/doze/DozeScreenBrightnessTest.java
++++ b/packages/SystemUI/tests/src/com/android/systemui/doze/DozeScreenBrightnessTest.java
+@@ -163,6 +163,79 @@ public class DozeScreenBrightnessTest extends SysuiTestCase {
+                 mKosmos.getTestScope());
+     }
+ 
++    private void createNotificationPulseScreen(float floor, boolean hasSensor, int reason) {
++        mContext.getOrCreateTestableResources().addOverride(
++                com.android.systemui.res.R.dimen.doze_notification_pulse_brightness, floor);
++        mScreen = new DozeScreenBrightness(mContext, mServiceFake, mSensorManager,
++                new Optional[] {hasSensor ? Optional.of(mSensor.getSensor()) : Optional.empty()},
++                mDozeHost, null, mAlwaysOnDisplayPolicy, mWakefulnessLifecycle, mDozeParameters,
++                mDevicePostureController, mDozeLog, mSystemSettings, mDisplayManager,
++                mKosmos.getWallpaperInteractor(), mKosmos.getTestScope());
++        DozeMachine machine = org.mockito.Mockito.mock(DozeMachine.class);
++        when(machine.getPulseReason()).thenReturn(reason);
++        mScreen.setDozeMachine(machine);
++        mScreen.transitionTo(UNINITIALIZED, INITIALIZED);
++        mScreen.transitionTo(INITIALIZED, DOZE);
++    }
++
++    @Test
++    public void notificationPulse_withoutSensor_raisesAndRestoresDefault() {
++        createNotificationPulseScreen(0.3f, false, DozeLog.PULSE_REASON_NOTIFICATION);
++        mScreen.transitionTo(DOZE, DOZE_REQUEST_PULSE);
++        mScreen.transitionTo(DOZE_REQUEST_PULSE, DOZE_PULSING);
++        assertEquals(0.3f, mServiceFake.screenBrightness, DELTA);
++        mScreen.transitionTo(DOZE_PULSING, DOZE_PULSE_DONE);
++        mScreen.transitionTo(DOZE_PULSE_DONE, DOZE);
++        assertEquals(DEFAULT_BRIGHTNESS, mServiceFake.screenBrightness, DELTA);
++    }
++
++    @Test
++    public void notificationPulse_restoresLatestSensorValue() {
++        createNotificationPulseScreen(0.3f, true, DozeLog.PULSE_REASON_NOTIFICATION);
++        mScreen.transitionTo(DOZE, DOZE_REQUEST_PULSE);
++        waitForSensorManager();
++        mScreen.transitionTo(DOZE_REQUEST_PULSE, DOZE_PULSING);
++        mSensor.sendSensorEvent(2);
++        assertEquals(0.3f, mServiceFake.screenBrightness, DELTA);
++        mScreen.transitionTo(DOZE_PULSING, DOZE_PULSE_DONE);
++        assertEquals(SENSOR_TO_BRIGHTNESS[2], mServiceFake.screenBrightness, DELTA);
++    }
++
++    @Test
++    public void notificationPulse_doesNotDimBrighterAmbient() {
++        createNotificationPulseScreen(0.3f, true, DozeLog.PULSE_REASON_NOTIFICATION);
++        mScreen.transitionTo(DOZE, DOZE_REQUEST_PULSE);
++        waitForSensorManager();
++        mSensor.sendSensorEvent(3);
++        mScreen.transitionTo(DOZE_REQUEST_PULSE, DOZE_PULSING);
++        assertEquals(SENSOR_TO_BRIGHTNESS[3], mServiceFake.screenBrightness, DELTA);
++    }
++
++    @Test
++    public void notificationPulse_respectsManualBrightnessLimit() {
++        createNotificationPulseScreen(0.3f, false, DozeLog.PULSE_REASON_NOTIFICATION);
++        when(mDisplayManager.getBrightness(Display.DEFAULT_DISPLAY)).thenReturn(0.15f);
++        mScreen.transitionTo(DOZE, DOZE_REQUEST_PULSE);
++        mScreen.transitionTo(DOZE_REQUEST_PULSE, DOZE_PULSING);
++        assertEquals(0.15f, mServiceFake.screenBrightness, DELTA);
++    }
++
++    @Test
++    public void fingerprintPulse_doesNotApplyNotificationBrightness() {
++        createNotificationPulseScreen(0.3f, false, DozeLog.PULSE_REASON_FINGERPRINT_ACTIVATED);
++        mScreen.transitionTo(DOZE, DOZE_REQUEST_PULSE);
++        mScreen.transitionTo(DOZE_REQUEST_PULSE, DOZE_PULSING);
++        assertEquals(DEFAULT_BRIGHTNESS, mServiceFake.screenBrightness, DELTA);
++    }
++
++    @Test
++    public void notificationPulse_disabledByDefaultResource() {
++        createNotificationPulseScreen(-1f, false, DozeLog.PULSE_REASON_NOTIFICATION);
++        mScreen.transitionTo(DOZE, DOZE_REQUEST_PULSE);
++        mScreen.transitionTo(DOZE_REQUEST_PULSE, DOZE_PULSING);
++        assertEquals(DEFAULT_BRIGHTNESS, mServiceFake.screenBrightness, DELTA);
++    }
++
+     @Test
+     public void testInitialize_setsScreenBrightnessToValidValue() {
+         mScreen.transitionTo(UNINITIALIZED, INITIALIZED);
 diff --git a/packages/SystemUI/tests/src/com/android/systemui/doze/DozeSensorsTest.java b/packages/SystemUI/tests/src/com/android/systemui/doze/DozeSensorsTest.java
 index def807ef9648..e3583cff51d5 100644
 --- a/packages/SystemUI/tests/src/com/android/systemui/doze/DozeSensorsTest.java
@@ -2861,6 +3693,21 @@ index bf70963161bd..f48c1c152001 100644
  
      fun setVendorExtension(userId: Int, extension: AuthenticateReason.Vendor) {
          userIdToExtension[userId] = extension
+diff --git a/packages/SystemUI/tests/utils/src/com/android/systemui/keyguard/data/repository/FakeLightRevealScrimRepository.kt b/packages/SystemUI/tests/utils/src/com/android/systemui/keyguard/data/repository/FakeLightRevealScrimRepository.kt
+index 2dc4b35f8109..6c5a8644a9b1 100644
+--- a/packages/SystemUI/tests/utils/src/com/android/systemui/keyguard/data/repository/FakeLightRevealScrimRepository.kt
++++ b/packages/SystemUI/tests/utils/src/com/android/systemui/keyguard/data/repository/FakeLightRevealScrimRepository.kt
+@@ -44,6 +44,10 @@ class FakeLightRevealScrimRepository : LightRevealScrimRepository {
+ 
+     override val useDarkWallpaperScrim = MutableStateFlow(false)
+ 
++    override fun setRevealed(reveal: Boolean) {
++        _revealAmount.value = if (reveal) 1f else 0f
++    }
++
+     override fun startRevealAmountAnimator(reveal: Boolean, duration: Long) {
+         if (reveal) {
+             _revealAmount.value = 1.0f
 diff --git a/packages/SystemUI/tests/utils/src/com/android/systemui/keyguard/domain/interactor/LightRevealScrimInteractorKosmos.kt b/packages/SystemUI/tests/utils/src/com/android/systemui/keyguard/domain/interactor/LightRevealScrimInteractorKosmos.kt
 index aa84031204ae..0bf573f45f37 100644
 --- a/packages/SystemUI/tests/utils/src/com/android/systemui/keyguard/domain/interactor/LightRevealScrimInteractorKosmos.kt
@@ -2881,6 +3728,36 @@ index aa84031204ae..0bf573f45f37 100644
              applicationCoroutineScope,
              scrimLogger,
              { powerInteractor },
+diff --git a/packages/SystemUI/tests/utils/src/com/android/systemui/statusbar/pipeline/battery/ui/viewmodel/BatteryViewModelKosmos.kt b/packages/SystemUI/tests/utils/src/com/android/systemui/statusbar/pipeline/battery/ui/viewmodel/BatteryViewModelKosmos.kt
+index 1eb8d17126ff..498e09a4c754 100644
+--- a/packages/SystemUI/tests/utils/src/com/android/systemui/statusbar/pipeline/battery/ui/viewmodel/BatteryViewModelKosmos.kt
++++ b/packages/SystemUI/tests/utils/src/com/android/systemui/statusbar/pipeline/battery/ui/viewmodel/BatteryViewModelKosmos.kt
+@@ -19,18 +19,23 @@ package com.android.systemui.statusbar.pipeline.battery.ui.viewmodel
+ import android.content.testableContext
+ import com.android.systemui.kosmos.Kosmos
+ import com.android.systemui.statusbar.pipeline.battery.domain.interactor.batteryInteractor
++import com.android.systemui.statusbar.pipeline.shared.domain.interactor.homeStatusBarIconBlockListInteractor
+ 
+ val Kosmos.batteryViewModelBasedOnSettingFactory by
+     Kosmos.Fixture {
+         BatteryViewModel.BasedOnUserSetting.Factory {
+-            BatteryViewModel.BasedOnUserSetting(batteryInteractor, testableContext)
++            BatteryViewModel.BasedOnUserSetting(
++                batteryInteractor, testableContext, homeStatusBarIconBlockListInteractor
++            )
+         }
+     }
+ 
+ val Kosmos.batteryViewModelShowWhenChargingOrSettingFactory by
+     Kosmos.Fixture {
+         BatteryViewModel.ShowPercentWhenChargingOrSetting.Factory {
+-            BatteryViewModel.ShowPercentWhenChargingOrSetting(batteryInteractor, testableContext)
++            BatteryViewModel.ShowPercentWhenChargingOrSetting(
++                batteryInteractor, testableContext, homeStatusBarIconBlockListInteractor
++            )
+         }
+     }
+ 
 diff --git a/packages/SystemUI/tests/utils/src/com/android/systemui/statusbar/pipeline/mobile/data/repository/FakeMobileConnectionRepository.kt b/packages/SystemUI/tests/utils/src/com/android/systemui/statusbar/pipeline/mobile/data/repository/FakeMobileConnectionRepository.kt
 index 51e5abb2a776..847cee54efaf 100644
 --- a/packages/SystemUI/tests/utils/src/com/android/systemui/statusbar/pipeline/mobile/data/repository/FakeMobileConnectionRepository.kt
@@ -2971,6 +3848,31 @@ index 5bc87bc2906a..d3836adb486a 100644
          featureFlagsClassic,
      )
  }
+diff --git a/packages/SystemUI/tests/utils/src/com/android/systemui/statusbar/pipeline/shared/domain/interactor/HomeStatusBarIconBlockListInteractorKosmos.kt b/packages/SystemUI/tests/utils/src/com/android/systemui/statusbar/pipeline/shared/domain/interactor/HomeStatusBarIconBlockListInteractorKosmos.kt
+index 39fff0fd5e81..959c0a749f9e 100644
+--- a/packages/SystemUI/tests/utils/src/com/android/systemui/statusbar/pipeline/shared/domain/interactor/HomeStatusBarIconBlockListInteractorKosmos.kt
++++ b/packages/SystemUI/tests/utils/src/com/android/systemui/statusbar/pipeline/shared/domain/interactor/HomeStatusBarIconBlockListInteractorKosmos.kt
+@@ -17,6 +17,7 @@
+ package com.android.systemui.statusbar.pipeline.shared.domain.interactor
+ 
+ import android.content.res.mainResources
++import android.content.testableContext
+ import android.provider.Settings
+ import com.android.systemui.kosmos.Kosmos
+ import com.android.systemui.kosmos.testCase
+@@ -25,7 +26,11 @@ import com.android.systemui.shared.settings.data.repository.fakeSecureSettingsRe
+ import com.android.systemui.shared.settings.data.repository.secureSettingsRepository
+ 
+ val Kosmos.homeStatusBarIconBlockListInteractor by
+-    Kosmos.Fixture { HomeStatusBarIconBlockListInteractor(mainResources, secureSettingsRepository) }
++    Kosmos.Fixture {
++        HomeStatusBarIconBlockListInteractor(
++            mainResources, secureSettingsRepository, testableContext
++        )
++    }
+ 
+ /**
+  * [icons] can be a list of icons that should appear on the blocklist. Note that this should be
 diff --git a/packages/SystemUI/tests/utils/src/com/android/systemui/statusbar/pipeline/wifi/data/repository/FakeWifiRepository.kt b/packages/SystemUI/tests/utils/src/com/android/systemui/statusbar/pipeline/wifi/data/repository/FakeWifiRepository.kt
 index 4c0e2df4fee3..a745c7afdc3f 100644
 --- a/packages/SystemUI/tests/utils/src/com/android/systemui/statusbar/pipeline/wifi/data/repository/FakeWifiRepository.kt
@@ -3060,6 +3962,18 @@ index 4bab4bdafddf..d709df9939db 100644
          if (!isTemporary) {
              flags |= PackageManager.MATCH_SYSTEM_ONLY;
          }
+diff --git a/services/core/Android.bp b/services/core/Android.bp
+index 3cba685c1ec7..50257a01b669 100644
+--- a/services/core/Android.bp
++++ b/services/core/Android.bp
+@@ -192,6 +192,7 @@ java_library_static {
+     ],
+ 
+     static_libs: [
++        "vendor.aospa.biometrics.face",
+         "android.frameworks.vibrator-V1-java", // AIDL
+         "android.frameworks.devicestate-V1-java", // AIDL
+         "android.hardware.authsecret-V1.0-java",
 diff --git a/services/core/java/com/android/server/ActivityTriggerService.java b/services/core/java/com/android/server/ActivityTriggerService.java
 deleted file mode 100644
 index 323ad096dc5c..000000000000
@@ -3664,11 +4578,40 @@ index 43f4f7435690..0bbe1a87cf09 100644
          } else {
              Log.e(TAG, "onHeadsetProfileConnected: Null BluetoothAdapter");
          }
+diff --git a/services/core/java/com/android/server/biometrics/AuthService.java b/services/core/java/com/android/server/biometrics/AuthService.java
+index 5314437f50d8..55102e3a3d6b 100644
+--- a/services/core/java/com/android/server/biometrics/AuthService.java
++++ b/services/core/java/com/android/server/biometrics/AuthService.java
+@@ -78,6 +78,7 @@ import com.android.internal.annotations.VisibleForTesting;
+ import com.android.internal.util.ArrayUtils;
+ import com.android.server.SystemService;
+ import com.android.server.biometrics.sensors.face.FaceService;
++import com.android.server.biometrics.sensors.face.sense.SenseUtils;
+ import com.android.server.biometrics.sensors.fingerprint.FingerprintService;
+ import com.android.server.companion.virtual.VirtualDeviceManagerInternal;
+ 
+@@ -1022,8 +1023,11 @@ public class AuthService extends SystemService {
+     private static void registerFaceSensors(final String[] faceAidlInstances,
+             final String[] hidlConfigStrings, final Context context,
+             final IFaceService faceService, final BiometricHandlerProvider handlerProvider) {
++        // Native PA Sense is a software provider and has no vendor HAL instance.
++        // Keep the historical no-sensor path unless both immutable opt-ins allow it.
+         if ((hidlConfigStrings == null || hidlConfigStrings.length == 0)
+-                && (faceAidlInstances == null || faceAidlInstances.length == 0)) {
++                && (faceAidlInstances == null || faceAidlInstances.length == 0)
++                && !SenseUtils.canUseProvider()) {
+             Slog.d(TAG, "No face sensors.");
+             return;
+         }
 diff --git a/services/core/java/com/android/server/biometrics/sensors/face/FaceService.java b/services/core/java/com/android/server/biometrics/sensors/face/FaceService.java
-index a34791f70533..58c996310ea1 100644
+index a34791f70533..6ea59d5ea6c2 100644
 --- a/services/core/java/com/android/server/biometrics/sensors/face/FaceService.java
 +++ b/services/core/java/com/android/server/biometrics/sensors/face/FaceService.java
-@@ -34,6 +34,7 @@ import android.hardware.biometrics.IInvalidationCallback;
+@@ -31,14 +31,17 @@ import android.hardware.biometrics.IBiometricService;
+ import android.hardware.biometrics.IBiometricServiceLockoutResetCallback;
+ import android.hardware.biometrics.IBiometricStateListener;
+ import android.hardware.biometrics.IInvalidationCallback;
++import android.hardware.biometrics.SensorProperties;
  import android.hardware.biometrics.ITestSession;
  import android.hardware.biometrics.ITestSessionCallback;
  import android.hardware.biometrics.face.IFace;
@@ -3676,7 +4619,63 @@ index a34791f70533..58c996310ea1 100644
  import android.hardware.biometrics.face.SensorProps;
  import android.hardware.face.Face;
  import android.hardware.face.FaceAuthenticateOptions;
-@@ -817,7 +818,10 @@ public class FaceService extends SystemService {
+ import android.hardware.face.FaceEnrollOptions;
+ import android.hardware.face.FaceSensorConfigurations;
++import android.hardware.face.FaceSensorProperties;
+ import android.hardware.face.FaceSensorPropertiesInternal;
+ import android.hardware.face.FaceServiceReceiver;
+ import android.hardware.face.IFaceAuthenticatorsRegisteredCallback;
+@@ -72,6 +75,8 @@ import com.android.server.biometrics.sensors.ClientMonitorCallbackConverter;
+ import com.android.server.biometrics.sensors.LockoutResetDispatcher;
+ import com.android.server.biometrics.sensors.LockoutTracker;
+ import com.android.server.biometrics.sensors.face.aidl.FaceProvider;
++import com.android.server.biometrics.sensors.face.sense.SenseProvider;
++import com.android.server.biometrics.sensors.face.sense.SenseUtils;
+ 
+ import java.io.FileDescriptor;
+ import java.io.PrintWriter;
+@@ -658,12 +663,28 @@ public class FaceService extends SystemService {
+                     new ClientMonitorCallbackConverter(receiver), opPackageName);
+         }
+ 
++        private List<ServiceProvider> getSenseProviders() {
++            final List<ServiceProvider> providers = new ArrayList<>();
++            FaceSensorPropertiesInternal props = new FaceSensorPropertiesInternal(
++                    SenseProvider.DEVICE_ID,
++                    SensorProperties.STRENGTH_WEAK,
++                    1, /** maxEnrollmentsPerUser **/
++                    new ArrayList<>(),
++                    FaceSensorProperties.TYPE_RGB,
++                    false, /** supportsFaceDetection **/
++                    false, /** supportsSelfIllumination **/
++                    false); /** resetLockoutRequiresChallenge **/
++            SenseProvider provider = new SenseProvider(getContext(), mBiometricStateCallback, props, mLockoutResetDispatcher);
++            providers.add(provider);
++            return providers;
++        }
++
+         @android.annotation.EnforcePermission(android.Manifest.permission.USE_BIOMETRIC_INTERNAL)
+         public void registerAuthenticators(
+                 FaceSensorConfigurations faceSensorConfigurations) {
+             super.registerAuthenticators_enforcePermission();
+ 
+-            if (!faceSensorConfigurations.hasSensorConfigurations()) {
++            if (!faceSensorConfigurations.hasSensorConfigurations() && !SenseUtils.canUseProvider()) {
+                 Slog.d(TAG, "No face sensors to register.");
+                 return;
+             }
+@@ -673,6 +694,10 @@ public class FaceService extends SystemService {
+         private List<ServiceProvider> getProviders(
+                 FaceSensorConfigurations faceSensorConfigurations) {
+             final List<ServiceProvider> providers = new ArrayList<>();
++            if (SenseUtils.canUseProvider()) {
++                providers.addAll(getSenseProviders());
++                return providers;
++            }
+             final Pair<String, SensorProps[]> filteredSensorProps = filterAvailableHalInstances(
+                             faceSensorConfigurations);
+             providers.add(mFaceProviderFunction.getFaceProvider(filteredSensorProps,
+@@ -817,7 +842,10 @@ public class FaceService extends SystemService {
          String[] a = ServiceManager.getDeclaredInstances(IFace.DESCRIPTOR);
          Slog.i(TAG, "Before:getDeclaredInstances: IFace instance found, a.length="
                  + a.length);
@@ -3728,8 +4727,515 @@ index a6469cf3013c..fb157d058c29 100644
  
              mHandler.post(this::notifyPolicyIfNeeded);
          }
+diff --git a/services/core/java/com/android/server/display/AutomaticBrightnessController.java b/services/core/java/com/android/server/display/AutomaticBrightnessController.java
+index e2fc57655634..802813e089da 100644
+--- a/services/core/java/com/android/server/display/AutomaticBrightnessController.java
++++ b/services/core/java/com/android/server/display/AutomaticBrightnessController.java
+@@ -185,6 +185,7 @@ public class AutomaticBrightnessController {
+ 
+     // Set to true if the light sensor is enabled.
+     private boolean mLightSensorEnabled;
++    private boolean mLightSensorPausedForDim;
+ 
+     // The time when the light sensor was enabled.
+     private long mLightSensorEnableTime;
+@@ -381,6 +382,29 @@ public class AutomaticBrightnessController {
+         mBrightnessMappingStrategyMap = brightnessMappingStrategyMap;
+         mDisplayManagerFlags = displayManagerFlags;
+ 
++        mXiaomiBrightnessPolicy = XiaomiBrightnessPolicy.create(mContext, mSensorManager,
++                mLightSensor, mHandler, mNormalLightSensorRate, mLightSensorWarmUpTimeConfig,
++                mAmbientLightHorizonShort, mAmbientLightHorizonLong,
++                mBrighteningLightDebounceConfig, mDarkeningLightDebounceConfig, values -> {
++                    if (!mLightSensorEnabled) return;
++                    mPreThresholdLux = mAmbientLux;
++                    setAmbientLux(values[0]);
++                    mAmbientLuxValid = true;
++                    mLastObservedLux = values[0];
++                    mLastObservedLuxTime = mClock.getSensorEventScaleTime();
++                    mRecentLightSamples++;
++                    if (values[1] != 0) updateAutoBrightness(true, false);
++                });
++
++        mRearLightDarkeningSensor = mXiaomiBrightnessPolicy == null
++                ? RearLightDarkeningSensor.create(mContext, mSensorManager, mHandler,
++                        mClock::getSensorEventScaleTime, () -> {
++                            if (mLightSensorEnabled) {
++                                mHandler.removeMessages(MSG_UPDATE_AMBIENT_LUX);
++                                updateAmbientLux();
++                            }
++                        }) : null;
++
+         // Use the given short-term model
+         if (userNits != BrightnessMappingStrategy.INVALID_NITS) {
+             setScreenBrightnessByUser(userLux, getBrightnessFromNits(userNits));
+@@ -466,7 +490,8 @@ public class AutomaticBrightnessController {
+         if (userChangedAutoBrightnessAdjustment) {
+             changed |= setAutoBrightnessAdjustment(adjustment);
+         }
+-        final boolean enable = mState == AUTO_BRIGHTNESS_ENABLED;
++        final boolean enable = mState == AUTO_BRIGHTNESS_ENABLED
++                && !isAutomaticBrightnessPausedForDim();
+         if (userChangedBrightness && enable) {
+             // Update the brightness curve with the new user control point. It's critical this
+             // happens after we update the autobrightness adjustment since it may reset it.
+@@ -645,11 +670,14 @@ public class AutomaticBrightnessController {
+         pw.println("Automatic Brightness Controller State:");
+         pw.println("--------------------------------------");
+         ipw.println("mLightSensor=" + mLightSensor);
++        if (mXiaomiBrightnessPolicy != null) mXiaomiBrightnessPolicy.dump(ipw);
+         ipw.println("mLightSensorEnabled=" + mLightSensorEnabled);
++        ipw.println("mLightSensorPausedForDim=" + mLightSensorPausedForDim);
+         ipw.println("mLightSensorEnableTime=" + TimeUtils.formatUptime(mLightSensorEnableTime));
+         ipw.println("mCurrentLightSensorRate=" + mCurrentLightSensorRate);
+         ipw.println("mAmbientLux=" + mAmbientLux);
+         ipw.println("mAmbientLuxValid=" + mAmbientLuxValid);
++        if (mRearLightDarkeningSensor != null) mRearLightDarkeningSensor.dump(ipw);
+         ipw.println("mPreThresholdLux=" + mPreThresholdLux);
+         ipw.println("mPreThresholdBrightness=" + mPreThresholdBrightness);
+         ipw.println("mAmbientBrighteningThreshold=" + mAmbientBrighteningThreshold);
+@@ -716,26 +744,56 @@ public class AutomaticBrightnessController {
+         }
+     }
+ 
++    private XiaomiBrightnessPolicy mXiaomiBrightnessPolicy;
++    private final RearLightDarkeningSensor mRearLightDarkeningSensor;
++
++    private boolean isAutomaticBrightnessPausedForDim() {
++        return mXiaomiBrightnessPolicy != null && mState == AUTO_BRIGHTNESS_ENABLED
++                && mDisplayPolicy == DisplayPowerRequest.POLICY_DIM;
++    }
++
+     private boolean setLightSensorEnabled(boolean enable) {
+         if (enable) {
+             if (!mLightSensorEnabled) {
+                 mLightSensorEnabled = true;
++                mLightSensorPausedForDim = false;
+                 mLightSensorEnableTime = mClock.uptimeMillis();
+                 mCurrentLightSensorRate = mInitialLightSensorRate;
+                 registerForegroundAppUpdater();
+-                mSensorManager.registerListener(mLightSensorListener, mLightSensor,
+-                        mCurrentLightSensorRate * 1000, mHandler);
++                if (mXiaomiBrightnessPolicy != null) {
++                    try {
++                        mXiaomiBrightnessPolicy.setEnabled(true);
++                    } catch (RuntimeException e) {
++                        mLightSensorEnabled = false;
++                        unregisterForegroundAppUpdater();
++                        throw e;
++                    }
++                } else {
++                    mSensorManager.registerListener(mLightSensorListener, mLightSensor,
++                            mCurrentLightSensorRate * 1000, mHandler);
++                }
++                if (mRearLightDarkeningSensor != null) {
++                    mRearLightDarkeningSensor.setEnabled(true, mNormalLightSensorRate);
++                }
+                 return true;
+             }
+-        } else if (mLightSensorEnabled) {
++        } else if (mLightSensorEnabled || mLightSensorPausedForDim) {
++            if (mRearLightDarkeningSensor != null) {
++                mRearLightDarkeningSensor.setEnabled(false, mNormalLightSensorRate);
++            }
++            if (mXiaomiBrightnessPolicy != null) mXiaomiBrightnessPolicy.setEnabled(false);
+             mLightSensorEnabled = false;
+-            mAmbientLuxValid = !mResetAmbientLuxAfterWarmUpConfig;
+-            if (!mAmbientLuxValid) {
+-                mPreThresholdLux = INVALID_LUX;
++            // Hold the last automatic recommendation while DIM applies its own cap.
++            mLightSensorPausedForDim = isAutomaticBrightnessPausedForDim();
++            if (!mLightSensorPausedForDim) {
++                mAmbientLuxValid = !mResetAmbientLuxAfterWarmUpConfig;
++                if (!mAmbientLuxValid) {
++                    mPreThresholdLux = INVALID_LUX;
++                }
++                mScreenAutoBrightness = PowerManager.BRIGHTNESS_INVALID_FLOAT;
++                mRawScreenAutoBrightness = PowerManager.BRIGHTNESS_INVALID_FLOAT;
++                mPreThresholdBrightness = PowerManager.BRIGHTNESS_INVALID_FLOAT;
+             }
+-            mScreenAutoBrightness = PowerManager.BRIGHTNESS_INVALID_FLOAT;
+-            mRawScreenAutoBrightness = PowerManager.BRIGHTNESS_INVALID_FLOAT;
+-            mPreThresholdBrightness = PowerManager.BRIGHTNESS_INVALID_FLOAT;
+             mRecentLightSamples = 0;
+             mAmbientLightRingBuffer.clear();
+             mCurrentLightSensorRate = -1;
+@@ -755,6 +813,9 @@ public class AutomaticBrightnessController {
+             adjustLightSensorRate(mNormalLightSensorRate);
+         }
+         applyLightSensorMeasurement(time, lux);
++        if (mRearLightDarkeningSensor != null) {
++            mRearLightDarkeningSensor.onFrontSample(time, lux, mAmbientLux);
++        }
+         updateAmbientLux(time);
+     }
+ 
+@@ -948,12 +1009,18 @@ public class AutomaticBrightnessController {
+         mSlowAmbientLux = calculateAmbientLux(time, mAmbientLightHorizonLong);
+         mFastAmbientLux = calculateAmbientLux(time, mAmbientLightHorizonShort);
+ 
+-        if ((mSlowAmbientLux >= mAmbientBrighteningThreshold
++        final boolean brightenReady = mSlowAmbientLux >= mAmbientBrighteningThreshold
+                 && mFastAmbientLux >= mAmbientBrighteningThreshold
+-                && nextBrightenTransition <= time)
+-                || (mSlowAmbientLux <= mAmbientDarkeningThreshold
+-                        && mFastAmbientLux <= mAmbientDarkeningThreshold
+-                        && nextDarkenTransition <= time)) {
++                && nextBrightenTransition <= time;
++        final boolean darkenReady = mSlowAmbientLux <= mAmbientDarkeningThreshold
++                && mFastAmbientLux <= mAmbientDarkeningThreshold
++                && nextDarkenTransition <= time;
++        final boolean deferDarkening = !brightenReady && darkenReady
++                && mRearLightDarkeningSensor != null
++                && mRearLightDarkeningSensor.shouldDeferDarkening(time);
++        // Keep the native transition scheduling below unchanged. The rear sensor
++        // only vetoes a downward transition; it never supplies lux or brightness.
++        if (brightenReady || (darkenReady && !deferDarkening)) {
+             mPreThresholdLux = mAmbientLux;
+             setAmbientLux(mFastAmbientLux);
+             if (mLoggingEnabled) {
+@@ -994,7 +1061,7 @@ public class AutomaticBrightnessController {
+     }
+ 
+     private void updateAutoBrightness(boolean sendUpdate, boolean isManuallySet) {
+-        if (!mAmbientLuxValid) {
++        if (!mAmbientLuxValid || isAutomaticBrightnessPausedForDim()) {
+             return;
+         }
+ 
+diff --git a/services/core/java/com/android/server/display/BrightnessMappingStrategy.java b/services/core/java/com/android/server/display/BrightnessMappingStrategy.java
+index 19195d8bbf2d..62d283fb3bf4 100644
+--- a/services/core/java/com/android/server/display/BrightnessMappingStrategy.java
++++ b/services/core/java/com/android/server/display/BrightnessMappingStrategy.java
+@@ -143,7 +143,9 @@ public abstract class BrightnessMappingStrategy {
+             builder.setShortTermModelLowerLuxMultiplier(SHORT_TERM_MODEL_THRESHOLD_RATIO);
+             builder.setShortTermModelUpperLuxMultiplier(SHORT_TERM_MODEL_THRESHOLD_RATIO);
+             return new PhysicalMappingStrategy(builder.build(), nitsRange, brightnessRange,
+-                    autoBrightnessAdjustmentMaxGamma, mode, preset, displayWhiteBalanceController);
++                    autoBrightnessAdjustmentMaxGamma, mode, preset, displayWhiteBalanceController,
++                    context.getResources().getBoolean(
++                            com.android.internal.R.bool.config_useLinearBrightnessCalibration));
+         } else if (isValidMapping(luxLevels, brightnessLevels)) {
+             return new SimpleMappingStrategy(luxLevels, brightnessLevels,
+                     autoBrightnessAdjustmentMaxGamma, shortTermModelTimeout, mode, preset);
+@@ -878,10 +880,22 @@ public abstract class BrightnessMappingStrategy {
+         private static final int NO_OF_PREVIOUS_CONFIGS_TO_LOG = 5;
+         private static final SimpleDateFormat FORMAT = new SimpleDateFormat("MM-dd HH:mm:ss.SSS");
+ 
++        private final boolean mUseLinearNitsMapping;
++
+         public PhysicalMappingStrategy(BrightnessConfiguration config, float[] nits,
+                 float[] brightness, float maxGamma,
+                 @AutomaticBrightnessController.AutomaticBrightnessMode int mode, int preset,
+                 @Nullable DisplayWhiteBalanceController displayWhiteBalanceController) {
++            this(config, nits, brightness, maxGamma, mode, preset,
++                    displayWhiteBalanceController, false);
++        }
++
++        private PhysicalMappingStrategy(BrightnessConfiguration config, float[] nits,
++                float[] brightness, float maxGamma,
++                @AutomaticBrightnessController.AutomaticBrightnessMode int mode, int preset,
++                @Nullable DisplayWhiteBalanceController displayWhiteBalanceController,
++                boolean useLinearNitsMapping) {
++            mUseLinearNitsMapping = useLinearNitsMapping;
+ 
+             Preconditions.checkArgument(nits.length != 0 && brightness.length != 0,
+                     "Nits and brightness arrays must not be empty!");
+@@ -1241,9 +1255,15 @@ public abstract class BrightnessMappingStrategy {
+             }
+         }
+ 
++        private Spline createPhysicalSpline(float[] x, float[] y) {
++            // The device's Xiaomi policy uses inverse piecewise-linear calibration.
++            return mUseLinearNitsMapping
++                    ? Spline.createLinearSpline(x, y) : Spline.createSpline(x, y);
++        }
++
+         private void computeNitsBrightnessSplines(float[] nits) {
+-            mNitsToBrightnessSpline = Spline.createSpline(nits, mBrightness);
+-            mBrightnessToNitsSpline = Spline.createSpline(mBrightness, nits);
++            mNitsToBrightnessSpline = createPhysicalSpline(nits, mBrightness);
++            mBrightnessToNitsSpline = createPhysicalSpline(mBrightness, nits);
+         }
+ 
+         private void computeSpline() {
+diff --git a/services/core/java/com/android/server/display/DcDimmingService.java b/services/core/java/com/android/server/display/DcDimmingService.java
+index 31b2fb7280fb..b9c147e80986 100644
+--- a/services/core/java/com/android/server/display/DcDimmingService.java
++++ b/services/core/java/com/android/server/display/DcDimmingService.java
+@@ -26,7 +26,13 @@ import android.content.Intent;
+ import android.content.IntentFilter;
+ import android.hardware.display.DcDimmingManager;
+ import android.hardware.display.IDcDimmingManager;
++import android.hardware.display.DisplayManager;
++import android.view.Display;
+ import android.os.Binder;
++import android.os.IBinder;
++import android.os.Parcel;
++import android.os.RemoteException;
++import android.os.ServiceManager;
+ import android.os.Handler;
+ import android.os.SystemClock;
+ import android.os.UserHandle;
+@@ -42,7 +48,6 @@ import com.android.server.twilight.TwilightState;
+ import java.io.BufferedReader;
+ import java.io.BufferedWriter;
+ import java.io.File;
+-import java.io.FileNotFoundException;
+ import java.io.FileReader;
+ import java.io.FileWriter;
+ import java.io.IOException;
+@@ -54,6 +59,9 @@ public class DcDimmingService extends SystemService {
+     private final Context mContext;
+     private final Handler mHandler = new Handler();
+     private final Object mLock = new Object();
++    private static final String XIAOMI_DISPLAY_INTERFACE =
++            "vendor.xiaomi.hardware.displayfeature_aidl.IDisplayFeature";
++    private final boolean mUseXiaomiAidl;
+     private final String mDcNode;
+     private final String mDcOnValue;
+     private final String mDcOffValue;
+@@ -105,6 +113,8 @@ public class DcDimmingService extends SystemService {
+     public DcDimmingService(Context context) {
+         super(context);
+         mContext = context;
++        mUseXiaomiAidl = context.getResources().getBoolean(
++                com.android.internal.R.bool.config_deviceDcDimmingUseXiaomiAidl);
+         mDcNode = context.getResources().getString(
+                 com.android.internal.R.string.config_deviceDcDimmingSysfsNode);
+         mDcOnValue = context.getResources().getString(
+@@ -154,22 +164,116 @@ public class DcDimmingService extends SystemService {
+     }
+ 
+     private void updateLocked(boolean force, boolean initial) {
++        updateLocked(force, initial, mDcOn);
++    }
++
++    private void updateLocked(boolean force, boolean initial, boolean requested) {
+         if (!mAvailable) {
++            if (force) throw new IllegalStateException("DC dimming backend unavailable");
++            Slog.e(TAG, "DC dimming backend unavailable during policy update");
+             return;
+         }
+-        boolean enable = shouldEnableDc();
+-        Slog.v(TAG, "updateLocked mDcOn:" + mDcOn + " force:" + force
+-                + " initial:" + initial + " shouldEnableDc:" + enable);
+-        if (!force) {
+-            if ((!initial && mDcOn == enable) || (initial && !enable)) {
+-                return;
++        final boolean enable = force ? requested : shouldEnableDc();
++        if (!force && ((!initial && mDcOn == enable)
++                || (initial && !enable && !mUseXiaomiAidl))) return;
++        try {
++            if (mUseXiaomiAidl) {
++                setXiaomiDcDimming(enable);
++            } else {
++                writeSysfsNode(enable ? mDcOnValue : mDcOffValue);
+             }
+-            mDcOn = enable;
++        } catch (RemoteException | IOException error) {
++            if (force) throw new IllegalStateException("DC dimming operation failed", error);
++            Slog.e(TAG, "DC dimming policy operation failed", error);
++            return;
+         }
+-        writeSysfsNode(mDcOn ? mDcOnValue : mDcOffValue);
+-        Settings.System.putIntForUser(mContext.getContentResolver(),
++        mDcOn = enable;
++        if (!Settings.System.putIntForUser(mContext.getContentResolver(),
+                 Settings.System.DC_DIMMING_STATE, mDcOn ? 1 : 0,
+-                UserHandle.USER_CURRENT);
++                UserHandle.USER_CURRENT)) {
++            if (force) {
++                throw new IllegalStateException("DC dimming request accepted but persistence failed");
++            }
++            Slog.e(TAG, "DC dimming policy request accepted but persistence failed");
++        }
++    }
++
++    private IBinder getXiaomiDisplayService() {
++        return ServiceManager.checkService(XIAOMI_DISPLAY_INTERFACE + "/default");
++    }
++
++    private boolean readXiaomiDcDimming() throws IOException {
++        try (BufferedReader reader = new BufferedReader(new FileReader(mDcNode))) {
++            String line;
++            while ((line = reader.readLine()) != null) {
++                final int separator = line.indexOf(':');
++                if (separator < 0 || !"dc_mode[08]".equals(
++                        line.substring(0, separator).trim())) continue;
++                final String value = line.substring(separator + 1).trim();
++                if ("1".equals(value)) return true;
++                if ("0".equals(value)) return false;
++                throw new IOException("Invalid panel DC mode: " + value);
++            }
++        }
++        throw new IOException("DC mode missing from panel state");
++    }
++
++    private Boolean readXiaomiTimingDcDimming() {
++        DisplayManager manager = mContext.getSystemService(DisplayManager.class);
++        Display display = manager.getDisplay(Display.DEFAULT_DISPLAY);
++        if (display == null) return null;
++        Display.Mode[] modes = display.getSupportedModes();
++        boolean hasDc = false;
++        boolean hasPwm = false;
++        for (Display.Mode mode : modes) {
++            if (mode.getParentModeId() != -1) continue;
++            if (Math.abs(mode.getRefreshRate() - mode.getVsyncRate()) < 0.1f) {
++                hasDc = true;
++            } else {
++                hasPwm = true;
++            }
++        }
++        if (!hasDc || !hasPwm) return null;
++        Display.Mode active = display.getMode();
++        // Frame-rate overrides can return a synthetic render mode. Resolve it
++        // to the real panel mode before classifying DC versus ARR/PWM.
++        if (active.getParentModeId() != -1) {
++            int parent = active.getParentModeId();
++            active = null;
++            for (Display.Mode mode : modes) {
++                if (mode.getModeId() == parent) {
++                    active = mode;
++                    break;
++                }
++            }
++        }
++        if (active == null) return null;
++        return Math.abs(active.getRefreshRate() - active.getVsyncRate()) < 0.1f;
++    }
++
++    private void setXiaomiDcDimming(boolean enabled) throws RemoteException {
++        final IBinder binder = getXiaomiDisplayService();
++        if (binder == null) throw new RemoteException("DisplayFeature unavailable");
++        final Parcel data = Parcel.obtain();
++        final Parcel reply = Parcel.obtain();
++        try {
++            // Stock V2 AIDL setFeature(displayId, caseId, modeId, cookie).
++            data.writeInterfaceToken(XIAOMI_DISPLAY_INTERFACE);
++            data.writeInt(0);
++            data.writeInt(20); // DC_BACKLIGHT; panel DC_MODE feature 8.
++            data.writeInt(enabled ? 1 : 0);
++            data.writeInt(255);
++            if (!binder.transact(7, data, reply, 0)) {
++                throw new RemoteException("Unsupported DisplayFeature transaction");
++            }
++            reply.readException();
++        } finally {
++            reply.recycle();
++            data.recycle();
++        }
++        // setFeature acknowledges submission; the vendor applies it asynchronously.
++        // Do not compare the panel here: it may legitimately still expose the old
++        // mode. isDcDimmingOn() independently reads the actual hardware state.
+     }
+ 
+     private boolean shouldEnableDc() {
+@@ -213,8 +317,7 @@ public class DcDimmingService extends SystemService {
+                 final long ident = Binder.clearCallingIdentity();
+                 try {
+                     Slog.v(TAG, "setDcDimming(" + enable + ")");
+-                    mDcOn = enable;
+-                    updateLocked(true, false);
++                    updateLocked(true, false, enable);
+                 } finally {
+                     Binder.restoreCallingIdentity(ident);
+                 }
+@@ -233,55 +336,35 @@ public class DcDimmingService extends SystemService {
+ 
+         @Override
+         public boolean isDcDimmingOn() {
++            if (mUseXiaomiAidl) {
++                // PSR panels select DC through their timing submode. The sysfs
++                // feature flag is cached and can lag a mode change until the
++                // next backlight update; it is not a mode-completion signal.
++                Boolean timingDc = readXiaomiTimingDcDimming();
++                if (timingDc != null) return timingDc;
++                try {
++                    return readXiaomiDcDimming();
++                } catch (IOException e) {
++                    throw new IllegalStateException("Could not read panel DC state", e);
++                }
++            }
+             return mDcOn;
+         }
+     };
+ 
+-    private void writeSysfsNode(String value) {
++    private void writeSysfsNode(String value) throws IOException {
+         Slog.v(TAG, "writeSysfsNode value:" + value);
+-        BufferedWriter writer = null;
+-        try {
+-            writer = new BufferedWriter(new FileWriter(mDcNode));
++        try (BufferedWriter writer = new BufferedWriter(new FileWriter(mDcNode))) {
+             writer.write(value);
+-        } catch (FileNotFoundException e) {
+-            Slog.w(TAG, "No such file " + mDcNode + " for writing", e);
+-        } catch (IOException e) {
+-            Slog.e(TAG, "Could not write to file " + mDcNode, e);
+-        } finally {
+-            try {
+-                if (writer != null) {
+-                    writer.close();
+-                }
+-            } catch (IOException e) {
+-                // Ignored, not much we can do anyway
+-            }
+-        }
+-    }
+-
+-    private String readSysfsNode() {
+-        String line = null;
+-        BufferedReader reader = null;
+-        try {
+-            reader = new BufferedReader(new FileReader(mDcNode), 512);
+-            line = reader.readLine();
+-        } catch (FileNotFoundException e) {
+-            Slog.w(TAG, "No such file " + mDcNode + " for reading", e);
+-        } catch (IOException e) {
+-            Slog.e(TAG, "Could not read from file " + mDcNode, e);
+-        } finally {
+-            try {
+-                if (reader != null) {
+-                    reader.close();
+-                }
+-            } catch (IOException e) {
+-                // Ignored, not much we can do anyway
+-            }
+         }
+-        return line;
+     }
+ 
+     private boolean nodeExists() {
+         final File file = new File(mDcNode);
++        if (mUseXiaomiAidl) {
++            final IBinder binder = getXiaomiDisplayService();
++            return file.exists() && file.canRead() && binder != null && binder.isBinderAlive();
++        }
+         return file.exists() && file.canRead() && file.canWrite();
+     }
+ }
+diff --git a/services/core/java/com/android/server/display/DisplayDeviceConfig.java b/services/core/java/com/android/server/display/DisplayDeviceConfig.java
+index f25b593c26d7..f45717d94cc1 100644
+--- a/services/core/java/com/android/server/display/DisplayDeviceConfig.java
++++ b/services/core/java/com/android/server/display/DisplayDeviceConfig.java
+@@ -2739,10 +2739,12 @@ public class DisplayDeviceConfig {
+         mBacklightToBrightnessSpline = mInterpolationType == INTERPOLATION_LINEAR
+                 ? Spline.createLinearSpline(mBacklight, mBrightness)
+                 : Spline.createSpline(mBacklight, mBrightness);
+-        mBacklightToNitsSpline = mInterpolationType == INTERPOLATION_LINEAR
++        final boolean linearNitsMapping = mInterpolationType == INTERPOLATION_LINEAR
++                || mContext.getResources().getBoolean(R.bool.config_useLinearBrightnessCalibration);
++        mBacklightToNitsSpline = linearNitsMapping
+                 ? Spline.createLinearSpline(mBacklight, mNits)
+                 : Spline.createSpline(mBacklight, mNits);
+-        mNitsToBacklightSpline = mInterpolationType == INTERPOLATION_LINEAR
++        mNitsToBacklightSpline = linearNitsMapping
+                 ? Spline.createLinearSpline(mNits, mBacklight)
+                 : Spline.createSpline(mNits, mBacklight);
+     }
 diff --git a/services/core/java/com/android/server/display/DisplayManagerService.java b/services/core/java/com/android/server/display/DisplayManagerService.java
-index 82e87015f8b8..12c203417553 100644
+index 82e87015f8b8..41e0e678734a 100644
 --- a/services/core/java/com/android/server/display/DisplayManagerService.java
 +++ b/services/core/java/com/android/server/display/DisplayManagerService.java
 @@ -2943,8 +2943,10 @@ public final class DisplayManagerService extends SystemService {
@@ -3745,6 +5251,129 @@ index 82e87015f8b8..12c203417553 100644
                  : UserHandle.USER_SERIAL_SYSTEM;
          DisplayMode userPreferredDisplayMode = mPersistentDataStore.getUserPreferredDisplayMode(
                  userSerial, device);
+@@ -4537,6 +4539,11 @@ public final class DisplayManagerService extends SystemService {
+                 mSensorManager, mDisplayBlanker, display, mBrightnessTracker, brightnessSetting,
+                 () -> handleBrightnessChange(display), hbmMetadata, mBootCompleted, mFlags,
+                 mPluginManager);
++        if (display.getDisplayIdLocked() == Display.DEFAULT_DISPLAY
++                && SystemProperties.getInt("debug.sf.vrr_idle_min_fps", 60) < 60) {
++            displayPowerController.setBrightnessRampRefreshRateListener(active ->
++                    mDisplayModeDirector.setBrightnessRampActive(Display.DEFAULT_DISPLAY, active));
++        }
+         mDisplayPowerControllers.append(display.getDisplayIdLocked(), displayPowerController);
+         return displayPowerController;
+     }
+diff --git a/services/core/java/com/android/server/display/DisplayPowerController.java b/services/core/java/com/android/server/display/DisplayPowerController.java
+index 1a24d607f9e1..b499f3532991 100644
+--- a/services/core/java/com/android/server/display/DisplayPowerController.java
++++ b/services/core/java/com/android/server/display/DisplayPowerController.java
+@@ -118,6 +118,7 @@ import com.android.server.policy.WindowManagerPolicy;
+ import java.io.PrintWriter;
+ import java.util.concurrent.CountDownLatch;
+ import java.util.concurrent.TimeUnit;
++import java.util.function.Consumer;
+ 
+ /**
+  * Controls the power state of the display.
+@@ -1245,9 +1246,31 @@ final class DisplayPowerController implements AutomaticBrightnessController.Call
+         }
+     };
+ 
++    private Consumer<Boolean> mBrightnessRampRefreshRateListener;
++    private boolean mBrightnessRampRefreshRateRequested;
++
++    // Set by DisplayManagerService before this controller is handed out.
++    void setBrightnessRampRefreshRateListener(Consumer<Boolean> listener) {
++        mBrightnessRampRefreshRateListener = listener;
++    }
++
++    private void requestBrightnessRampRefreshRate(boolean active) {
++        if (mBrightnessRampRefreshRateListener != null
++                && mBrightnessRampRefreshRateRequested != active) {
++            mBrightnessRampRefreshRateRequested = active;
++            mBrightnessRampRefreshRateListener.accept(active);
++        }
++    }
++
+     private final RampAnimator.Listener mRampAnimatorListener = new RampAnimator.Listener() {
++        @Override
++        public void onAnimationStart() {
++            requestBrightnessRampRefreshRate(mPowerState.getScreenState() == Display.STATE_ON);
++        }
++
+         @Override
+         public void onAnimationEnd() {
++            requestBrightnessRampRefreshRate(false);
+             sendUpdatePowerState();
+             Message msg = mHandler.obtainMessage(MSG_BRIGHTNESS_RAMP_DONE);
+             mHandler.sendMessageAtTime(msg, mClock.uptimeMillis());
+@@ -1270,6 +1293,7 @@ final class DisplayPowerController implements AutomaticBrightnessController.Call
+ 
+     /** Clean up all resources that are accessed via the {@link #mHandler} thread. */
+     private void cleanupHandlerThreadAfterStop() {
++        requestBrightnessRampRefreshRate(false);
+         clearDisplayBrightnessFollowers();
+         mDisplayPowerProximityStateController.cleanup();
+         mBrightnessRangeController.stop();
+@@ -1549,8 +1573,11 @@ final class DisplayPowerController implements AutomaticBrightnessController.Call
+             if (BrightnessUtils.isValidBrightnessValue(animateValue)
+                     && (animateValue != currentBrightness
+                     || sdrAnimateValue != currentSdrBrightness)) {
++                // DIM is a power-policy transition, not a slider preview. It must use
++                // its configured fade even while a temporary adjustment is present.
+                 boolean skipAnimation = initialRampSkip || hasBrightnessBuckets
+-                        || !isDisplayContentVisible || brightnessIsTemporary;
++                        || !isDisplayContentVisible || (brightnessIsTemporary
++                        && mPowerRequest.policy != DisplayPowerRequest.POLICY_DIM);
+                 final boolean isHdrOnlyChange = BrightnessSynchronizer.floatEquals(
+                         sdrAnimateValue, currentSdrBrightness);
+                 if (mFlags.isFastHdrTransitionsEnabled() && !skipAnimation && isHdrOnlyChange) {
+@@ -1565,7 +1592,8 @@ final class DisplayPowerController implements AutomaticBrightnessController.Call
+                 if (skipAnimation) {
+                     animateScreenBrightness(animateValue, sdrAnimateValue,
+                             SCREEN_ANIMATION_RATE_MINIMUM);
+-                } else if (customAnimationRate > 0) {
++                } else if (customAnimationRate > 0
++                        && mPowerRequest.policy != DisplayPowerRequest.POLICY_DIM) {
+                     animateScreenBrightness(animateValue, sdrAnimateValue,
+                             customAnimationRate, /* ignoreAnimationLimits = */true);
+                 } else {
+@@ -1583,6 +1611,25 @@ final class DisplayPowerController implements AutomaticBrightnessController.Call
+                     } else {
+                         rampSpeed = mBrightnessRampRateFastDecrease;
+                     }
++                    // Use the native HLG animator for a device-configured idle fade.
++                    // Manual and ambient-light brightness transitions retain their rates.
++                    if (mPowerRequest.policy == DisplayPowerRequest.POLICY_DIM) {
++                        final int idleDimDuration = mContext.getResources().getInteger(
++                                com.android.internal.R.integer
++                                        .config_screenBrightnessIdleDimDurationMillis);
++                        if (idleDimDuration > 0) {
++                            final float distance = Math.max(
++                                    Math.abs(com.android.internal.display.BrightnessUtils
++                                            .convertLinearToGamma(animateValue)
++                                            - com.android.internal.display.BrightnessUtils
++                                                    .convertLinearToGamma(currentBrightness)),
++                                    Math.abs(com.android.internal.display.BrightnessUtils
++                                            .convertLinearToGamma(sdrAnimateValue)
++                                            - com.android.internal.display.BrightnessUtils
++                                                    .convertLinearToGamma(currentSdrBrightness)));
++                            if (distance > 0) rampSpeed = distance * 1000f / idleDimDuration;
++                        }
++                    }
+                     animateScreenBrightness(animateValue, sdrAnimateValue, rampSpeed);
+                 }
+             }
+@@ -2191,6 +2238,9 @@ final class DisplayPowerController implements AutomaticBrightnessController.Call
+ 
+             noteScreenBrightness(target);
+         }
++        // A zero-rate update can cancel an active animation without its end callback.
++        requestBrightnessRampRefreshRate(mScreenBrightnessRampAnimator.isAnimating()
++                && mPowerState.getScreenState() == Display.STATE_ON);
+     }
+ 
+     private void animateScreenStateChange(
 diff --git a/services/core/java/com/android/server/display/LocalDisplayAdapter.java b/services/core/java/com/android/server/display/LocalDisplayAdapter.java
 index 73c34a91d3a1..a850f6f8b92b 100644
 --- a/services/core/java/com/android/server/display/LocalDisplayAdapter.java
@@ -3780,6 +5409,28 @@ index 73c34a91d3a1..a850f6f8b92b 100644
          }
          return mOverlayContext;
      }
+diff --git a/services/core/java/com/android/server/display/RampAnimator.java b/services/core/java/com/android/server/display/RampAnimator.java
+index 1d8d0823f6c4..1ff35cce2c99 100644
+--- a/services/core/java/com/android/server/display/RampAnimator.java
++++ b/services/core/java/com/android/server/display/RampAnimator.java
+@@ -254,6 +254,7 @@ class RampAnimator<T> {
+     }
+ 
+     public interface Listener {
++        default void onAnimationStart() {}
+         void onAnimationEnd();
+     }
+ 
+@@ -327,6 +328,9 @@ class RampAnimator<T> {
+             if (shouldBeAnimating != mAwaitingCallback) {
+                 if (shouldBeAnimating) {
+                     mAwaitingCallback = true;
++                    if (mListener != null) {
++                        mListener.onAnimationStart();
++                    }
+                     postAnimationCallback();
+                 } else if (mAwaitingCallback) {
+                     mChoreographer.removeVsyncCallback(mAnimationCallback);
 diff --git a/services/core/java/com/android/server/display/brightness/strategy/AutomaticBrightnessStrategy.java b/services/core/java/com/android/server/display/brightness/strategy/AutomaticBrightnessStrategy.java
 index 7afda11e972e..0bce853191e2 100644
 --- a/services/core/java/com/android/server/display/brightness/strategy/AutomaticBrightnessStrategy.java
@@ -3794,6 +5445,156 @@ index 7afda11e972e..0bce853191e2 100644
          if (mAutoBrightnessAdjustment == mPendingAutoBrightnessAdjustment) {
              mPendingAutoBrightnessAdjustment = Float.NaN;
              return false;
+diff --git a/services/core/java/com/android/server/display/mode/DisplayModeDirector.java b/services/core/java/com/android/server/display/mode/DisplayModeDirector.java
+index c6927a6725ca..d309ab4a8823 100644
+--- a/services/core/java/com/android/server/display/mode/DisplayModeDirector.java
++++ b/services/core/java/com/android/server/display/mode/DisplayModeDirector.java
+@@ -288,6 +288,11 @@ public class DisplayModeDirector {
+         mVotesStorage.setLoggingEnabled(loggingEnabled);
+     }
+ 
++    public void setBrightnessRampActive(int displayId, boolean active) {
++        mVotesStorage.updateVote(displayId, Vote.PRIORITY_BRIGHTNESS_RAMP_RENDER_FRAME_RATE,
++                active ? Vote.forRenderFrameRates(60f, Float.POSITIVE_INFINITY) : null);
++    }
++
+     /**
+      * Calculates the refresh rate ranges and display modes that the system is allowed to freely
+      * switch between based on global and display-specific constraints.
+diff --git a/services/core/java/com/android/server/display/mode/Vote.java b/services/core/java/com/android/server/display/mode/Vote.java
+index a0efef89c2d5..d42f0850f2c0 100644
+--- a/services/core/java/com/android/server/display/mode/Vote.java
++++ b/services/core/java/com/android/server/display/mode/Vote.java
+@@ -55,12 +55,15 @@ interface Vote {
+     // User setting preferred display mode
+     int PRIORITY_USER_SETTING_DISPLAY_PREFERRED_OPTIONS = 5;
+ 
++    // Keep brightness ramps smooth while respecting app, user peak and safety limits.
++    int PRIORITY_BRIGHTNESS_RAMP_RENDER_FRAME_RATE = 6;
++
+     // APP_REQUEST_RENDER_FRAME_RATE_RANGE is used to for internal apps to limit the render
+     // frame rate in certain cases, mostly to preserve power.
+     // @see android.view.WindowManager.LayoutParams#preferredMinRefreshRate
+     // @see android.view.WindowManager.LayoutParams#preferredMaxRefreshRate
+     // It votes to [preferredMinRefreshRate, preferredMaxRefreshRate].
+-    int PRIORITY_APP_REQUEST_RENDER_FRAME_RATE_RANGE = 6;
++    int PRIORITY_APP_REQUEST_RENDER_FRAME_RATE_RANGE = 7;
+ 
+     // We split the app request into different priorities in case we can satisfy one desire
+     // without the other.
+@@ -86,77 +89,77 @@ interface Vote {
+     // The preferred refresh rate is set on the main surface of the app outside of
+     // DisplayModeDirector.
+     // @see com.android.server.wm.WindowState#updateFrameRateSelectionPriorityIfNeeded
+-    int PRIORITY_APP_REQUEST_BASE_MODE_REFRESH_RATE = 7;
++    int PRIORITY_APP_REQUEST_BASE_MODE_REFRESH_RATE = 8;
+ 
+-    int PRIORITY_APP_REQUEST_SIZE = 8;
++    int PRIORITY_APP_REQUEST_SIZE = 9;
+ 
+     // PRIORITY_REJECTED_MODES rejects the modes for which the mode config failed
+     // so that the modeset can be retried for next available mode after filtering
+     // out the rejected modes for the connected display
+-    int PRIORITY_REJECTED_MODES = 9;
++    int PRIORITY_REJECTED_MODES = 10;
+ 
+     // PRIORITY_USER_SETTING_PEAK_REFRESH_RATE restricts physical refresh rate to
+     // [0, max(PEAK, MIN)], depending on user settings peakRR/minRR values
+-    int PRIORITY_USER_SETTING_PEAK_REFRESH_RATE = 10;
++    int PRIORITY_USER_SETTING_PEAK_REFRESH_RATE = 11;
+ 
+     // PRIORITY_USER_SETTING_PEAK_RENDER_FRAME_RATE has a higher priority than
+     // PRIORITY_USER_SETTING_PEAK_REFRESH_RATE and will limit render rate to [0, max(PEAK, MIN)]
+     // in case physical refresh rate vote is discarded (due to other high priority votes),
+     // render rate vote can still apply
+-    int PRIORITY_USER_SETTING_PEAK_RENDER_FRAME_RATE = 11;
++    int PRIORITY_USER_SETTING_PEAK_RENDER_FRAME_RATE = 12;
+ 
+     // Restrict all displays physical refresh rate to 60Hz when external display is connected.
+     // It votes [59Hz, 61Hz].
+-    int PRIORITY_SYNCHRONIZED_REFRESH_RATE = 12;
++    int PRIORITY_SYNCHRONIZED_REFRESH_RATE = 13;
+ 
+     // PRIORITY_SYNCHRONIZED_RENDER_FRAME_RATE has a higher priority than
+     // PRIORITY_SYNCHRONIZED_REFRESH_RATE and will limit render rate to [59Hz, 61Hz].
+     // In case physical refresh rate vote discarded (due to physical refresh rate not supported),
+     // render rate vote can still apply.
+-    int PRIORITY_SYNCHRONIZED_RENDER_FRAME_RATE = 13;
++    int PRIORITY_SYNCHRONIZED_RENDER_FRAME_RATE = 14;
+ 
+     // Restrict displays max available resolution and refresh rates. It votes [0, LIMIT]
+-    int PRIORITY_LIMIT_MODE = 14;
++    int PRIORITY_LIMIT_MODE = 15;
+ 
+     // To avoid delay in switching between 60HZ -> 90HZ when activating LHBM, set refresh
+     // rate to max value (same as for PRIORITY_UDFPS) on lock screen
+-    int PRIORITY_AUTH_OPTIMIZER_RENDER_FRAME_RATE = 15;
++    int PRIORITY_AUTH_OPTIMIZER_RENDER_FRAME_RATE = 16;
+ 
+     // For concurrent displays we want to limit refresh rate on all displays
+-    int PRIORITY_LAYOUT_LIMITED_REFRESH_RATE = 16;
++    int PRIORITY_LAYOUT_LIMITED_REFRESH_RATE = 17;
+ 
+     // For concurrent displays we want to limit refresh rate on all displays
+-    int PRIORITY_LAYOUT_LIMITED_FRAME_RATE = 17;
++    int PRIORITY_LAYOUT_LIMITED_FRAME_RATE = 18;
+ 
+     // For internal application to limit display modes to specific ids
+-    int PRIORITY_SYSTEM_REQUESTED_MODES = 18;
++    int PRIORITY_SYSTEM_REQUESTED_MODES = 19;
+ 
+     // PRIORITY_LOW_POWER_MODE_MODES limits display modes to specific refreshRate-vsync pairs if
+     // Settings.Global.LOW_POWER_MODE is on.
+     // Lower priority that PRIORITY_LOW_POWER_MODE_RENDER_RATE and if discarded (due to other
+     // higher priority votes), render rate limit can still apply
+-    int PRIORITY_LOW_POWER_MODE_MODES = 19;
++    int PRIORITY_LOW_POWER_MODE_MODES = 20;
+ 
+     // PRIORITY_LOW_POWER_MODE_RENDER_RATE force the render frame rate to [0, 60HZ] if
+     // Settings.Global.LOW_POWER_MODE is on.
+-    int PRIORITY_LOW_POWER_MODE_RENDER_RATE = 20;
++    int PRIORITY_LOW_POWER_MODE_RENDER_RATE = 21;
+ 
+     // PRIORITY_FLICKER_REFRESH_RATE_SWITCH votes for disabling refresh rate switching. If the
+     // higher priority voters' result is a range, it will fix the rate to a single choice.
+     // It's used to avoid refresh rate switches in certain conditions which may result in the
+     // user seeing the display flickering when the switches occur.
+-    int PRIORITY_FLICKER_REFRESH_RATE_SWITCH = 21;
++    int PRIORITY_FLICKER_REFRESH_RATE_SWITCH = 22;
+ 
+     // Force display to [0, 60HZ] if skin temperature is at or above CRITICAL.
+-    int PRIORITY_SKIN_TEMPERATURE = 22;
++    int PRIORITY_SKIN_TEMPERATURE = 23;
+ 
+     // The proximity sensor needs the refresh rate to be locked in order to function, so this is
+     // set to a high priority.
+-    int PRIORITY_PROXIMITY = 23;
++    int PRIORITY_PROXIMITY = 24;
+ 
+     // The Under-Display Fingerprint Sensor (UDFPS) needs the refresh rate to be locked in order
+     // to function, so this needs to be the highest priority of all votes.
+-    int PRIORITY_UDFPS = 24;
++    int PRIORITY_UDFPS = 25;
+ 
+     @IntDef(prefix = { "PRIORITY_" }, value = {
+             PRIORITY_DEFAULT_RENDER_FRAME_RATE,
+@@ -164,6 +167,7 @@ interface Vote {
+             PRIORITY_HIGH_BRIGHTNESS_MODE,
+             PRIORITY_USER_SETTING_MIN_RENDER_FRAME_RATE,
+             PRIORITY_USER_SETTING_DISPLAY_PREFERRED_OPTIONS,
++            PRIORITY_BRIGHTNESS_RAMP_RENDER_FRAME_RATE,
+             PRIORITY_APP_REQUEST_RENDER_FRAME_RATE_RANGE,
+             PRIORITY_APP_REQUEST_BASE_MODE_REFRESH_RATE,
+             PRIORITY_APP_REQUEST_SIZE,
+@@ -318,6 +322,8 @@ interface Vote {
+                 return "PRIORITY_FLICKER_REFRESH_RATE";
+             case PRIORITY_FLICKER_REFRESH_RATE_SWITCH:
+                 return "PRIORITY_FLICKER_REFRESH_RATE_SWITCH";
++            case PRIORITY_BRIGHTNESS_RAMP_RENDER_FRAME_RATE:
++                return "PRIORITY_BRIGHTNESS_RAMP_RENDER_FRAME_RATE";
+             case PRIORITY_HIGH_BRIGHTNESS_MODE:
+                 return "PRIORITY_HIGH_BRIGHTNESS_MODE";
+             case PRIORITY_PROXIMITY:
 diff --git a/services/core/java/com/android/server/dreams/DreamController.java b/services/core/java/com/android/server/dreams/DreamController.java
 index 6672fbbd9a62..375839af9378 100644
 --- a/services/core/java/com/android/server/dreams/DreamController.java
@@ -6086,6 +7887,30 @@ index 303600bb1168..84c2857f2cfc 100644
 -            BluetoothDevice mBluetoothDevice, String name, String address) {}
 +    private record BluetoothDeviceHolder(String name, String routeId) {}
  }
+diff --git a/services/core/java/com/android/server/pm/ComputerEngine.java b/services/core/java/com/android/server/pm/ComputerEngine.java
+index 4ce3cabdd972..381fbe436d61 100644
+--- a/services/core/java/com/android/server/pm/ComputerEngine.java
++++ b/services/core/java/com/android/server/pm/ComputerEngine.java
+@@ -3369,6 +3369,7 @@ public class ComputerEngine implements Computer {
+             }
+             match &= IntentFilter.MATCH_CATEGORY_MASK;
+             final int m = prefs.size();
++            preferredActivities:
+             for (int i = 0; i < m; i++) {
+                 final PreferredActivity pa = prefs.get(i);
+                 if (DEBUG_PREFERRED || debug) {
+@@ -3501,8 +3502,10 @@ public class ComputerEngine implements Computer {
+                                     pir.addFilter(this, lastChosen);
+                                     result.mChanged = true;
+                                 }
++                                // A wildcard MIME intent can match several preferred filters.
++                                // Rejecting one obsolete set must not hide a later valid choice.
+                                 result.mPreferredResolveInfo = null;
+-                                return result;
++                                continue preferredActivities;
+                             }
+                         }
+                     }
 diff --git a/services/core/java/com/android/server/pm/KillAppBlocker.java b/services/core/java/com/android/server/pm/KillAppBlocker.java
 index 265b6f60f28c..38735291ad57 100644
 --- a/services/core/java/com/android/server/pm/KillAppBlocker.java
@@ -21021,6 +22846,19 @@ index d483985c32ac..acaeeaea5837 100644
          // Create Vibration.Stats as close to the received request as possible, for tracking.
          SingleVibrationSession session = new SingleVibrationSession(token, callerInfo, effect);
          HalVibration vib = session.getVibration();
+diff --git a/services/core/java/com/android/server/wm/ActionChain.java b/services/core/java/com/android/server/wm/ActionChain.java
+index 806ed9a61832..748d2c662179 100644
+--- a/services/core/java/com/android/server/wm/ActionChain.java
++++ b/services/core/java/com/android/server/wm/ActionChain.java
+@@ -184,7 +184,7 @@ public class ActionChain {
+             Slog.e(TAG, "Trying to collect into a finished transition");
+             return null;
+         }
+-        if (transition.mController.getCollectingTransition() != mTransition) {
++        if (transition.mController.getCollectingTransition() != transition) {
+             Slog.e(TAG, "Mismatch between current collecting ("
+                     + transition.mController.getCollectingTransition() + ") and chain ("
+                     + transition + ")");
 diff --git a/services/core/java/com/android/server/wm/ActivityCallerState.java b/services/core/java/com/android/server/wm/ActivityCallerState.java
 index a333a4d46162..5a9b4c5e8686 100644
 --- a/services/core/java/com/android/server/wm/ActivityCallerState.java
@@ -21216,7 +23054,7 @@ index 13da26d0b594..8a02daa76eec 100644
                      res = r.finishing;
                      if (!res) {
 diff --git a/services/core/java/com/android/server/wm/ActivityRecord.java b/services/core/java/com/android/server/wm/ActivityRecord.java
-index a536d191644e..aeb364b4518d 100644
+index a536d191644e..f2ce8e2f8f9d 100644
 --- a/services/core/java/com/android/server/wm/ActivityRecord.java
 +++ b/services/core/java/com/android/server/wm/ActivityRecord.java
 @@ -354,7 +354,7 @@ import com.android.server.contentcapture.ContentCaptureManagerInternal;
@@ -21389,6 +23227,23 @@ index a536d191644e..aeb364b4518d 100644
                  getUriPermissionsLocked());
          if (isShareIdentityEnabled && android.security.Flags.contentUriPermissionApis()) {
              final PackageManagerInternal pmInternal = mAtmService.getPackageManagerInternalLocked();
+@@ -7633,6 +7636,16 @@ public final class ActivityRecord extends WindowToken {
+     @Configuration.Orientation
+     @Override
+     int getRequestedConfigurationOrientation(boolean forDisplay) {
++        // Match the task orientation for the display-size preference on large-screen embedding.
++        // A temporary portrait configuration shifts the full-task splash before split bounds arrive.
++        if (task != null
++                && mAppCompatController.getAspectRatioOverrides().getUserMinAspectRatioOverrideCode()
++                        == PackageManager.USER_MIN_ASPECT_RATIO_DISPLAY_SIZE
++                && !mAppCompatController.getTransparentPolicy().hasInheritedOrientation()
++                && !ActivityInfo.isFixedOrientationPortrait(getRequestedOrientation())
++                && shouldIgnoreOrientationRequests()) {
++            return ORIENTATION_UNDEFINED;
++        }
+         return getRequestedConfigurationOrientation(forDisplay, getOverrideOrientation());
+     }
+ 
 diff --git a/services/core/java/com/android/server/wm/ActivityStartController.java b/services/core/java/com/android/server/wm/ActivityStartController.java
 index f95102dc0801..73076425c4e0 100644
 --- a/services/core/java/com/android/server/wm/ActivityStartController.java
